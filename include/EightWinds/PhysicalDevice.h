@@ -5,13 +5,13 @@ namespace EWE{
     struct PhysicalDevice{
         Instance& instance;
 
-        VkPhysicalDevice                    device;
-        VkPhysicalDeviceLimits              limits;
-        VkPhysicalDeviceProperties          properties;
-        VkPhysicalDeviceVulkan11Properties  properties11;
-        VkPhysicalDeviceVulkan12Properties  properties12;
-        VkPhysicalDeviceVulkan13Properties  properties13;
+        vk::PhysicalDevice                    device;
+        vk::PhysicalDeviceLimits              limits;
+        vk::PhysicalDeviceProperties          properties;
+        vk::PhysicalDeviceVulkan11Properties  properties11;
+        vk::PhysicalDeviceVulkan12Properties  properties12;
+        vk::PhysicalDeviceVulkan13Properties  properties13;
 
-        [[nodiscard]] explicit PhysicalDevice(Instance& instance);
+        [[nodiscard]] explicit PhysicalDevice(Instance& instance, vk::SurfaceKHR surface);
     };
 }

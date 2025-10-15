@@ -4,11 +4,12 @@
 
 namespace EWE{
 
-    bool IsDeviceSuitable(VkPhysicalDevice device) {
+
+
+    bool IsDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
         bool queuesComplete = FindQueueFamilies(device, surface);
 
         bool extensionsSupported = CheckDeviceExtensionSupport(device);
-
 
         bool swapChainAdequate = false;
         if (extensionsSupported) {
@@ -16,15 +17,14 @@ namespace EWE{
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
-        VkPhysicalDeviceFeatures supportedFeatures;
-        EWE_VK(vkGetPhysicalDeviceFeatures, device, &supportedFeatures);
+        vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
 
         return queuesComplete && extensionsSupported && swapChainAdequate &&
             supportedFeatures.samplerAnisotropy;
     }
 
 
-    PhysicalDevice::PhysicalDevice(Instance& instance) : instance{instance} {
+    PhysicalDevice::PhysicalDevice(Instance& instance, vk::SurfaceKHR surface) : instance{instance} {
         
         uint32_t deviceCount = 16;
         std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -41,9 +41,10 @@ namespace EWE{
             EWE_VK(vkGetPhysicalDeviceProperties, devices[i], &properties);
 
             uint32_t score = 0;
-            score += (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) * 1000;
+            
+            score += (properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) * 1000;
             score += properties.limits.maxImageDimension2D;
-            const std::string deviceNameTemp = properties.deviceName;
+            std::string_view deviceNameTemp = properties.deviceName;
 #if AMD_TARGET
             if (deviceNameTemp.find("AMD") == deviceNameTemp.npos) {
                 score = 0;
@@ -58,7 +59,7 @@ namespace EWE{
             }
 #endif
 
-            printf("Device Name:Score %s:%u \n", VK::Object->properties.deviceName, score);
+            printf("Device Name:Score %s:%u \n", deviceNameTemp.data(), score);
             for (auto iter = deviceScores.begin(); iter != deviceScores.end(); iter++) {
 
                 //big to little

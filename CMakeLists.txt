@@ -18,6 +18,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(USE_SSE "Enable SSE optimizations" OFF)
 option(USE_AVX2 "Enable AVX2 optimizations" ON)
+option(FORCE_DEBUG_MODE "Internal Debugging In Release Mode" OFF)
 
 set(is_project_root OFF)
 
@@ -41,23 +42,18 @@ if(POLICY CMP0077)
 	cmake_policy(SET CMP0077 NEW)
 endif()
 
-FetchContent_Declare(
-	spirv-cross
-	GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Cross.git
-	GIT_TAG HEAD
-	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/include/spirvcross"
-	BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/spirvcross-build"
-)
-FetchContent_MakeAvailable(spirv-cross)
+add_subdirectory(external/include/spirvcross)
+add_subdirectory(external/vma)
 
-FetchContent_Declare(
-	vma
-	GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-	GIT_TAG 98c4f34
-	SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/vma"
-)
-FetchContent_MakeAvailable(vma)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
+set(GLFW_INSTALL OFF CACHE BOOL "")
+set(GLFW_VULKAN_STATIC ON CACHE BOOL "")
 
+add_subdirectory(external/glfw)
+
+#when i get lab to a stable point ill make it a git submodule
 if(NOT TARGET LinearAlgebra)
 	if(DEFINED LAB_PATH AND EXISTS "${LAB_PATH}/CMakeLists.txt")
 		message(STATUS "~~~~FOUND~~~~ Using local LAB from ${LAB_PATH}")
@@ -119,7 +115,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:include>
 	
 	${Vulkan_INCLUDE_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/external/GLFW/include/
 	${CMAKE_CURRENT_SOURCE_DIR}/external/include
+	${CMAKE_CURRENT_SOURCE_DIR}/external
 	${LinearAlgebra_SOURCE_DIR}
 )
 #set(EWENGINE_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "Build directory for EWEngine")

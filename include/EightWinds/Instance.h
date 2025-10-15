@@ -1,3 +1,4 @@
+#pragma once
 #include "EightWinds/VulkanHeader.h"
 
 #include <vector>
@@ -9,8 +10,14 @@ namespace EWE{
     //https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#vkCreateInstance
     //https://registry.khronos.org/vulkan/specs/latest/man/html/VkInstanceCreateInfo.html
     struct Instance{
-        [[nodiscard]] explicit Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, VkAllocationCallbacks const* allocCallbacks);
+        [[nodiscard]] Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, vk::AllocationCallbacks const* allocCallbacks);
 
-        VkInstance instance;
+        vk::Instance instance;
+
+        operator vk::Instance() const {return instance;}
+
+        bool operator==(Instance const& other) const {
+            return instance == other.instance;
+        }
     };
 }

@@ -1,9 +1,14 @@
-#include "vulkan/vulkan.h"
+#include "vulkan/vulkan.hpp"
+
+#include "Preprocessor.h"
 
 #include <functional>
 #include <type_traits>
 
 namespace EWE{
+
+    void EWE_VK_RESULT(VkResult vkResult);
+
     template<typename F, typename... Args>
     auto EWE_VK(F&& f, Args&&... args) {
     #if WRAPPING_VULKAN_FUNCTIONS

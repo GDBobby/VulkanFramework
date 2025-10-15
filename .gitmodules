@@ -1,0 +1,11 @@
+[submodule "glfw"]
+	path = external/glfw
+	url = https://github.com/glfw/glfw
+
+[submodule "spirv-cross"]
+	path = external/include/spirvcross
+	url = https://github.com/KhronosGroup/SPIRV-Cross
+
+[submodule "vma"]
+	path = external/vma
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator

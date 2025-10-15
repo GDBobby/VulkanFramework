@@ -1,5 +1,12 @@
 
-#if EWE_DEBUG
+#ifndef EWE_DEBUG
+#define EWE_DEBUG
+#define EWE_DEBUG_BOOL true
+#else
+#define EWE_DEBUG_BOOL false
+#endif
+
+#ifdef EWE_DEBUG
     #ifdef _MSC_VER
         #define EWE_UNREACHABLE assert(false)
     #elif defined(__GNUC__) || defined(__clang__)

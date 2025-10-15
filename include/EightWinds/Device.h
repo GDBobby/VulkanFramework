@@ -1,8 +1,10 @@
 #include "EightWinds/VulkanHeader.h"
+#include "EightWinds/PhysicalDevice.h"
 
 namespace EWE{
 
     struct Device{
-        VkDevice device;
+        PhysicalDevice physicalDevice;
+        vk::Device device;
     };
 }
