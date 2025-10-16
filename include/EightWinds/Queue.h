@@ -1,12 +1,17 @@
 #include "EightWinds/VulkanHeader.h"
 #include "PhysicalDevice.h"
 
+#include <span>
+#include <optional>
+
 namespace EWE{
 
     struct QueueFamily {
-        vk::QueueFamilyProperties2 properties; //includes properties1
+        vk::QueueFamilyProperties properties; //includes properties1
 
-        [[nodiscard]] explicit QueueFamily(vk::QueueFamilyProperties2 const& properties);
+        uint16_t index; //queue family index
+
+        [[nodiscard]] explicit QueueFamily(vk::QueueFamilyProperties const& properties);
 
         bool SupportsGraphics() const;
         bool SupportsCompute() const;
@@ -17,6 +22,7 @@ namespace EWE{
     };
 
     struct Queue {
+
         QueueFamily& family;
         vk::Queue queue;
 
@@ -24,25 +30,37 @@ namespace EWE{
     };
     struct QueueRequest {
         enum class Level {
-            Luxury, //no warning
-            Preferred, //warning if unavailable
-            Vital, //error if unavailable
+            None,
+            Warning,
+            Error
+        };
+
+        enum class MergePreference{ //based on Level, youll get feedback if you dont get the preferred Merge
+            Combined,
+            Separate,
         };
 
         //idk why QueueFlagBits doesnt include present, but whatever. 
         //redefining QueueFlagBits here so I can add present
-        //i also need it to be able to combine
+        //i also need it to be able to combine, which an enum class isn't very friendly with
         enum Flags : uint8_t { 
-            Graphics,
-            Present,
-            GraphicsPresentCombined,
-            Transfer,
-            Compute,
-            TransferComputeCombined,
+#define QFB_REF(a) a = QueueFlagBits::a
+            QBF_REF(eGraphics),
+            QBF_REF(eCompute),
+            QBF_REF(eTransfer),
+            QBF_REF(eSparseBinding),
+            QBF_REF(eProtected),
+            QBF_REF(eVideoDecodeKHR),
+            QBF_REF(eOpticalFlowNV)
+#undef
+            ePresent = eOpiticalFlowNV << 1,
+
+            COUNT = 8 //the amount of flags
         };
 
         Level level;
         Flags flags;
+        MergePreference mergePref;
 
         static std::vector<std::optional<Queue>> RequestQueues(std::span<QueueRequest> requests, vk::SurfaceKHR surface);
     };
