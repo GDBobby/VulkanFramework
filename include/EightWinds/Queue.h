@@ -26,6 +26,10 @@ namespace EWE{
         QueueFamily& family;
         vk::Queue queue;
 
+
+		//void BeginLabel(const char* name, float red, float green, float blue);
+		//void EndLabel();
+
         operator vk::Queue() const { return queue; }
     };
     struct QueueRequest {
