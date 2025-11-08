@@ -16,7 +16,9 @@ namespace EWE{
         LogicalDevice& logicalDevice;
         Queue& queue;
 
-        vkCommandPool commandPool;
+        VkCommandPool commandPool;
+
+        uint16_t allocatedBuffers = 0;
 
         //main rendering thread should not be auxilary, the rest are
         //auxilary pools can reset individual command buffers, main pool resets all at once

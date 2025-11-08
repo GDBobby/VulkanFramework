@@ -9,6 +9,7 @@ namespace EWE{
     struct DescriptorSetLayout{
         DescriptorPool& pool;
 
+        DescriptorSetLayout(DescriptorPool& pool) : pool{pool} {}
         //std::vector<DescriptorSet> bindings{}; //possible to skip a binding, need a key value pair
     };
 }

@@ -1,68 +1,69 @@
-#include "EightWinds/Vulkan/PipelineBarrier.h"
+#include "EightWinds/PipelineBarrier.h"
 
 
 #include <iterator>
+#include <cassert>
 
 namespace EWE {
 
-   constexpr vkAccessFlags2 usageToAccess(vkImageUsageFlags usage, bool writes) {
-        vkAccessFlags2 access{};
+   constexpr VkAccessFlags2 usageToAccess(VkImageUsageFlags usage, bool writes) {
+        VkAccessFlags2 access = VK_ACCESS_2_NONE;
+        
+        if (usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT){
+            access |= VK_ACCESS_2_TRANSFER_READ;
+        }
+        if (usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT){
+            access |= VK_ACCESS_2_TRANSFER_WRITE;
+        }
 
-        if (usage & vkImageUsageFlagBits::eTransferSrc){
-            access |= vkAccessFlagBits2::eTransferRead;
+        if (usage & VK_IMAGE_USAGE_SAMPLED_BIT){
+            access |= VK_ACCESS_2_SHADER_SAMPLER_READ;
         }
-        if (usage & vkImageUsageFlagBits::eTransferDst){
-            access |= vkAccessFlagBits2::eTransferWrite;
-        }
-
-        if (usage & vkImageUsageFlagBits::eSampled){
-            access |= vkAccessFlagBits2::eShaderSampledRead;
-        }
-        if (usage & vkImageUsageFlagBits::eStorage){
+        if (usage & VK_IMAGE_USAGE_STORAGE_BIT) {
             access |= writes 
-                        ? vkAccessFlagBits2::eShaderStorageWrite
-                        : vkAccessFlagBits2::eShaderStorageRead;
+                        ? VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT
+                        : VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
         }
 
-        if (usage & vkImageUsageFlagBits::eColorAttachment){
+        if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT){
             access |= writes
-                        ? vkAccessFlagBits2::eColorAttachmentWrite
-                        : vkAccessFlagBits2::eColorAttachmentRead;
+                        ? VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
+                        : VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
         }
 
-        if (usage & vkImageUsageFlagBits::eDepthStencilAttachment){
+        if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
             access |= writes
-                        ? vkAccessFlagBits2::eDepthStencilAttachmentWrite
-                        : vkAccessFlagBits2::eDepthStencilAttachmentRead;
+                        ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+                        : VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
         }
 
-        if (usage & vkImageUsageFlagBits::eInputAttachment){
-            access |= vkAccessFlagBits2::eInputAttachmentRead;
+        if (usage & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT){
+            access |= VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT;
         }
 
-        if (usage & vkImageUsageFlagBits::eHostTransferEXT) {
+        if (usage & VK_IMAGE_USAGE_HOST_TRANSFER_BIT) {
             access |= writes
-                        ? vkAccessFlagBits2::eHostWrite
-                        : vkAccessFlagBits2::eHostRead;
+                        ? VK_ACCESS_2_HOST_WRITE_BIT
+                        : VK_ACCESS_2_HOST_READ;
+        }
+        
+
+        if (usage & VK_IMAGE_USAGE_ATTACHMENT_FEEDBACK_LOOP_BIT_EXT){
+            access |= VK_ACCESS_2_SHADER_READ_BIT|
+                    VK_ACCESS_2_SHADER_WRITE_BIT;
         }
 
-        if (usage & vkImageUsageFlagBits::eAttachmentFeedbackLoopEXT){
-            access |= vkAccessFlagBits2::eShaderRead |
-                    vkAccessFlagBits2::eShaderWrite;
+        if (usage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT) {
+            access |= VK_ACCESS_2_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
         }
 
-        if (usage & vkImageUsageFlagBits::eFragmentDensityMapEXT) {
-            access |= vkAccessFlagBits2::eFragmentDensityMapReadEXT;
-        }
-
-        if (usage & vkImageUsageFlagBits::eShadingRateImageNV ||
-            usage & vkImageUsageFlagBits::eFragmentShadingRateAttachmentKHR)
+        if (usage & VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR)
         {
-            access |= vkAccessFlagBits2::eFragmentShadingRateAttachmentReadKHR;
+            access |= VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
         }
 
-        if (usage & vkImageUsageFlagBits::eInvocationMaskHUAWEI){
-            access |= vkAccessFlagBits2::eInvocationMaskReadHUAWEI;
+        if (usage & VK_IMAGE_USAGE_INVOCATION_MASK_BIT_HUAWEI){
+            access |= VK_ACCESS_2_INVOCATION_MASK_READ_BIT_HUAWEI;
         }
 
         //if (usage & vkImageUsageFlagBits::eSampleWeightQCOM ||
@@ -70,10 +71,11 @@ namespace EWE {
         //    access |= vkAccessFlagBits2::eOpticalFlowReadQCOM |
         //            vkAccessFlagBits2::eOpticalFlowWriteQCOM;
 
-        if (!access){
+        if (access == VK_ACCESS_2_NONE){
             printf("warning, no usage to access\n");
-            access = writes ? vkAccessFlagBits2::eMemoryWrite
-                            : vkAccessFlagBits2::eMemoryRead;
+            
+            access = writes ? VK_ACCESS_2_MEMORY_WRITE_BIT
+                            : VK_ACCESS_2_MEMORY_READ_BIT;
         }
 
         return access;
@@ -90,6 +92,7 @@ namespace EWE {
         bufferBarriers{}
     {}
     PipelineBarrier::PipelineBarrier(PipelineBarrier& copySource) noexcept :
+        cmdBuf{copySource.cmdBuf},
         srcStageMask{ copySource.srcStageMask },
         dstStageMask{ copySource.dstStageMask },
         dependencyFlags{ copySource.dependencyFlags },
@@ -98,6 +101,7 @@ namespace EWE {
         bufferBarriers{ std::move(copySource.bufferBarriers) }
     {}
     PipelineBarrier& PipelineBarrier::operator=(PipelineBarrier& copySource) noexcept {
+        assert(cmdBuf == copySource.cmdBuf);
         srcStageMask = copySource.srcStageMask;
         dstStageMask = copySource.dstStageMask;
         dependencyFlags = copySource.dependencyFlags;
@@ -108,6 +112,7 @@ namespace EWE {
         return *this;
     }
     PipelineBarrier::PipelineBarrier(PipelineBarrier&& moveSource) noexcept :
+        cmdBuf{moveSource.cmdBuf},
         srcStageMask{ moveSource.srcStageMask },
         dstStageMask{ moveSource.dstStageMask },
         dependencyFlags{ moveSource.dependencyFlags },
@@ -116,6 +121,7 @@ namespace EWE {
         bufferBarriers{ std::move(moveSource.bufferBarriers) }
     {}
     PipelineBarrier& PipelineBarrier::operator=(PipelineBarrier&& moveSource) noexcept {
+        assert(cmdBuf == moveSource.cmdBuf);
         srcStageMask = moveSource.srcStageMask;
         dstStageMask = moveSource.dstStageMask;
         dependencyFlags = moveSource.dependencyFlags;
@@ -162,9 +168,9 @@ namespace EWE {
         while (currentComparisonIndex < barriers.size()) {
             nextComparisonIndex = static_cast<uint8_t>(barriers.size());
 
-            const vkPipelineStageFlagBits cSrcStageMask = barriers[currentComparisonIndex].srcStageMask;
-            const vkPipelineStageFlagBits cDstStageMask = barriers[currentComparisonIndex].dstStageMask;
-            const vkDependencyFlags cDependencyFlags = barriers[currentComparisonIndex].dependencyFlags;
+            const VkPipelineStageFlagBits cSrcStageMask = barriers[currentComparisonIndex].srcStageMask;
+            const VkPipelineStageFlagBits cDstStageMask = barriers[currentComparisonIndex].dstStageMask;
+            const VkDependencyFlags cDependencyFlags = barriers[currentComparisonIndex].dependencyFlags;
 
             for ( ; currentComparisonIndex < static_cast<uint8_t>(barriers.size()); currentComparisonIndex++) {
                 const bool srcComp{ cSrcStageMask == barriers[currentComparisonIndex].srcStageMask };
@@ -186,10 +192,10 @@ namespace EWE {
 
 	namespace Barrier {
 		vkImageMemoryBarrier ChangeImageLayout(
-			const vkImage image,
-			const vkImageLayout oldImageLayout,
-			const vkImageLayout newImageLayout,
-			vkImageSubresourceRange const& subresourceRange
+			const VkImage image,
+			const VkImageLayout oldImageLayout,
+			const VkImageLayout newImageLayout,
+			VkImageSubresourceRange const& subresourceRange
 		) {
 			vkImageMemoryBarrier imageMemoryBarrier{};
 			imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -217,9 +223,9 @@ namespace EWE {
 			return imageMemoryBarrier;
 		}
 
-        vkImageMemoryBarrier TransitionImageLayout(vkImage& image, vkImageLayout srcLayout, vkImageLayout dstLayout, uint32_t mipLevels, uint8_t layerCount) {
+        VkImageMemoryBarrier TransitionImageLayout(VkImage& image, VkImageLayout srcLayout, VkImageLayout dstLayout, uint32_t mipLevels, uint8_t layerCount) {
 
-            vkImageMemoryBarrier barrier{};
+            VkImageMemoryBarrier barrier{};
             barrier.pNext = nullptr;
             barrier.oldLayout = srcLayout;
             barrier.newLayout = dstLayout;
@@ -236,12 +242,12 @@ namespace EWE {
 
             switch (srcLayout) {
                 
-            case vkImageLayout::eUndefined:
+            case VkImageLayout::eUndefined:
                 // Image layout is undefined (or does not matter).
                 // Only valid as initial layout. No flags required.
                 barrier.srcAccessMask = 0;
                 break;
-            case vkImageLayout::ePreinitialized:
+            case VkImageLayout::ePreinitialized:
                 // Image is preinitialized.
                 // Only valid as initial layout for linear images; preserves memory
                 // contents. Make sure host writes have finished.
@@ -356,8 +362,8 @@ namespace EWE {
         }
 
 #define BARRIER_DEBUGGING false
-        void TransferImageStage(CommandBuffer& cmdBuf, vkPipelineStageFlags srcStage, vkPipelineStageFlags dstStage, vkImage const& image) {
-            vkImageMemoryBarrier imageBarrier{};
+        void TransferImageStage(CommandBuffer& cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkImage const& image) {
+            VkImageMemoryBarrier imageBarrier{};
             imageBarrier.pNext = nullptr;
             imageBarrier.image = image;
 #if EWE_DEBUG
@@ -430,11 +436,12 @@ namespace EWE {
             }
 
         }
+        /*
         void TransferImageStage(CommandBuffer& cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, std::vector<VkImage> const& images) {
             assert(images.size() > 0);
             const uint32_t imageCount = static_cast<uint32_t>(images.size());
 
-            std::vector<vkImageMemoryBarrier> imageBarriers{};
+            std::vector<VkImageMemoryBarrier> imageBarriers{};
             imageBarriers.resize(imageCount);
             imageBarriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             imageBarriers[0].pNext = nullptr;
@@ -499,6 +506,7 @@ namespace EWE {
             );
             
         }
+            */
 }//namespace Barrier
 
 } //namespace EWE

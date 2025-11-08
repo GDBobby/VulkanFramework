@@ -18,18 +18,18 @@ namespace EWE{
     struct Buffer{
         LogicalDevice& logicalDevice;
 
-        Buffer(VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, vkBufferUsageFlags2KHR usageFlags)
+        [[nodiscard]] explicit Buffer(LogicalDevice& logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags2KHR usageFlags);
         ~Buffer();
 
-        vkDescriptorBufferInfo buffer_info;
+        VkDescriptorBufferInfo buffer_info;
 
 
-        vkDeviceSize bufferSize;
-        vkDeviceSize alignmentSize;
+        VkDeviceSize bufferSize;
+        VkDeviceSize alignmentSize;
         //write the 
-        vkDeviceSize minOffsetAlignment = 1;
+        VkDeviceSize minOffsetAlignment = 1;
 
-        vkBufferUsageFlags2KHR usageFlags;
+        VkBufferUsageFlags2KHR usageFlags;
 
         VmaMemoryUsage memoryUsage;
         VmaAllocation vmaAlloc{};
@@ -37,22 +37,21 @@ namespace EWE{
         void* mapped = nullptr;
 
 
-        static constexpr vkDeviceSize CalculateAlignment(vkDeviceSize instanceSize, vkBufferUsageFlags2KHR usageFlags, vkPhysicalDeviceLimits const& limits) {
-            vkDeviceSize minOffsetAlignment = 1;
+        static constexpr [[nodiscard]] VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags2KHR usageFlags, VkPhysicalDeviceLimits const& limits) {
+            VkDeviceSize minOffsetAlignment = 1;
             
-            vkBufferUsageFlagBits::eIndexBuffer;
-            if(BitwiseContains(usageFlags, vkBufferUsageFlagBits2KHR::eIndexBuffer) 
-            || BitwiseContains(usageFlags, vkBufferUsageFlagBits2KHR::eVertexBuffer))
+            if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT) 
+            || BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT))
             {
                 minOffsetAlignment = 1;
             }
-            else if (BitwiseContains(usageFlags, vkBufferUsageFlagBits2KHR::eUniformBuffer)) {
+            else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT)) {
                 minOffsetAlignment = limits.minUniformBufferOffsetAlignment;
             }
-            else if (BitwiseContains(usageFlags, vkBufferUsageFlagBits2KHR::eStorageBuffer)) {
+            else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT)) {
                 minOffsetAlignment = limits.minStorageBufferOffsetAlignment;
             }
-            else if(BitwiseContains(usageFlags, vkBufferUsageFlagBits2KHR::eUniformTexelBuffer)){
+            else if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_UNIFORM_TEXEL_BUFFER_BIT)){
                 //does texel care if its uniform or storage?
                 //do i push it into the above?
                 minOffsetAlignment = limits.minTexelBufferOffsetAlignment;

@@ -5,11 +5,19 @@
 #include "CommandPool.h"
 
 namespace EWE{
+
+    //this is gonna be a handle to an in-use command buffer.
+    //it'll be returned by CommandPool
+    //ESSENTIALLY, it can be considered a view
+    // ill have to come back to that, but i definitely need to interact with the command pool more than i was
+
     struct CommandBuffer {
         CommandPool& commandPool;
 
         VkCommandBuffer cmdBuf;
         bool inUse = false;
+
+        VkCommandBufferResetFlags resetFlags = 0;
 
         int8_t labelDepth = 0;
 #if COMMAND_BUFFER_TRACING
@@ -22,25 +30,24 @@ namespace EWE{
 
         CommandBuffer() : cmdBuf{ VK_NULL_HANDLE }, inUse{ false }, usageTracking{} {}
 #else
-        [[nodiscard]] CommandBuffer() : cmdBuf{ VK_NULL_HANDLE }, inUse{ false } {}
+        [[nodiscard]] explicit CommandBuffer(CommandPool& commandPool, VkCommandBuffer cmdBuf) noexcept;
+        ~CommandBuffer();
+
         operator VkCommandBuffer() const { return cmdBuf; }
         operator VkCommandBuffer*() { return &cmdBuf; }
 #endif
 
-        bool operator==(CommandBuffer const& other) const noexcept {
-            return cmdBuf == other.cmdBuf;
-        }
-        void operator=(VkCommandBuffer cmdBuf) noexcept {
-            assert(this->cmdBuf == VK_NULL_HANDLE);
-            this->cmdBuf = cmdBuf;
-        }
+        bool operator==(CommandBuffer const& other) const noexcept { return cmdBuf == other.cmdBuf;}
+        //CommandBuffer& operator=(VkCommandBuffer cmdBuf) noexcept;
 
-        void Reset();
-        void Begin();
-        void BeginSingleTime();
+        void Reset() noexcept;
+        void Begin() noexcept;
+        void BeginSingleTime() noexcept;
         //submit single time? im removing synchub for sure
 
-        void BeginLabel(const char* name, float red, float green, float blue);
-        void EndLabel();
+        void BeginLabel(const char* name, float red, float green, float blue) noexcept;
+        void EndLabel() noexcept;
+
+        static bool InitLabelFunctions() noexcept;
     };
 }

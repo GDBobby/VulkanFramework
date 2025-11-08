@@ -2,6 +2,7 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Window.h"
 #include "EightWinds/LogicalDevice.h"
+#include "EightWinds/SwapChain.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -45,12 +46,22 @@ int main(){
 
     //once the instance is created, create a surface
     //the surface needs to be known, to check if the physical devices can render to it
-    //potentially, could make headless applications, but i don't personally have interest in supporting that
+    //potentially, could make headless applications, but i don't personally have interest in supporting that at the moment
 
     EWE::Window window{instance, 800, 600, "Example Window"};
 
+    
+    std::vector<EWE::DeviceExtension> extensions{
+        {.body = extAddr, .name = VK_KHR_SWAPCHAIN_EXTENSION_NAME, .required = true},
+        {.body = extAddr, .name = VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME, .required = false},
+        {.body = extAddr, .name = VK_EXT_MESH_SHADER_EXTENSION_NAME, .required = false},
+    };
+
+    //i need a way to request device features
+
     EWE::LogicalDevice logicalDevice(instance, window.surface);
 
+    SwapChain swapchain{};
     //from here, create the render graph
 
 

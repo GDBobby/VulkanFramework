@@ -2,6 +2,6 @@
 
 namespace EWE{
     struct Attachment{
-        vkAttachmentDescription description{};
+        VkAttachmentDescription description{};
     };
 }

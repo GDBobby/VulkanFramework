@@ -7,7 +7,7 @@ namespace EWE{
     class DebugMessenger {
         DebugMessenger(Instance& instance);
 
-        vkDebugUtilsMessengerEXT debugMessenger;
+        VkDebugUtilsMessengerEXT messenger;
 
         Instance& instance;
     };

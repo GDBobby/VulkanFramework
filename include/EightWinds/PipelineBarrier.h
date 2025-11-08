@@ -7,18 +7,18 @@
 
 namespace EWE{
 
-    constexpr vkAccessFlags2 usageToAccess(vkImageUsageFlags usage, bool writes);
+    constexpr VkAccessFlags2 usageToAccess(VkImageUsageFlags usage, bool writes);
 
 
     struct PipelineBarrier {
         CommandBuffer& cmdBuf;
 
-        vkPipelineStageFlagBits srcStageMask;
-        vkPipelineStageFlagBits dstStageMask;
-        vkDependencyFlags dependencyFlags;
-        std::vector<vkMemoryBarrier> memoryBarriers;
-        std::vector<vkImageMemoryBarrier> imageBarriers;
-        std::vector<vkBufferMemoryBarrier> bufferBarriers;
+        VkPipelineStageFlagBits srcStageMask;
+        VkPipelineStageFlagBits dstStageMask;
+        VkDependencyFlags dependencyFlags;
+        std::vector<VkMemoryBarrier> memoryBarriers;
+        std::vector<VkImageMemoryBarrier> imageBarriers;
+        std::vector<VkBufferMemoryBarrier> bufferBarriers;
 
 		PipelineBarrier();
 		PipelineBarrier(PipelineBarrier& copySource) noexcept;
@@ -30,13 +30,13 @@ namespace EWE{
 			return (memoryBarriers.size() + imageBarriers.size() + bufferBarriers.size()) == 0;
 		}
 
-		void AddBarrier(vkMemoryBarrier const& memoryBarrier) {
+		void AddBarrier(VkMemoryBarrier const& memoryBarrier) {
 			memoryBarriers.push_back(memoryBarrier);
 		}
-		void AddBarrier(vkImageMemoryBarrier const& imageBarrier) {
+		void AddBarrier(VkImageMemoryBarrier const& imageBarrier) {
 			imageBarriers.push_back(imageBarrier);
 		}
-		void AddBarrier(vkBufferMemoryBarrier const& bufferBarrier) {
+		void AddBarrier(VkBufferMemoryBarrier const& bufferBarrier) {
 			bufferBarriers.push_back(bufferBarrier);
 		}
 		void Submit() const;
@@ -47,12 +47,15 @@ namespace EWE{
 		static void SimplifyVector(std::vector<PipelineBarrier>& barriers);
 	};
 	namespace Barrier {
+		//i need to revisit this from the rendergraph
+
+
 		//this only changes the src/dst access mask
-		vkImageMemoryBarrier ChangeImageLayout(
-			const vkImage image, 
-			const vkImageLayout oldImageLayout, 
-			const vkImageLayout newImageLayout, 
-			vkImageSubresourceRange const& subresourceRange
+		VkImageMemoryBarrier ChangeImageLayout(
+			const VkImage image, 
+			const VkImageLayout oldImageLayout, 
+			const VkImageLayout newImageLayout, 
+			VkImageSubresourceRange const& subresourceRange
 		);
 		//VkImageMemoryBarrier TransitionImageLayout(VkImage& image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, uint8_t layerCount = 1);
 		

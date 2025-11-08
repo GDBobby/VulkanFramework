@@ -1,6 +1,7 @@
 #include "EightWinds/Image.h"
 
 namespace EWE{
+    /*
     void Image::CreateImageWithInfo(const vkImageCreateInfo& imageCreateInfo, VmaAllocationCreateInfo const& vmaAllocCreateInfo) {
 
         vmaCreateImage(logicalDevice.vmaAllocator, &imageCreateInfo, &vmaAllocCreateInfo, &image, &memory, nullptr);
@@ -15,4 +16,5 @@ namespace EWE{
         CreateImageWithInfo(imageCreateInfo, vmaAllocCreateInfo);
 
     }
+    */
 }

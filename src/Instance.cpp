@@ -8,7 +8,7 @@
 namespace EWE{ 
 
 
-bool CheckInstanceExtensions(std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
+    bool CheckInstanceExtensions(std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
         uint32_t extensionCount = 0;
         EWE_VK(vkEnumerateInstanceExtensionProperties, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -43,7 +43,7 @@ bool CheckInstanceExtensions(std::vector<const char*> const& requiredExtensions,
         return true;
     }
 
-    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, vkAllocationCallbacks const* allocCallbacks){
+    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, VkAllocationCallbacks const* allocCallbacks){
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Eight Winds";

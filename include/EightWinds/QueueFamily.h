@@ -1,3 +1,4 @@
+#pragma once
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/PhysicalDevice.h"
 
@@ -8,13 +9,14 @@ namespace EWE{
 
     struct QueueFamily {
         PhysicalDevice& physicalDevice;
-        vkQueueFamilyProperties properties; //2 includes properties1, but I dont' really see the point in 2
+        VkQueueFamilyProperties properties; //2 includes properties1, but I dont' really see the point in 2
         bool supportsSurface;
 
         uint8_t index; //queue family index
 
-        [[nodiscard]] explicit QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, vkQueueFamilyProperties const& properties, vkSurfaceKHR surface);
-        [[nodiscard]] explicit QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, vkQueueFamilyProperties const& properties);
+        [[nodiscard]] explicit QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, VkQueueFamilyProperties const& properties, VkSurfaceKHR surface);
+
+        static [[nodiscard]] std::vector<QueueFamily> Enumerate(PhysicalDevice& physicalDevice, VkSurfaceKHR surface);
 
         bool SupportsGraphics() const;
         bool SupportsCompute() const;
@@ -22,8 +24,8 @@ namespace EWE{
         bool SupportsSurfacePresent() const;
 
         //for headless, not supporting
+        //[[nodiscard]] explicit QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, VkQueueFamilyProperties const& properties);
         //static std::vector<QueueFamily> Enumerate(PhysicalDevice& physicalDevice);
-        static std::vector<QueueFamily> Enumerate(PhysicalDevice& physicalDevice, vkSurfaceKHR surface);
     };
 
     /*

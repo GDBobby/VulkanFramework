@@ -6,6 +6,8 @@
 #include "LAB/Vector.h"
 #include "LAB/Transform.h"
 
+#include "EightWinds/CommandBuffer.h"
+
 #include <vector>
 #include <string>
 
@@ -39,7 +41,7 @@ namespace EWE{
         float foregroundScale; //what percentage of the width it takes up, width and height separate
         float titleScale; //what percentage of the foreground it takes up, vertical only
 
-        lab::Transform2d transform;
+        lab::Transform2 transform;
         //no rotation
 
         uint32_t titleBufferIndex;

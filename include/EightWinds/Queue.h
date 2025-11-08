@@ -1,3 +1,4 @@
+#pragma once
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/QueueFamily.h"
 
@@ -8,7 +9,7 @@ namespace EWE{
         QueueFamily& family;
 
         float priority;
-        vkQueue queue;
+        VkQueue queue;
 
         //the queue itself doesnt really do any operations
 
@@ -16,12 +17,12 @@ namespace EWE{
         //i feel like i either fully commit to them, or not at all
         //i either pass in the raw vkDevice for creation, or I pass in the vkQueue already created
         //which makes this struct somewhat pointless? it just ties a vkQueue to a family
-        [[nodiscard]] explicit Queue(vkDevice logicalDeviceExplicit, QueueFamily& family, float priority);
+        [[nodiscard]] explicit Queue(VkDevice logicalDeviceExplicit, QueueFamily& family, float priority);
 
         //TODO
 		//void BeginLabel(const char* name, float red, float green, float blue);
 		//void EndLabel();
 
-        operator vkQueue() const { return queue; }
+        operator VkQueue() const { return queue; }
     };
 }

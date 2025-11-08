@@ -1,44 +1,43 @@
 #include "EightWinds/QueueFamily.h"
 
+#include <cassert>
+
 namespace EWE {
 
 
     bool QueueFamily::SupportsGraphics() const {
-        return (properties.queueFlags & vkQueueFlagBits::eGraphics) == vkQueueFlagBits::eGraphics;
+        return (properties.queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT;
     }
     bool QueueFamily::SupportsCompute() const {
-        return (properties.queueFlags & vkQueueFlagBits::eCompute) == vkQueueFlagBits::eCompute;
+        return (properties.queueFlags & VK_QUEUE_COMPUTE_BIT) == VK_QUEUE_COMPUTE_BIT;
     }
     bool QueueFamily::SupportsTransfer() const {
-        return (properties.queueFlags & vkQueueFlagBits::eTransfer) == vkQueueFlagBits::eTransfer;
+        return (properties.queueFlags & VK_QUEUE_TRANSFER_BIT) == VK_QUEUE_TRANSFER_BIT;
     }
     bool QueueFamily::SupportsSurfacePresent() const {
         return supportsSurface;
     }
 
-    QueueFamily::QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, vkQueueFamilyProperties const& properties, vkSurfaceKHR surface) 
+    QueueFamily::QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, VkQueueFamilyProperties const& properties, VkSurfaceKHR surface) 
     : physicalDevice{physicalDevice}, 
-    index{index}, properties{properties}, 
-    supportsSurface{physicalDevice.device.getSurfaceSupportKHR(index, surface)}
+        index{index}, properties{properties}
     {
-
-    }
-    QueueFamily::QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, vkQueueFamilyProperties const& properties, vkSurfaceKHR surface) 
-    : physicalDevice{physicalDevice}, 
-    index{index}, properties{properties}, 
-    supportsSurface{false}
-    {
-
+        VkBool32 tempBool;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.device, index, surface, &tempBool);
+        supportsSurface = tempBool;
     }
 
-    std::vector<QueueFamily> QueueFamily::Enumerate(PhysicalDevice& device, vkSurfaceKHR surface) {
-        auto queueFamilies = device.device.getQueueFamilyProperties2();
+    std::vector<QueueFamily> QueueFamily::Enumerate(PhysicalDevice& physicalDevice, VkSurfaceKHR surface) {
+        uint32_t famPropCount;
+        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice.device, &famPropCount, nullptr);
+        std::vector<VkQueueFamilyProperties2> queueFamilies(famPropCount);
+        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice.device, &famPropCount, queueFamilies.data());
         
-        std::vector<QueueFamily> families(0);
+        std::vector<QueueFamily> families;
         families.reserve(queueFamilies.size());
         assert(queueFamilies.size() <= 255); //this would be an embarrassing bug
         for (uint8_t i = 0; i < queueFamilies.size(); i++) {
-            families.emplace_back(device, i, queueFamilies[i].queueFamilyProperties, surface);
+            families.emplace_back(physicalDevice, i, queueFamilies[i].queueFamilyProperties, surface);
         }
 
         return families;

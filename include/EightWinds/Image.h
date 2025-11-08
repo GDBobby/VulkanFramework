@@ -22,19 +22,54 @@ namespace EWE{
         uint32_t arrayLayers;
         uint32_t mipLevels;
 
-        vkFormat format;
+        VkFormat format;
 
-        vkImageLayout layout;
+        VkImageLayout layout;
 
-        vkImage image;
+        VkImage image;
 
 		VmaAllocation memory;
+
+        VkImageCreateFlags createFlags;//this will specify if it's a cube or not. bunch of other flags, like 2d array. not sure what's necessary
         //Queue owningQueue; //necessary? need to see the rendergraph first
-
-
-        void CreateImageWithInfo(vkImageCreateInfo const& imageCreateInfo, VmaAllocationCreateInfo const& allocCreateInfo);
-		void CreateImageWithInfo(vkImageCreateInfo const& imageCreateInfo);
     };
 
-    constexpr GetDefaultImageCreateInfo() noexcept;
+    
+    /*
+        i could create an abstraction for imagecreateinfo
+        everything covered by Image can be left out
+
+        samples are passwide or something, i need to check. might be device wide
+        i think the only other member not set is usageFlags.
+        the only two uses ive had is compute generated, and file sourced.
+
+        if I cover those with a boolean, i can set queues and usageFlags
+
+    constexpr VkImageCreateInfo GetDefaultImageCreateInfo(Image const& image, VkImageUsageFlags usageFlags) noexcept{
+        VkImageCreateInfo ret;
+        ret.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        ret.pNext = nullptr;
+        ret.flags = image.createFlags;
+        ret.samples = VK_SAMPLE_COUNT_1_BIT;
+        ret.tiling = VK_IMAGE_TILING_OPTIMAL;
+        ret.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+        //im not sure if something uses an already defined image layout. 
+        //i think if im beginning the image in compute it'll start as general?
+        ret.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        ret.usage = usageFlags;
+
+        ret.extent.width = image.width;
+        ret.extent.height = image.height;
+        ret.extent.depth = image.depth;
+
+        ret.mipLevels = image.mipLevels;
+        ret.arrayLayers = image.arrayLayers;
+
+        //ret.queueFamilyIndexCount
+        //ret.pQueueFamilyIndices
+
+        return ret;
+    }
+    */
 }

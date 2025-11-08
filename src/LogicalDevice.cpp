@@ -22,7 +22,7 @@ namespace EWE{
 		}
     };
 
-    LogicalDevice(Instance& instance, vkSurfaceKHR surface, std::vector<DeviceExtension>& deviceExtensions)
+    LogicalDevice::LogicalDevice(Instance& instance, VkSurfaceKHR surface, std::vector<DeviceExtension>& deviceExtensions)
         : physicalDevice{instance, surface},
         queueFamilies{QueueFamily::Enumerate(physicalDevice, surface)},
     {

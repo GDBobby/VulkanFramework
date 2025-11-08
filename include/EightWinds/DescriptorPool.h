@@ -12,7 +12,7 @@ namespace EWE{
 
         LogicalDevice& logicalDevice;
         
-        vk::DescriptorPool pool;
+        VkDescriptorPool pool;
 
         uint8_t descriptorCount = 0;
 

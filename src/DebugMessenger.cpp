@@ -1,5 +1,7 @@
 #include "EightWinds/DebugMessenger.h"
 
+#include <cassert>
+
 #define enableValidationLayers EWE_DEBUG_BOOL
 
 #if enableValidationLayers
@@ -57,12 +59,12 @@ namespace EWE {
     }
 
     void CreateDebugUtilsMessengerEXT(
-        vkInstance instance,
+        VkInstance instance,
         const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
         const VkAllocationCallbacks* pAllocator,
         VkDebugUtilsMessengerEXT* pDebugMessenger
     ) {
-        auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(instance.getProcAddr("vkCreateDebugUtilsMessengerEXT"));
+        auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
 
         if (func != nullptr) {
             EWE_VK(func, instance, pCreateInfo, pAllocator, pDebugMessenger);
@@ -119,7 +121,7 @@ namespace EWE {
         if (!enableValidationLayers) { return; }
         VkDebugUtilsMessengerCreateInfoEXT debugUtilCreateInfo = GetPopulatedDebugMessengerCreateInfo();
         //CreateDebugUtilsMessengerEXT(instance, &debugUtilCreateInfo, nullptr, &debugMessenger);
-        instance.instance.createDebugUtilsMessengerEXT(debugUtilCreateInfo, nullptr, debugMessenger);
+        vkCreateDebugUtilsMessengerEXT(instance.instance, &debugUtilCreateInfo, nullptr, &messenger);
     }
 }
 #endif
