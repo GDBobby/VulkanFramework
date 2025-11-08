@@ -1,9 +1,15 @@
-#include "vulkan/vulkan.hpp"
+#pragma once
+#include "vulkan/vulkan.h"
 
 #include "Preprocessor.h"
 
 #include <functional>
 #include <type_traits>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include "vma/include/vk_mem_alloc.h"
 
 namespace EWE{
 

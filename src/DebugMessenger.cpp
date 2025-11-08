@@ -29,14 +29,14 @@ namespace EWE {
 
 #if GPU_LOGGING
                 std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
-                logFile << "current frame index - " << VK::Object->frameIndex << std::endl;
+                logFile << "current frame index - " << vkObject->frameIndex << std::endl;
 #if COMMAND_BUFFER_TRACING
-                for (uint8_t i = 0; i < VK::Object->renderCommands.size(); i++) {
-                    while (VK::Object->renderCommands[i].usageTracking.size() > 0) {
-                        for (auto& usage : VK::Object->renderCommands[i].usageTracking.front()) {
+                for (uint8_t i = 0; i < vkObject->renderCommands.size(); i++) {
+                    while (vkObject->renderCommands[i].usageTracking.size() > 0) {
+                        for (auto& usage : vkObject->renderCommands[i].usageTracking.front()) {
                             logFile << "cb" << i << " : " << usage.funcName;
                         }
-                        VK::Object->renderCommands[i].usageTracking.pop();
+                        vkObject->renderCommands[i].usageTracking.pop();
                     }
                 }
 #endif
@@ -57,7 +57,7 @@ namespace EWE {
     }
 
     void CreateDebugUtilsMessengerEXT(
-        vk::Instance instance,
+        vkInstance instance,
         const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
         const VkAllocationCallbacks* pAllocator,
         VkDebugUtilsMessengerEXT* pDebugMessenger

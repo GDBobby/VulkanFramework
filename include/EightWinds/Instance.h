@@ -12,9 +12,9 @@ namespace EWE{
     struct Instance{
         [[nodiscard]] Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, vk::AllocationCallbacks const* allocCallbacks);
 
-        vk::Instance instance;
+        vkInstance instance;
 
-        operator vk::Instance() const {return instance;}
+        operator vkInstance() const {return instance;}
 
         bool operator==(Instance const& other) const {
             return instance == other.instance;

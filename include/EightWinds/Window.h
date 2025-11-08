@@ -19,7 +19,7 @@ namespace EWE {
 		
 		Dimensions<uint32_t> screenDimensions;
 		GLFWwindow* window;
-		vk::SurfaceKHR surface;
+		vkSurfaceKHR surface;
 		Instance& instance;
 
 		std::function<void(GLFWwindow* windowPtr, int width, int height)> ResizeCallback = nullptr;

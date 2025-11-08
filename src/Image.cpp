@@ -1,12 +1,12 @@
 #include "EightWinds/Image.h"
 
 namespace EWE{
-    void Image::CreateImageWithInfo(const vk::ImageCreateInfo& imageCreateInfo, VmaAllocationCreateInfo const& vmaAllocCreateInfo) {
+    void Image::CreateImageWithInfo(const vkImageCreateInfo& imageCreateInfo, VmaAllocationCreateInfo const& vmaAllocCreateInfo) {
 
         vmaCreateImage(logicalDevice.vmaAllocator, &imageCreateInfo, &vmaAllocCreateInfo, &image, &memory, nullptr);
 
     }
-    void Image::CreateImageWithInfo(const vk::ImageCreateInfo& imageCreateInfo) {
+    void Image::CreateImageWithInfo(const vkImageCreateInfo& imageCreateInfo) {
 
         VmaAllocationCreateInfo vmaAllocCreateInfo{};
         vmaAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;

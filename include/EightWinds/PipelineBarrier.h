@@ -7,18 +7,18 @@
 
 namespace EWE{
 
-    constexpr vk::AccessFlags2 usageToAccess(vk::ImageUsageFlags usage, bool writes);
+    constexpr vkAccessFlags2 usageToAccess(vkImageUsageFlags usage, bool writes);
 
 
     struct PipelineBarrier {
         CommandBuffer& cmdBuf;
 
-        vk::PipelineStageFlagBits srcStageMask;
-        vk::PipelineStageFlagBits dstStageMask;
-        vk::DependencyFlags dependencyFlags;
-        std::vector<vk::MemoryBarrier> memoryBarriers;
-        std::vector<vk::ImageMemoryBarrier> imageBarriers;
-        std::vector<vk::BufferMemoryBarrier> bufferBarriers;
+        vkPipelineStageFlagBits srcStageMask;
+        vkPipelineStageFlagBits dstStageMask;
+        vkDependencyFlags dependencyFlags;
+        std::vector<vkMemoryBarrier> memoryBarriers;
+        std::vector<vkImageMemoryBarrier> imageBarriers;
+        std::vector<vkBufferMemoryBarrier> bufferBarriers;
 
 		PipelineBarrier();
 		PipelineBarrier(PipelineBarrier& copySource) noexcept;
@@ -30,13 +30,13 @@ namespace EWE{
 			return (memoryBarriers.size() + imageBarriers.size() + bufferBarriers.size()) == 0;
 		}
 
-		void AddBarrier(vk::MemoryBarrier const& memoryBarrier) {
+		void AddBarrier(vkMemoryBarrier const& memoryBarrier) {
 			memoryBarriers.push_back(memoryBarrier);
 		}
-		void AddBarrier(vk::ImageMemoryBarrier const& imageBarrier) {
+		void AddBarrier(vkImageMemoryBarrier const& imageBarrier) {
 			imageBarriers.push_back(imageBarrier);
 		}
-		void AddBarrier(vk::BufferMemoryBarrier const& bufferBarrier) {
+		void AddBarrier(vkBufferMemoryBarrier const& bufferBarrier) {
 			bufferBarriers.push_back(bufferBarrier);
 		}
 		void Submit() const;
@@ -48,11 +48,11 @@ namespace EWE{
 	};
 	namespace Barrier {
 		//this only changes the src/dst access mask
-		vk::ImageMemoryBarrier ChangeImageLayout(
-			const vk::Image image, 
-			const vk::ImageLayout oldImageLayout, 
-			const vk::ImageLayout newImageLayout, 
-			vk::ImageSubresourceRange const& subresourceRange
+		vkImageMemoryBarrier ChangeImageLayout(
+			const vkImage image, 
+			const vkImageLayout oldImageLayout, 
+			const vkImageLayout newImageLayout, 
+			vkImageSubresourceRange const& subresourceRange
 		);
 		//VkImageMemoryBarrier TransitionImageLayout(VkImage& image, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, uint8_t layerCount = 1);
 		
@@ -62,4 +62,3 @@ namespace EWE{
 		//void TransferImageStage(CommandBuffer& cmdBuf, VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, std::vector<VkImage> const& images);
 	} //namespace Barrier
 } //namespace EWE
-}

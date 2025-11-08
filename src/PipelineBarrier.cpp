@@ -5,75 +5,75 @@
 
 namespace EWE {
 
-   constexpr vk::AccessFlags2 usageToAccess(vk::ImageUsageFlags usage, bool writes) {
-        vk::AccessFlags2 access{};
+   constexpr vkAccessFlags2 usageToAccess(vkImageUsageFlags usage, bool writes) {
+        vkAccessFlags2 access{};
 
-        if (usage & vk::ImageUsageFlagBits::eTransferSrc){
-            access |= vk::AccessFlagBits2::eTransferRead;
+        if (usage & vkImageUsageFlagBits::eTransferSrc){
+            access |= vkAccessFlagBits2::eTransferRead;
         }
-        if (usage & vk::ImageUsageFlagBits::eTransferDst){
-            access |= vk::AccessFlagBits2::eTransferWrite;
+        if (usage & vkImageUsageFlagBits::eTransferDst){
+            access |= vkAccessFlagBits2::eTransferWrite;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eSampled){
-            access |= vk::AccessFlagBits2::eShaderSampledRead;
+        if (usage & vkImageUsageFlagBits::eSampled){
+            access |= vkAccessFlagBits2::eShaderSampledRead;
         }
-        if (usage & vk::ImageUsageFlagBits::eStorage){
+        if (usage & vkImageUsageFlagBits::eStorage){
             access |= writes 
-                        ? vk::AccessFlagBits2::eShaderStorageWrite
-                        : vk::AccessFlagBits2::eShaderStorageRead;
+                        ? vkAccessFlagBits2::eShaderStorageWrite
+                        : vkAccessFlagBits2::eShaderStorageRead;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eColorAttachment){
+        if (usage & vkImageUsageFlagBits::eColorAttachment){
             access |= writes
-                        ? vk::AccessFlagBits2::eColorAttachmentWrite
-                        : vk::AccessFlagBits2::eColorAttachmentRead;
+                        ? vkAccessFlagBits2::eColorAttachmentWrite
+                        : vkAccessFlagBits2::eColorAttachmentRead;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eDepthStencilAttachment){
+        if (usage & vkImageUsageFlagBits::eDepthStencilAttachment){
             access |= writes
-                        ? vk::AccessFlagBits2::eDepthStencilAttachmentWrite
-                        : vk::AccessFlagBits2::eDepthStencilAttachmentRead;
+                        ? vkAccessFlagBits2::eDepthStencilAttachmentWrite
+                        : vkAccessFlagBits2::eDepthStencilAttachmentRead;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eInputAttachment){
-            access |= vk::AccessFlagBits2::eInputAttachmentRead;
+        if (usage & vkImageUsageFlagBits::eInputAttachment){
+            access |= vkAccessFlagBits2::eInputAttachmentRead;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eHostTransferEXT) {
+        if (usage & vkImageUsageFlagBits::eHostTransferEXT) {
             access |= writes
-                        ? vk::AccessFlagBits2::eHostWrite
-                        : vk::AccessFlagBits2::eHostRead;
+                        ? vkAccessFlagBits2::eHostWrite
+                        : vkAccessFlagBits2::eHostRead;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eAttachmentFeedbackLoopEXT){
-            access |= vk::AccessFlagBits2::eShaderRead |
-                    vk::AccessFlagBits2::eShaderWrite;
+        if (usage & vkImageUsageFlagBits::eAttachmentFeedbackLoopEXT){
+            access |= vkAccessFlagBits2::eShaderRead |
+                    vkAccessFlagBits2::eShaderWrite;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eFragmentDensityMapEXT) {
-            access |= vk::AccessFlagBits2::eFragmentDensityMapReadEXT;
+        if (usage & vkImageUsageFlagBits::eFragmentDensityMapEXT) {
+            access |= vkAccessFlagBits2::eFragmentDensityMapReadEXT;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eShadingRateImageNV ||
-            usage & vk::ImageUsageFlagBits::eFragmentShadingRateAttachmentKHR)
+        if (usage & vkImageUsageFlagBits::eShadingRateImageNV ||
+            usage & vkImageUsageFlagBits::eFragmentShadingRateAttachmentKHR)
         {
-            access |= vk::AccessFlagBits2::eFragmentShadingRateAttachmentReadKHR;
+            access |= vkAccessFlagBits2::eFragmentShadingRateAttachmentReadKHR;
         }
 
-        if (usage & vk::ImageUsageFlagBits::eInvocationMaskHUAWEI){
-            access |= vk::AccessFlagBits2::eInvocationMaskReadHUAWEI;
+        if (usage & vkImageUsageFlagBits::eInvocationMaskHUAWEI){
+            access |= vkAccessFlagBits2::eInvocationMaskReadHUAWEI;
         }
 
-        //if (usage & vk::ImageUsageFlagBits::eSampleWeightQCOM ||
-        //    usage & vk::ImageUsageFlagBits::eSampleBlockMatchQCOM)
-        //    access |= vk::AccessFlagBits2::eOpticalFlowReadQCOM |
-        //            vk::AccessFlagBits2::eOpticalFlowWriteQCOM;
+        //if (usage & vkImageUsageFlagBits::eSampleWeightQCOM ||
+        //    usage & vkImageUsageFlagBits::eSampleBlockMatchQCOM)
+        //    access |= vkAccessFlagBits2::eOpticalFlowReadQCOM |
+        //            vkAccessFlagBits2::eOpticalFlowWriteQCOM;
 
         if (!access){
             printf("warning, no usage to access\n");
-            access = writes ? vk::AccessFlagBits2::eMemoryWrite
-                            : vk::AccessFlagBits2::eMemoryRead;
+            access = writes ? vkAccessFlagBits2::eMemoryWrite
+                            : vkAccessFlagBits2::eMemoryRead;
         }
 
         return access;
@@ -162,9 +162,9 @@ namespace EWE {
         while (currentComparisonIndex < barriers.size()) {
             nextComparisonIndex = static_cast<uint8_t>(barriers.size());
 
-            const vk::PipelineStageFlagBits cSrcStageMask = barriers[currentComparisonIndex].srcStageMask;
-            const vk::PipelineStageFlagBits cDstStageMask = barriers[currentComparisonIndex].dstStageMask;
-            const vk::DependencyFlags cDependencyFlags = barriers[currentComparisonIndex].dependencyFlags;
+            const vkPipelineStageFlagBits cSrcStageMask = barriers[currentComparisonIndex].srcStageMask;
+            const vkPipelineStageFlagBits cDstStageMask = barriers[currentComparisonIndex].dstStageMask;
+            const vkDependencyFlags cDependencyFlags = barriers[currentComparisonIndex].dependencyFlags;
 
             for ( ; currentComparisonIndex < static_cast<uint8_t>(barriers.size()); currentComparisonIndex++) {
                 const bool srcComp{ cSrcStageMask == barriers[currentComparisonIndex].srcStageMask };
@@ -185,13 +185,13 @@ namespace EWE {
 	}
 
 	namespace Barrier {
-		vk::ImageMemoryBarrier ChangeImageLayout(
-			const vk::Image image,
-			const vk::ImageLayout oldImageLayout,
-			const vk::ImageLayout newImageLayout,
-			vk::ImageSubresourceRange const& subresourceRange
+		vkImageMemoryBarrier ChangeImageLayout(
+			const vkImage image,
+			const vkImageLayout oldImageLayout,
+			const vkImageLayout newImageLayout,
+			vkImageSubresourceRange const& subresourceRange
 		) {
-			vk::ImageMemoryBarrier imageMemoryBarrier{};
+			vkImageMemoryBarrier imageMemoryBarrier{};
 			imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			imageMemoryBarrier.pNext = nullptr;
 			imageMemoryBarrier.oldLayout = oldImageLayout;
@@ -217,9 +217,9 @@ namespace EWE {
 			return imageMemoryBarrier;
 		}
 
-        vk::ImageMemoryBarrier TransitionImageLayout(vk::Image& image, vk::ImageLayout srcLayout, vk::ImageLayout dstLayout, uint32_t mipLevels, uint8_t layerCount) {
+        vkImageMemoryBarrier TransitionImageLayout(vkImage& image, vkImageLayout srcLayout, vkImageLayout dstLayout, uint32_t mipLevels, uint8_t layerCount) {
 
-            vk::ImageMemoryBarrier barrier{};
+            vkImageMemoryBarrier barrier{};
             barrier.pNext = nullptr;
             barrier.oldLayout = srcLayout;
             barrier.newLayout = dstLayout;
@@ -236,12 +236,12 @@ namespace EWE {
 
             switch (srcLayout) {
                 
-            case vk::ImageLayout::eUndefined:
+            case vkImageLayout::eUndefined:
                 // Image layout is undefined (or does not matter).
                 // Only valid as initial layout. No flags required.
                 barrier.srcAccessMask = 0;
                 break;
-            case vk::ImageLayout::ePreinitialized:
+            case vkImageLayout::ePreinitialized:
                 // Image is preinitialized.
                 // Only valid as initial layout for linear images; preserves memory
                 // contents. Make sure host writes have finished.
@@ -356,8 +356,8 @@ namespace EWE {
         }
 
 #define BARRIER_DEBUGGING false
-        void TransferImageStage(CommandBuffer& cmdBuf, vk::PipelineStageFlags srcStage, vk::PipelineStageFlags dstStage, vk::Image const& image) {
-            Vk::ImageMemoryBarrier imageBarrier{};
+        void TransferImageStage(CommandBuffer& cmdBuf, vkPipelineStageFlags srcStage, vkPipelineStageFlags dstStage, vkImage const& image) {
+            vkImageMemoryBarrier imageBarrier{};
             imageBarrier.pNext = nullptr;
             imageBarrier.image = image;
 #if EWE_DEBUG
@@ -434,7 +434,7 @@ namespace EWE {
             assert(images.size() > 0);
             const uint32_t imageCount = static_cast<uint32_t>(images.size());
 
-            std::vector<vk::ImageMemoryBarrier> imageBarriers{};
+            std::vector<vkImageMemoryBarrier> imageBarriers{};
             imageBarriers.resize(imageCount);
             imageBarriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             imageBarriers[0].pNext = nullptr;
@@ -448,12 +448,12 @@ namespace EWE {
             imageBarriers[0].subresourceRange.levelCount = 1;
             imageBarriers[0].subresourceRange.baseArrayLayer = 0;
             imageBarriers[0].subresourceRange.layerCount = 1;
-            if (VK::Object->queueIndex[Queue::compute] != VK::Object->queueIndex[Queue::graphics]) {
-                if (!VK::Object->queueEnabled[Queue::compute]) {
+            if (vkObject->queueIndex[Queue::compute] != vkObject->queueIndex[Queue::graphics]) {
+                if (!vkObject->queueEnabled[Queue::compute]) {
                     throw std::runtime_error("misisng comptue queue but still using it");
                 }
-                imageBarriers[0].srcQueueFamilyIndex = VK::Object->queueIndex[Queue::compute];
-                imageBarriers[0].dstQueueFamilyIndex = VK::Object->queueIndex[Queue::graphics];
+                imageBarriers[0].srcQueueFamilyIndex = vkObject->queueIndex[Queue::compute];
+                imageBarriers[0].dstQueueFamilyIndex = vkObject->queueIndex[Queue::graphics];
             }
             else {
                 imageBarriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

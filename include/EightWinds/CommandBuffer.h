@@ -8,8 +8,8 @@ namespace EWE{
     struct CommandBuffer {
         CommandPool& commandPool;
 
-        vk::CommandBuffer cmdBuf;
-        bool inUse;
+        VkCommandBuffer cmdBuf;
+        bool inUse = false;
 
         int8_t labelDepth = 0;
 #if COMMAND_BUFFER_TRACING
@@ -23,14 +23,14 @@ namespace EWE{
         CommandBuffer() : cmdBuf{ VK_NULL_HANDLE }, inUse{ false }, usageTracking{} {}
 #else
         [[nodiscard]] CommandBuffer() : cmdBuf{ VK_NULL_HANDLE }, inUse{ false } {}
-        operator vk::CommandBuffer() const { return cmdBuf; }
-        operator vk::CommandBuffer*() { return &cmdBuf; }
+        operator VkCommandBuffer() const { return cmdBuf; }
+        operator VkCommandBuffer*() { return &cmdBuf; }
 #endif
 
         bool operator==(CommandBuffer const& other) const noexcept {
             return cmdBuf == other.cmdBuf;
         }
-        void operator=(vk::CommandBuffer cmdBuf) noexcept {
+        void operator=(VkCommandBuffer cmdBuf) noexcept {
             assert(this->cmdBuf == VK_NULL_HANDLE);
             this->cmdBuf = cmdBuf;
         }
@@ -38,6 +38,7 @@ namespace EWE{
         void Reset();
         void Begin();
         void BeginSingleTime();
+        //submit single time? im removing synchub for sure
 
         void BeginLabel(const char* name, float red, float green, float blue);
         void EndLabel();

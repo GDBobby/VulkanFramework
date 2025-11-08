@@ -22,18 +22,18 @@ namespace EWE{
         uint32_t arrayLayers;
         uint32_t mipLevels;
 
-        vk::Format format;
+        vkFormat format;
 
-        vk::ImageLayout layout;
+        vkImageLayout layout;
 
-        vk::Image image;
+        vkImage image;
 
 		VmaAllocation memory;
         //Queue owningQueue; //necessary? need to see the rendergraph first
 
 
-        void CreateImageWithInfo(vk::ImageCreateInfo const& imageCreateInfo, VmaAllocationCreateInfo const& allocCreateInfo);
-		void CreateImageWithInfo(vk::ImageCreateInfo const& imageCreateInfo);
+        void CreateImageWithInfo(vkImageCreateInfo const& imageCreateInfo, VmaAllocationCreateInfo const& allocCreateInfo);
+		void CreateImageWithInfo(vkImageCreateInfo const& imageCreateInfo);
     };
 
     constexpr GetDefaultImageCreateInfo() noexcept;

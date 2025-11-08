@@ -1,74 +1,27 @@
 #include "EightWinds/VulkanHeader.h"
-#include "PhysicalDevice.h"
-
-#include <span>
-#include <optional>
+#include "EightWinds/QueueFamily.h"
 
 namespace EWE{
-
-    struct QueueFamily {
-        vk::QueueFamilyProperties properties; //includes properties1
-
-        uint16_t index; //queue family index
-
-        [[nodiscard]] explicit QueueFamily(vk::QueueFamilyProperties const& properties);
-
-        bool SupportsGraphics() const;
-        bool SupportsCompute() const;
-        bool SupportsTransfer() const;
-        bool SupportsSurfacePresent(vk::SurfaceKHR surface) const;
-
-        static std::vector<QueueFamily> Enumerate(vk::PhysicalDevice device);
-    };
-
     struct Queue {
-
+        //i believe its safe to assume that Graphics and Present can always be the same queue
+        //nvidia will allow multiple queues from 1 family, otherwise i wouldn't differentiate this from QueueFamily
         QueueFamily& family;
-        vk::Queue queue;
 
+        float priority;
+        vkQueue queue;
 
+        //the queue itself doesnt really do any operations
+
+        //this woudl mark the first time I break away from EWE wrapping structures. 
+        //i feel like i either fully commit to them, or not at all
+        //i either pass in the raw vkDevice for creation, or I pass in the vkQueue already created
+        //which makes this struct somewhat pointless? it just ties a vkQueue to a family
+        [[nodiscard]] explicit Queue(vkDevice logicalDeviceExplicit, QueueFamily& family, float priority);
+
+        //TODO
 		//void BeginLabel(const char* name, float red, float green, float blue);
 		//void EndLabel();
 
-        operator vk::Queue() const { return queue; }
+        operator vkQueue() const { return queue; }
     };
-    struct QueueRequest {
-        enum class Level {
-            None,
-            Warning,
-            Error
-        };
-
-        enum class MergePreference{ //based on Level, youll get feedback if you dont get the preferred Merge
-            Combined,
-            Separate,
-        };
-
-        //idk why QueueFlagBits doesnt include present, but whatever. 
-        //redefining QueueFlagBits here so I can add present
-        //i also need it to be able to combine, which an enum class isn't very friendly with
-        enum Flags : uint8_t { 
-#define QFB_REF(a) a = QueueFlagBits::a
-            QBF_REF(eGraphics),
-            QBF_REF(eCompute),
-            QBF_REF(eTransfer),
-            QBF_REF(eSparseBinding),
-            QBF_REF(eProtected),
-            QBF_REF(eVideoDecodeKHR),
-            QBF_REF(eOpticalFlowNV)
-#undef
-            ePresent = eOpiticalFlowNV << 1,
-
-            COUNT = 8 //the amount of flags
-        };
-
-        Level level;
-        Flags flags;
-        MergePreference mergePref;
-
-        static std::vector<std::optional<Queue>> RequestQueues(std::span<QueueRequest> requests, vk::SurfaceKHR surface);
-    };
-
 }
-
-//vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR

@@ -43,7 +43,7 @@ bool CheckInstanceExtensions(std::vector<const char*> const& requiredExtensions,
         return true;
     }
 
-    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, vk::AllocationCallbacks const* allocCallbacks){
+    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, vkAllocationCallbacks const* allocCallbacks){
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "Eight Winds";

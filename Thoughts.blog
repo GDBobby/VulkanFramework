@@ -1,0 +1,20 @@
+# 11/6
+## ownership
+
+I'm not sure about the current structure. I want Command Buffer (for example) to have a reference to the CommandPool that created it,
+and I want that commandPool to have a reference to it's device, and so on, but I also want CommandPool to own that CommandBuffer.
+So that when the CommandPool is destructed, so is the CommandBuffer.
+
+My current thoughts are to make it so tha CommandBuffer has a reference to CommandPool, and so on, and then I'll come back
+and make a RAII wrapper that would assign ownership. I'm not really sure if it's necessary though, 
+that might be more in the engine space, rather than framework space. Nothing should ever use a CommandBuffer after it's owning
+CommandPool is destructed however, so I'm unsure.
+
+
+## structure
+I'm tempted to design the framework around a main thread, and auxilary threads. For example, a special command pool could be
+designed to facilitate the render graph on the main thread, while a different specialized command pool could be designed to
+support short lived work, like transfers. I'll have to see how it evolves
+
+## thoughts
+i feel like I'm creating a wrapper around a wrapper (vulkan.hpp). vulkanhpp feels completely redundant

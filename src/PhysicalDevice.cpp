@@ -6,7 +6,7 @@ namespace EWE{
 
 
 
-    bool IsDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
+    bool IsDeviceSuitable(vkPhysicalDevice device, vkSurfaceKHR surface) {
         bool queuesComplete = FindQueueFamilies(device, surface);
 
         bool extensionsSupported = CheckDeviceExtensionSupport(device);
@@ -17,14 +17,14 @@ namespace EWE{
             swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
         }
 
-        vk::PhysicalDeviceFeatures supportedFeatures = device.getFeatures();
+        vkPhysicalDeviceFeatures supportedFeatures = device.getFeatures();
 
         return queuesComplete && extensionsSupported && swapChainAdequate &&
             supportedFeatures.samplerAnisotropy;
     }
 
 
-    PhysicalDevice::PhysicalDevice(Instance& instance, vk::SurfaceKHR surface) : instance{instance} {
+    PhysicalDevice::PhysicalDevice(Instance& instance, vkSurfaceKHR surface) : instance{instance} {
         
         uint32_t deviceCount = 16;
         std::vector<VkPhysicalDevice> devices(deviceCount);
@@ -42,7 +42,7 @@ namespace EWE{
 
             uint32_t score = 0;
             
-            score += (properties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu) * 1000;
+            score += (properties.deviceType == vkPhysicalDeviceType::eDiscreteGpu) * 1000;
             score += properties.limits.maxImageDimension2D;
             std::string_view deviceNameTemp = properties.deviceName;
 #if AMD_TARGET
@@ -54,7 +54,7 @@ namespace EWE{
                 score = 0;
             }
 #elif INTEGRATED_TARGET
-            if (VK::Object->properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
+            if (vkObject->properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
                 score = 0;
             }
 #endif

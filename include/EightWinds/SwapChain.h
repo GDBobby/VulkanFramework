@@ -6,9 +6,9 @@ namespace EWE{
     struct SwapChain{
 
 
-        std::vector<vk::ImageView> imageViews{};
-        vk::Format imageFormats{};
-        vk::Format depthFormats{};
-        vk::Extent2D extent;
+        std::vector<vkImageView> imageViews{};
+        vkFormat imageFormats{};
+        vkFormat depthFormats{};
+        vkExtent2D extent;
     };
 }
