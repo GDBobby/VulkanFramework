@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "LogicalDevice.h"
+#include "EightWinds/LogicalDevice.h"
 
 namespace EWE{
     //might do 3 levels, application life time, long term, and short term. potentially 4 levels, with 1 being per frame

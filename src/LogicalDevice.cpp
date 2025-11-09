@@ -99,6 +99,7 @@ namespace EWE{
 
         
         vkDeviceCreateInfo deviceCreateInfo = {};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         deviceCreateInfo.pNext = deviceExts.head;
 
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
@@ -111,7 +112,7 @@ namespace EWE{
         deviceCreateInfo.pEnabledFeatures = nullptr;
         deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames.size());
         deviceCreateInfo.ppEnabledExtensionNames = extensionNames.data();
-        device = physicalDevice.device.createDevice(deviceCreateInfo);
+        EWE_VK(vkCreateDevice, physicalDevice.device, deviceCreateInfo, nullptr, &device);
 
 
     }

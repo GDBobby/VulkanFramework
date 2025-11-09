@@ -1,16 +1,15 @@
-include(./.env.cmake OPTIONAL RESULT_VARIABLE LOCAL_ENV)
-message(STATUS "Local .env.cmake: ${LOCAL_ENV}")
-
 cmake_minimum_required(VERSION 3.23)
 
-project(EWGraphics VERSION 2.0.0)
+project(ewgraphics)
+
+include(./.env.cmake OPTIONAL RESULT_VARIABLE LOCAL_ENV)
+message(STATUS "Local .env.cmake: ${LOCAL_ENV}")
 
 message(STATUS "Project source dir : ${PROJECT_SOURCE_DIR}")
 message(STATUS "CMake current list dir : ${CMAKE_CURRENT_LIST_DIR}")
 message(STATUS "~~~ CURRENT SOURCE DIR : ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "project name : ${PROJECT_NAME}")
 message(STATUS "build location : ${CMAKE_CURRENT_BINARY_DIR}")
-
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,7 +32,6 @@ message(STATUS "is ${PROJECT_NAME} project root? ${is_project_root}")
 Message(STATUS "Cmake Generator : ${CMAKE_GENERATOR}")
 
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.c)
-
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
 include(FetchContent)
@@ -70,7 +68,7 @@ if(NOT TARGET LinearAlgebra)
 	endif()
 endif()
 
-#potentially use a cmake command, USE_AFTERMATH
+#potentially use a cmake option, USE_AFTERMATH
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/explicit_external/")
 
 option(USING_NVIDIA_AFTERMATH, "Nvidia Aftermath" OFF)
@@ -96,7 +94,7 @@ if (DEFINED VULKAN_SDK_PATH)
   	set(Vulkan_LIBRARY libvulkan.so)
   else()
 	set(Vulkan_LIBRARY vulkan-1)
-  endif()
+  endif()#include "EightWinds/VulkanHeader.h"
 else()
   message(STATUS "Vulkan path undefined in .env")
   find_package(Vulkan REQUIRED) # throws error if could not find Vulkan

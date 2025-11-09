@@ -4,15 +4,16 @@
 namespace EWE{
 
     [[nodiscard]] CommandPool::CommandPool(LogicalDevice& logicalDevice, Queue& queue, bool auxilary)
-        : logicalDevice{logicalDevice}, queue{queue} {
+        : logicalDevice{logicalDevice}, 
+            queue{queue},
+            flags{auxilary ? VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT : 0} 
+        {
             VkCommandPoolCreateInfo commandPoolCreateInfo{};
+            commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+            commandPoolCreateInfo.pNext = nullptr;
             commandPoolCreateInfo.queueFamilyIndex = queue.family.index;
-            commandPoolCreateInfo.flags = 
-                auxilary ? 
-                VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT 
-                : 0
-            ;
-            vkCreateCommandPool(
+            commandPoolCreateInfo.flags = flags;
+            EWE_VK(vkCreateCommandPool,
                 logicalDevice.device, 
                 &commandPoolCreateInfo, 
                 nullptr, 

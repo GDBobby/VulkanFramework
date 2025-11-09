@@ -2,6 +2,8 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Instance.h"
 
+#include <vector>
+
 namespace EWE{
 
     //0 extensions is default initialization

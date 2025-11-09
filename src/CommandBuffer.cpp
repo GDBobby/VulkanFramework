@@ -48,9 +48,10 @@ namespace EWE{
         assert(labelDepth == 0);
     }
 
-        void CommandBuffer::Begin() noexcept {
+    void CommandBuffer::Begin() noexcept {
         inUse = true;
         VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
 #if COMMAND_BUFFER_TRACING
         if (usageTracking.size() > 2) {
@@ -63,6 +64,7 @@ namespace EWE{
     void CommandBuffer::BeginSingleTime() noexcept {
         inUse = true;
         VkCommandBufferBeginInfo beginInfo{};
+        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.pNext = nullptr;
         beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 #if COMMAND_BUFFER_TRACING
@@ -79,6 +81,7 @@ namespace EWE{
     void CommandBuffer::BeginLabel(const char* name, float red, float green, float blue) noexcept {
 #if DEBUG_NAMING
         VkDebugUtilsLabelEXT utilLabel{};
+        utilLabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
         utilLabel.pNext = nullptr;
         utilLabel.color[0] = red;
         utilLabel.color[1] = green;

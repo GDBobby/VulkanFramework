@@ -4,6 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <unordered_set>
+#include <stdexcept>
 
 namespace EWE{ 
 
@@ -43,13 +44,14 @@ namespace EWE{
         return true;
     }
 
-    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions, VkAllocationCallbacks const* allocCallbacks){
+    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+        appInfo.pNext = nullptr;
         appInfo.pApplicationName = "Eight Winds";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 1, 1);
+        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.pEngineName = "Eight Winds Engine";
-        appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 1, 1);
+        appInfo.engineVersion = VK_MAKE_API_VERSION(0, 2, 0, 0);
         appInfo.apiVersion = api_version;
         
         VkInstanceCreateInfo instanceCreateInfo = {};
@@ -59,8 +61,15 @@ namespace EWE{
         std::vector<const char*> all_extensions{};
         all_extensions.reserve(requiredExtensions.size() + optionalExtensions.size());
         std::copy(requiredExtensions.begin(), requiredExtensions.end(), all_extensions.end());
+        if(!CheckInstanceExtensions(requiredExtensions, optionalExtensions)){
+            //throw exception probably
+            //im not really sure if I want to use exceptions or not
+            throw std::runtime_error("failed to get required extensions for instance");
+        }
         for(auto& opt : optionalExtensions){
-            all_extensions.push_back(opt.first.c_str());
+            if(opt.second){
+                all_extensions.push_back(opt.first.c_str());
+            }
         }
 
         instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(all_extensions.size());
@@ -81,7 +90,6 @@ namespace EWE{
         instanceCreateInfo.enabledLayerCount = 0;
         instanceCreateInfo.pNext = nullptr;
 #endif
-        EWE_VK(vkCreateInstance, &instanceCreateInfo, allocCallbacks, &instance);
-        CheckInstanceExtensions(requiredExtensions, optionalExtensions);
+        EWE_VK(vkCreateInstance, &instanceCreateInfo, nullptr, &instance);
     }
 }

@@ -1,11 +1,12 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
-#include "Instance.h"
+#include "EightWinds/Instance.h"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <cstdint>
+#include <functional>
 
 template<typename T>
 struct Dimensions {

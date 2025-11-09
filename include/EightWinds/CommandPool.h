@@ -3,6 +3,7 @@
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/LogicalDevice.h"
+#include "EightWinds/Queue.h"
 
 namespace EWE{
     //command pools per device, per queue, and per thread
@@ -19,6 +20,7 @@ namespace EWE{
         VkCommandPool commandPool;
 
         uint16_t allocatedBuffers = 0;
+        VkCommandPoolCreateFlags flags;
 
         //main rendering thread should not be auxilary, the rest are
         //auxilary pools can reset individual command buffers, main pool resets all at once

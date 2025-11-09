@@ -47,7 +47,6 @@ int main(){
     //once the instance is created, create a surface
     //the surface needs to be known, to check if the physical devices can render to it
     //potentially, could make headless applications, but i don't personally have interest in supporting that at the moment
-
     EWE::Window window{instance, 800, 600, "Example Window"};
 
     
@@ -59,7 +58,7 @@ int main(){
 
     //i need a way to request device features
 
-    EWE::LogicalDevice logicalDevice(instance, window.surface);
+    EWE::LogicalDevice logicalDevice(instance, window.surface, extensions);
 
     SwapChain swapchain{};
     //from here, create the render graph

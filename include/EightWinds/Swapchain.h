@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
+#include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Window.h"
 #include "EightWinds/PerFlight.h"
 #include "EightWinds/Semaphore.h"
@@ -9,16 +10,20 @@
 #include "EightWinds/CommandBuffer.h"
 
 #include <array>
+#include <span>
+#include <vector>
 
 //https://github.com/karnkaul/LittleEngineVk/blob/levk-23/lib/levk/src/render_device.cpp
 //starting with a straight copy of karnage's swapchain
 
-//small notes on the changes from karnage's implemenation
-//i dont think i want the swapchain to own the command buffer
-//it would imply that anything that uses that command buffer would be using the swapchain,
-//and that the command buffer begins and ends with the swap chain
-//thats fine in smaller apps, but if i do pre-compute or post-compute, or whatever, it's less applicable
+/*
+* small notes on the changes from karnage's implemenation
 
+i dont think i want the swapchain to own the command buffer
+it would imply that anything that uses that command buffer would be using the swapchain,
+and that the command buffer begins and ends with the swap chain
+thats fine in smaller apps, but if i do pre-compute or post-compute, or whatever, it's less applicable
+*/
 
 namespace EWE{
 
@@ -36,6 +41,7 @@ namespace EWE{
         
         //most likely, sync will be controlled by the rendergraph, and absorbed from here
         //but until i get that working, having them here will be helpful
+        //also, the WSI (windows system interface or something) doesnt work with timeline semaphore
         PerFlight<Semaphore> drawSemaphores;
         PerFlight<Semaphore> presentSemaphore;
         PerFlight<Fence> drawnFence; 
@@ -51,7 +57,7 @@ namespace EWE{
             presentInfo.swapchainCount = 1;
             
             std::unique_lock<std::mutex> queueLock{VK::Object->queueMutex[Queue::graphics]};
-            eturn vkQueuePresentKHR(VK::Object->queues[Queue::present], &presentInfo);
+            return vkQueuePresentKHR(VK::Object->queues[Queue::present], &presentInfo);
         }
         */
 

@@ -7,29 +7,29 @@
 namespace EWE{
 
     bool DeviceExtension::CheckSupport(std::vector<VkExtensionProperties> const& availableExtensions) {
-            for(auto& avail : availableExtensions){
-                if(strcmp(avail.extensionName, name) == 0){
-                    supported = true;
-                    return true;
-                }
+        for(auto& avail : availableExtensions){
+            if(strcmp(avail.extensionName, name) == 0){
+                supported = true;
+                return true;
             }
-            //this can be used for checking devices, requirement needs to be checked separately
-            //assert(!required);
-            supported = false;
-            return false;
-            /* C++26
-
-            if constexpr (requires { body->sType; }) {
-                //skip pnext
-                for(auto& member : body){
-                    if(std::is_same_v<body->pNext, void*>){
-                        continue;
-                    }
-                    member = member && supported;
-                }
-            }
-            */
         }
+        //this can be used for checking devices, requirement needs to be checked separately
+        //assert(!required);
+        supported = false;
+        return false;
+        /* C++26
+
+        if constexpr (requires { body->sType; }) {
+            //skip pnext
+            for(auto& member : body){
+                if(std::is_same_v<body->pNext, void*>){
+                    continue;
+                }
+                member = member && supported;
+            }
+        }
+        */
+    }
 
 
     struct SwapChainSupportDetails {
