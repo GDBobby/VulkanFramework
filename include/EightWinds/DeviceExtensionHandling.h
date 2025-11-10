@@ -42,58 +42,46 @@ namespace EWE{
     > : std::true_type {};
 
 
-    template<vk::StructureType S>
-    inline constexpr bool has_cpp_type_v = has_cpp_type<S>::value;
+    template<vk::StructureType ST>
+    inline constexpr bool has_cpp_type_v = has_cpp_type<ST>::value;
 
-    template<const char* extension_name>
-    struct ExtensionAssociation : {
-        static_assert(false == 0, "No specialization of ExtensionAssociation<> for this extension.");
+    template<VkStructureType ST>
+    inline constexpr std::size_t sizeof_vk_struct = sizeof(vk::CppType<vk::StructureType, static_cast<vk::StructureType>(ST)>()>::Type);
+
+
+    struct ExtensionAssociation {
+        const char* name;
+        VkStructureType featureSType;
+        VkStructureType propertySType;
+        VkStructureType pNextSType;
+
+        constexpr ExtensionAssociation(const char* name, VkStructureType featureSType, VkStructureType propertySType, VkStructureType pNextSType)
+            : name{name}, featureSType{featureSType}, propertySType{propertySType}, pNextSType{pNextSType}
+        {}
     };
 
-    template<>
-    struct ExtensionAssociation<VK_KHR_SWAPCHAIN_EXTENSION_NAME>{
-        static constexpr VkStructureType featureSType = VK_STRUCTURE_TYPE_MAX_ENUM;
-        static constexpr VkStructureType propertySType = VK_STRUCTURE_TYPE_MAX_ENUM;
-        static constexpr VkStructureType pNextSType = VK_STRUCTURE_TYPE_MAX_ENUM;
+    static constexpr std::vector<ExtensionAssociation> static_extension_associations{
+        ExtensionAssociation{VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_STRUCTURE_TYPE_MAX_ENUM, VK_STRUCTURE_TYPE_MAX_ENUM, VK_STRUCTURE_TYPE_MAX_ENUM},
+        ExtensionAssociation{
+            VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, 
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES, 
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES, 
+            VK_STRUCTURE_TYPE_MAX_ENUM
+        },
+        ExtensionAssociation{
+            VK_EXT_MESH_SHADER_EXTENSION_NAME,
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT,
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_PROPERTIES_EXT,
+            VK_STRUCTURE_TYPE_MAX_ENUM
+        },
+        ExtensionAssociation{
+            VK_EXT_DEVICE_FAULT_EXTENSION_NAME,
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT,
+            VK_STRUCTURE_TYPE_MAX_ENUM,
+            VK_STRUCTURE_TYPE_MAX_ENUM
+        }
     };
 
-    template<>
-    struct ExtensionAssociation<VK_EXT_descriptor_indexing_name>{
-        static constexpr VkStructureType featureSType  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-        static constexpr VkStructureType propertySType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_PROPERTIES;
-        static constexpr VkStructureType pNextSType    = VK_STRUCTURE_TYPE_MAX_ENUM;
-    };
-
-
-
-    template<const char* Name>
-    requires{
-        { ExtensionAssociation<Name>::featureSType }  -> std::convertible_to<VkStructureType>;
-        { ExtensionAssociation<Name>::propertySType } -> std::convertible_to<VkStructureType>;
-        { ExtensionAssociation<Name>::pNextSType }    -> std::convertible_to<VkStructureType>;
-    }
-    struct ExtensionAssociationImpl {
-        static constexpr const char* name = Name;
-        using Derived = ExtensionAssociation<Name>;
-    private:
-        static constexpr VkStructureType FeatureSType  = Derived::featureSType;
-        static constexpr VkStructureType PropertySType = Derived::propertySType;
-        static constexpr VkStructureType PNextSType    = Derived::pNextSType;
-
-    public:
-
-        static constexpr bool has_feature  = FeatureSType  != VK_STRUCTURE_TYPE_MAX_ENUM && has_cpp_type_v<FeatureSType>;
-        static constexpr bool has_property = PropertySType != VK_STRUCTURE_TYPE_MAX_ENUM && has_cpp_type_v<PropertySType>;
-        static constexpr bool has_pnext    =  PNextSType    != VK_STRUCTURE_TYPE_MAX_ENUM && has_cpp_type_v<PNextSType>;
-
-        using Feature  = std::conditional_t<has_feature,  CppTypeFromSType_t<FeatureSType>, void>;
-        using Property = std::conditional_t<has_property, CppTypeFromSType_t<PropertySType>, void>;
-        using PNext    = std::conditional_t<has_pnext,    CppTypeFromSType_t<PNextSType>, void>;
-
-        static constexpr Feature    GetFeature()    requires(!std::is_void_v<Feature>)  { return Feature{}; }
-        static constexpr Property   GetProperty()   requires(!std::is_void_v<Property>) { return Property{}; }
-        static constexpr PNext      GetPNext()      requires(!std::is_void_v<PNext>)    { return PNext{}; }
-    };
 
     //0 extensions is default initialization
     struct DeviceExtension {
