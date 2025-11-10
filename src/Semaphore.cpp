@@ -1,5 +1,7 @@
 #include "EightWinds/Semaphore.h"
 
+#include <cassert>
+
 namespace EWE{
     Semaphore::Semaphore(LogicalDevice& logicalDevice, bool timelineSemaphore, uint8_t initialValue)
         :logicalDevice{logicalDevice}
@@ -17,19 +19,18 @@ namespace EWE{
             timelineCreateInfo.initialValue = initialValue;
 
             VkSemaphoreCreateInfo semaphoreCreateInfo;
-            createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            createInfo.pNext = &timelineCreateInfo;
-            createInfo.flags = 0;
+            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            semaphoreCreateInfo.pNext = &timelineCreateInfo;
+            semaphoreCreateInfo.flags = 0;
 
-            EWE_VK(vkCreateSemaphore, logicalDevice.device, &createInfo, NULL, &vkSemaphore);
+            EWE_VK(vkCreateSemaphore, logicalDevice.device, &semaphoreCreateInfo, nullptr, &vkSemaphore);
         }
         else{
             VkSemaphoreCreateInfo semaphoreCreateInfo;
-            createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-            createInfo.pNext = nullptr;
-            createInfo.flags = 0;
-
-            EWE_VK(vkCreateSemaphore, logicalDevice.device, &createInfo, NULL, &vkSemaphore);
+            semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+            semaphoreCreateInfo.pNext = nullptr;
+            semaphoreCreateInfo.flags = 0;
+            EWE_VK(vkCreateSemaphore, logicalDevice.device, &semaphoreCreateInfo, nullptr, &vkSemaphore);
         }
     }
 }

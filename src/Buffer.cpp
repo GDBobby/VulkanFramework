@@ -13,7 +13,7 @@ namespace EWE{
     Buffer::Buffer(LogicalDevice& logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags2 usageFlags)
         : logicalDevice{logicalDevice}, usageFlags{ usageFlags } {
             
-        alignmentSize = CalculateAlignment(instanceSize, usageFlags, );
+        alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.physicalDevice.properties.limits);
         bufferSize = alignmentSize * instanceCount;
         
         VkBufferCreateInfo bufferInfo{};

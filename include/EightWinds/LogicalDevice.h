@@ -28,7 +28,12 @@ namespace EWE{
         operator VkDevice() const { return device; }
 
         //if a user wanted to customize how the queues are made, id let them pass parameters thru here
-        [[nodiscard]] explicit LogicalDevice(Instance& instance, VkSurfaceKHR surface, std::vector<DeviceExtension>& deviceExtensions);
+        [[nodiscard]] explicit LogicalDevice(
+            Instance& instance, 
+            VkSurfaceKHR surface, 
+            std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector, 
+            std::span<DeviceExtension>& deviceExtensions
+        );
     
     };
 }

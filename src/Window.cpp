@@ -59,6 +59,6 @@ namespace EWE {
 		glfwSetFramebufferSizeCallback(window, ResizeCallbackWrapper);
 
 
-		EWE_VK(glfwCreateWindowSurface, instance, window, nullptr, surface);
+		EWE_VK(glfwCreateWindowSurface, instance, window, nullptr, &surface);
 	}
 }

@@ -20,7 +20,7 @@ namespace EWE{
         std::vector<VkImageMemoryBarrier> imageBarriers;
         std::vector<VkBufferMemoryBarrier> bufferBarriers;
 
-		PipelineBarrier();
+		[[nodiscard]] explicit PipelineBarrier(CommandBuffer& cmdBuf);
 		PipelineBarrier(PipelineBarrier& copySource) noexcept;
 		PipelineBarrier& operator=(PipelineBarrier& copySource) noexcept;
 		PipelineBarrier(PipelineBarrier&& moveSource) noexcept;

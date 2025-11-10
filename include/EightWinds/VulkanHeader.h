@@ -11,7 +11,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include "vk_mem_alloc.h"
+#include "vma/include/vk_mem_alloc.h"
 
 namespace EWE{
 

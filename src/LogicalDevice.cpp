@@ -1,30 +1,15 @@
 #include "EightWinds/LogicalDevice.h"
 
 namespace EWE{
-
-
-    struct DeviceExtensionChain {
-        VkBaseInStructure* head = nullptr;
-        VkBaseInStructure* tail = nullptr;
-        uint16_t count{ 0 };
-
-		uint16_t Add(VkBaseInStructure* extension) {
-			if (head == nullptr) {
-                head = extension;
-                tail = extension;
-			}
-			else {
-				tail->pNext = extension;
-				tail = extension;
-			}
-			count++;
-			return count;
-		}
-    };
-
-    LogicalDevice::LogicalDevice(Instance& instance, VkSurfaceKHR surface, std::vector<DeviceExtension>& deviceExtensions)
-        : physicalDevice{instance, surface},
-        queueFamilies{QueueFamily::Enumerate(physicalDevice, surface)},
+    
+    LogicalDevice::LogicalDevice(
+        Instance& instance, 
+        VkSurfaceKHR surface, 
+        std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector, 
+        std::span<DeviceExtension>& deviceExtensions,
+    )
+    : physicalDevice{instance, deviceSelector},
+        queueFamilies{QueueFamily::Enumerate(physicalDevice, surface)}
     {
         
         //since im only doing 1 queue per family, this can be a vector of floats rather than a vector<vector<float>>
@@ -33,18 +18,19 @@ namespace EWE{
         std::vector<float> queuePriorities{};
         queuePriorities.reserve(queueFamilies.size());
 
-        std::vector<vkDeviceQueueCreateInfo> queueCreateInfos;
-        vkDeviceQueueCreateInfo queueCreateInfo{};
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.queueCount = 1;
         queueCreateInfo.pNext = nullptr;// this is just for protected bit, and i think it requires vkdevicequeuecreateinfo2 or something
 
 
         for(uint8_t i = 0; i < queueFamilies.size(); i++){
             queueCreateInfo.queueFamilyIndex = queueFamilies[i].index;
+            auto& family = queueFamilies[i];
 
             const float familyOffset = (i * 0.01f);
 
-            if(family.SupportsGraphics()){
+            if(family.SupportsGraphics()) {
                 if(family.SupportsSurfacePresent()) {
                     queuePriorities.push_back(1.f - familyOffset);
                 }
@@ -52,7 +38,7 @@ namespace EWE{
                     queuePriorities.push_back(0.85f - familyOffset);
                 }
             }
-            else if(family.SupportsPresent()){
+            else if(family.SupportsSurfacePresent()){
                 queuePriorities.push_back(0.7f - familyOffset);
             }
             else if (family.SupportsCompute()){
@@ -79,28 +65,33 @@ namespace EWE{
 
         
         for (int i = 0; i < queueCreateInfos.size(); i++) {
-            queueCreateInfos[i].pQueuePriorities = queuePriorities[i].data();
+            //this is expecting a c array (pointer to contiguous data)
+            //but im only using one queue, so im giving it a pointer to a single point of data
+            queueCreateInfos[i].pQueuePriorities = &queuePriorities[i];
         }
         
 
-        DeviceExtensionChain deviceExts{};
-        auto availableExtensions = physicalDevice.device.enumeratorDeviceExtensionProperties();
+        uint32_t propCount;
+        vkEnumerateDeviceExtensionProperties(physicalDevice.device, nullptr, &propCount, nullptr);
+        std::vector<VkExtensionProperties> extensionProperties{propCount};
+        vkEnumerateDeviceExtensionProperties(physicalDevice.device, nullptr, &propCount, extensionProperties.data());
+/*
         std::vector<const char*> extensionNames{};
         
         for(auto& ext : deviceExtensions){
-            if(ext.CheckSupport(physicalDevice.extensionProperties, physicalDevice)){
-                deviceExts.Add(ext.body);
+            if(ext.CheckSupport(extensionProperties)){
+                deviceExts.Add(ext.name);
                 if(ext.name != nullptr){
                     extensionNames.push_back(ext.name);
                 }
             }
         }
-
+*/
 
         
-        vkDeviceCreateInfo deviceCreateInfo = {};
+        VkDeviceCreateInfo deviceCreateInfo = {};
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        deviceCreateInfo.pNext = deviceExts.head;
+        deviceCreateInfo.pNext = pNextChain;
 
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -112,7 +103,7 @@ namespace EWE{
         deviceCreateInfo.pEnabledFeatures = nullptr;
         deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(extensionNames.size());
         deviceCreateInfo.ppEnabledExtensionNames = extensionNames.data();
-        EWE_VK(vkCreateDevice, physicalDevice.device, deviceCreateInfo, nullptr, &device);
+        EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
 
 
     }

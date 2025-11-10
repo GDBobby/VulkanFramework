@@ -3,33 +3,9 @@
 #include "EightWinds/Queue.h"
 
 #include <cassert>
+#include <cstdio>
 
 namespace EWE{
-
-    bool DeviceExtension::CheckSupport(std::vector<VkExtensionProperties> const& availableExtensions) {
-        for(auto& avail : availableExtensions){
-            if(strcmp(avail.extensionName, name) == 0){
-                supported = true;
-                return true;
-            }
-        }
-        //this can be used for checking devices, requirement needs to be checked separately
-        //assert(!required);
-        supported = false;
-        return false;
-        /* C++26
-
-        if constexpr (requires { body->sType; }) {
-            //skip pnext
-            for(auto& member : body){
-                if(std::is_same_v<body->pNext, void*>){
-                    continue;
-                }
-                member = member && supported;
-            }
-        }
-        */
-    }
 
 
     struct SwapChainSupportDetails {
@@ -86,25 +62,29 @@ namespace EWE{
     }
 
 
-    PhysicalDevice::PhysicalDevice(Instance& instance, VkSurfaceKHR surface, std::vector<DeviceExtension>& deviceExtensions) noexcept
+    PhysicalDevice::PhysicalDevice(Instance& instance, std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector) noexcept
     : instance{instance} 
     {
         
         uint32_t deviceCount = 16;
         std::vector<VkPhysicalDevice> devices(deviceCount);
         EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, devices.data());
+
+        device = deviceSelector(devices);
+
+        /*
         printf("Device count: %d\n", deviceCount);
         
         if (deviceCount == 0) {
             printf("failed to find GPUs with Vulkan support!\n");
             assert(false && "failed to find GPUs with Vulkan support!");
         }
-        
+
         //bigger score == gooder device
         std::list<std::pair<uint32_t, uint32_t>> deviceScores{};
         for (uint32_t i = 0; i < deviceCount; i++) {
 
-            EWE_VK(vkGetPhysicalDeviceProperties, devices[i], &properties);
+            vkGetPhysicalDeviceProperties(devices[i], &properties);
 
             uint32_t score = 0;
             
@@ -139,7 +119,7 @@ namespace EWE{
         }
     
         for (auto iter = deviceScores.begin(); iter != deviceScores.end(); iter++) {
-            if (IsDeviceSuitable(devices[iter->second])) {
+            if (IsDeviceSuitable(devices[iter->second], surface, deviceExtensions)) {
                 device = devices[iter->second];
                 break;
             }
@@ -152,10 +132,8 @@ namespace EWE{
             printf("failed to find a suitable GPU! \n");
             assert(false && "failed to find a suitable GPU!");
         }
+        */
         
-        //earlier we were using the sampled devices to check if they supported properties we wanted
-        //now, we'll set the sampled properties to the selected device
-        EWE_VK(vkGetPhysicalDeviceProperties, device, &properties);
     }
 
 }

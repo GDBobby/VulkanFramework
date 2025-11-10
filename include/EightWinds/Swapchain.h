@@ -27,8 +27,10 @@ thats fine in smaller apps, but if i do pre-compute or post-compute, or whatever
 
 namespace EWE{
 
-    struct SwapChain{
+    struct Swapchain{
         LogicalDevice& logicalDevice;
+
+        [[nodiscard]] explicit Swapchain(LogicalDevice& logicalDevice) noexcept;
 
         std::vector<VkPresentModeKHR> presentModes{};
         VkSwapchainCreateInfoKHR swapCreateInfo;//i dont nromaly keep these, ill have to come back to this
@@ -43,8 +45,8 @@ namespace EWE{
         //but until i get that working, having them here will be helpful
         //also, the WSI (windows system interface or something) doesnt work with timeline semaphore
         PerFlight<Semaphore> drawSemaphores;
-        PerFlight<Semaphore> presentSemaphore;
-        PerFlight<Fence> drawnFence; 
+        PerFlight<Semaphore> presentSemaphores;
+        PerFlight<Fence> drawnFences; 
 
 
         //im assuming htis gets absorbed by the render graph
@@ -70,38 +72,10 @@ namespace EWE{
             return VK_PRESENT_MODE_FIFO_KHR;
         }
         
-        [[nodiscard]] static constexpr VkSurfaceFormatKHR GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) {
-            constexpr auto srgb_formats_v = std::array{VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_A8B8G8R8_SRGB_PACK32};
+        [[nodiscard]] static VkSurfaceFormatKHR GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) noexcept;
+        [[nodiscard]] static VkCompositeAlphaFlagBitsKHR GetCompositeAlpha(VkSurfaceCapabilitiesKHR const& caps) noexcept;
+        [[nodiscard]] static VkExtent2D GetImageExtent(VkSurfaceCapabilitiesKHR const& caps, VkExtent2D framebuffer) noexcept;
 
-            for (auto const srgb_format : srgb_formats_v) {
-                auto const it = std::ranges::find_if(supported, [srgb_format](VkSurfaceFormatKHR const& format) {
-                    return format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR && format.format == srgb_format;
-                    
-                });
-                if (it != supported.end()) { return *it; }
-            }
-
-            printf("potentially need to debug this, idk how it behaves\n");
-            return VkSurfaceFormatKHR{};
-        }
-        [[nodiscard]] static constexpr auto GetCompositeAlpha(VkSurfaceCapabilitiesKHR const& caps) {
-            if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) { return VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; }
-            if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) { return VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR; }
-            if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR) { return VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR; }
-            // according to the spec, at least one bit must be set
-            return VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
-        }
-        [[nodiscard]] static VkExtent2D GetImageExtent(VkSurfaceCapabilitiesKHR const& caps, VkExtent2D framebuffer) {
-            static constexpr auto limitless_v = std::numeric_limits<std::uint32_t>::max();
-            if (caps.currentExtent.width < limitless_v && caps.currentExtent.height < limitless_v) { return caps.currentExtent; }
-            auto const x = std::clamp(framebuffer.width, caps.minImageExtent.width, caps.maxImageExtent.width);
-            auto const y = std::clamp(framebuffer.height, caps.minImageExtent.height, caps.maxImageExtent.height);
-            return VkExtent2D{x, y};
-        }
-
-        [[nodiscard]] static constexpr uint32_t GetImageCount(VkSurfaceCapabilitiesKHR const& caps) {
-            if (caps.maxImageCount < caps.minImageCount) { return std::max(3u, caps.minImageCount + 1); }
-            return std::clamp(3u, caps.minImageCount + 1, caps.maxImageCount);
-        }
+        [[nodiscard]] static uint32_t GetImageCount(VkSurfaceCapabilitiesKHR const& caps) noexcept;
     };
 }

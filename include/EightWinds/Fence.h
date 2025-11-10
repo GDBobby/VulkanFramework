@@ -4,6 +4,10 @@
 
 namespace EWE{
     struct Fence {
+        LogicalDevice& logicalDevice;
+
+        [[nodiscard]] explicit Fence(LogicalDevice& logicalDevice) : logicalDevice{logicalDevice} {}
+
         VkFence vkFence{ VK_NULL_HANDLE };
         bool inUse{ false };
         bool submitted{ false };

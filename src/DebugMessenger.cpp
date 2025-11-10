@@ -80,7 +80,7 @@ namespace EWE {
         const VkAllocationCallbacks* pAllocator) {
         auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
         if (func != nullptr) {
-            EWE_VK(func, instance, debugMessenger, pAllocator);
+            func(instance, debugMessenger, pAllocator);
         }
     }
 

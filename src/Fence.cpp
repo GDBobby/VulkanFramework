@@ -18,9 +18,9 @@ namespace EWE{
             printf("invalid fence?\n");
         }
 #endif
-        VkResult ret = vkWaitForFences(VK::Object->vkDevice, 1, &vkFence, true, time);
+        VkResult ret = vkWaitForFences(logicalDevice.device, 1, &vkFence, true, time);
         if (ret == VK_SUCCESS) {
-            EWE_VK(vkResetFences, VK::Object->vkDevice, 1, &vkFence);
+            EWE_VK(vkResetFences, logicalDevice.device, 1, &vkFence);
             //its up to the calling function to unlock the mutex
             for (auto& waitSem : waitSemaphores) {
                 waitSem->FinishWaiting();

@@ -10,14 +10,14 @@ namespace EWE {
         VkAccessFlags2 access = VK_ACCESS_2_NONE;
         
         if (usage & VK_IMAGE_USAGE_TRANSFER_SRC_BIT){
-            access |= VK_ACCESS_2_TRANSFER_READ;
+            access |= VK_ACCESS_2_TRANSFER_READ_BIT;
         }
         if (usage & VK_IMAGE_USAGE_TRANSFER_DST_BIT){
-            access |= VK_ACCESS_2_TRANSFER_WRITE;
+            access |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
         }
 
         if (usage & VK_IMAGE_USAGE_SAMPLED_BIT){
-            access |= VK_ACCESS_2_SHADER_SAMPLER_READ;
+            access |= VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
         }
         if (usage & VK_IMAGE_USAGE_STORAGE_BIT) {
             access |= writes 
@@ -44,7 +44,7 @@ namespace EWE {
         if (usage & VK_IMAGE_USAGE_HOST_TRANSFER_BIT) {
             access |= writes
                         ? VK_ACCESS_2_HOST_WRITE_BIT
-                        : VK_ACCESS_2_HOST_READ;
+                        : VK_ACCESS_2_HOST_READ_BIT;
         }
         
 
@@ -83,7 +83,8 @@ namespace EWE {
 
 
 
-    PipelineBarrier::PipelineBarrier() :
+    PipelineBarrier::PipelineBarrier(CommandBuffer& cmdBuf) :
+        cmdBuf{cmdBuf},
         srcStageMask{},
         dstStageMask{},
         dependencyFlags{ 0 },
