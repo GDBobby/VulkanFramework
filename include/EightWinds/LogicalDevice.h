@@ -32,7 +32,7 @@ namespace EWE{
             Instance& instance, 
             VkSurfaceKHR surface, 
             std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector, 
-            std::span<DeviceExtension>& deviceExtensions
+            std::vector<DeviceExtension>& deviceExtensions
         );
     
     };
