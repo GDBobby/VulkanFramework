@@ -16,9 +16,9 @@ namespace EWE{
 
 
     //0 extensions is default initialization
-    struct DeviceExtension {
+    struct RequestedExtension {
 
-        const char* name;
+        std::size_t name_index;
         bool required;
         uint64_t score = 0;
 
@@ -26,21 +26,62 @@ namespace EWE{
             : name{name}, required{required}, score{score}, supported{false}
         }
 
-        bool supported = true; //this will be read after construction
+        //this will be read after construction
+        //set in the CheckSupport function
+        bool supported = false; 
 
         bool FailedRequirements() const {
             return required && !supported;
         }
 
-        bool CheckSupport(std::vector<VkExtensionProperties> const& availableExtensions);
-    };
-    template<std::size_t N>
-    constexpr auto extract_names(const std::array<DeviceExtension, N>& exts) {
-        std::array<const char*, N> names{};
-        for (std::size_t i = 0; i < N; ++i) {
-            names[i] = exts[i].name;
+        bool CheckSupport(std::vector<VkExtensionProperties> const& availableExtensions) {
+            if(supported){
+                return true;
+            }
+            for(auto& avail : availableExtensions){
+                if(static_extension_associations[name_index] == avail.name){
+                    supported = true;
+                    return true;
+                }
+            }
         }
-        return names;
+    };
+
+
+    template<uint32_t VkVersion>
+    struct VulkanVersionTypes {
+        using FeatureTypes = std::tuple<>;
+        using PropertyTypes = std::tuple<>;
+    };
+
+    template<>
+    struct VulkanVersionTypes<VK_API_VERSION_1_1> {
+        using FeatureTypes = std::tuple<VkPhysicalDeviceVulkan11Features>;
+        using PropertyTypes = std::tuple<VkPhysicalDeviceVulkan11Properties>;
+    };
+
+    template<>
+    struct VulkanVersionTypes<VK_API_VERSION_1_2> {
+        using FeatureTypes = std::tuple<VkPhysicalDeviceVulkan11Features, VkPhysicalDeviceVulkan12Features>;
+        using PropertyTypes = std::tuple<VkPhysicalDeviceVulkan11Properties, VkPhysicalDeviceVulkan12Properties>;
+    };
+
+    template<>
+    struct VulkanVersionTypes<VK_API_VERSION_1_3> {
+        using FeatureTypes = std::tuple<VkPhysicalDeviceVulkan11Features, VkPhysicalDeviceVulkan12Features, VkPhysicalDeviceVulkan13Features>;
+        using PropertyTypes = std::tuple<VkPhysicalDeviceVulkan11Properties, VkPhysicalDeviceVulkan12Properties, VkPhysicalDeviceVulkan13Properties>;
+    };
+
+    template<>
+    struct VulkanVersionTypes<VK_API_VERSION_1_4> {
+        using FeatureTypes = std::tuple<VkPhysicalDeviceVulkan11Features, VkPhysicalDeviceVulkan12Features, VkPhysicalDeviceVulkan13Features, VkPhysicalDeviceVulkan14Features>;
+        using PropertyTypes = std::tuple<VkPhysicalDeviceVulkan11Properties, VkPhysicalDeviceVulkan12Properties, VkPhysicalDeviceVulkan13Properties, VkPhysicalDeviceVulkan14Properties>;
+    };
+
+    constexpr uint32_t RoundDownVkVersion(uint32_t in_version) noexcept{
+        constexpr uint32_t mask = (1 << 12) - 1;
+        constexpr uint32_t inverted_mask = ~mask;
+        return in_version & inverted_mask;
     }
 
     //in C++26, we can use reflection to see WHICH members are failing, instead of just returning their address
@@ -80,24 +121,16 @@ namespace EWE{
 
     template <typename... Structs>
     struct VulkanStructContainer {
-        std::tuple<SupportWrapper<Structs...>> data;
+        std::tuple<Structs...> data;
+        static constexpr bool HasDuplicates = !std::is_same_v<std::tuple<Structs...>, Deduplicate::unique_types_t<Structs...>>;
 
         consteval VulkanStructContainer() = default;
 
         template <typename T>
+        requires ((std::same_as<T, Structs> || ...))
         T& Get() {
             return data;
         }
-        template<typename T>
-        bool IsSupported() const {
-            return std::get<SupportWrapper<T>>(data).supported;
-        }
-
-        template<typename T>
-        void SetSupported(bool value) {
-            std::get<SupportWrapper<T>>(data).supported = value;
-        }
-
 
         template <typename Func>
         requires (std::invocable<Func, Ts&> && ...)
@@ -128,163 +161,74 @@ namespace EWE{
 
             SetPNextForIndex<sizeof...(Is)-1, -1>();
 
-            return &std::get<0>(data).underlyingType;
+            return &std::get<0>(data);
         }
 
         template <std::size_t I, int J>
         void SetPNextForIndex() {
             if constexpr (J == -1) {
-                std::get<I>(data).underlyingType.pNext = nullptr;
+                std::get<I>(data).pNext = nullptr;
             } else {
-                std::get<I>(data).underlyingType.pNext = static_cast<void*>(&std::get<J>(data.underlyingType));
+                std::get<I>(data).pNext = static_cast<void*>(&std::get<J>(data));
             }
         }
     };
             
-    template <std::size_t ExtCount, std::size_t FeatureCount, std::size_t PropertyCount>
-    struct ExtensionExpansionHelper {
-        std::array<DeviceExtension, ExtCount>  extensions{};
-        std::array<VkStructureType, FeatureCount> feature_types{};
-        std::array<VkStructureType, PropertyCount> property_types{};
+    template<uint32_t Vk_Version, typename FeatureParamPack, typename PropertyParamPack>
+    struct DeviceConstructionHelper{
+        VkPhysicalDeviceProperties2 property_base;
+        //v1.1 includes features11, v1.2 for features12 and so on
+        using VersionPropertyPack = typename VulkanVersionTypes<RoundDownVkVersion(Vk_Version)>::PropertyTypes;
+        using FinalPropertyPack = decltype(Deduplicate::unique_types_t(std::tuple<PropertyParamPack...>{}, VersionPropertyPack{}));
+        VulkanStructContainer<FinalPropertyPack> properties;
 
-        consteval ExtensionExpansionHelper() = default;
+        std::vector<DeviceExtension> extensions;
 
-        consteval ExtensionExpansionHelper(
-            std::array<DeviceExtension, ExtCount> exts,
-            std::array<VkStructureType, FeatureCount> feats,
-            std::array<VkStructureType, PropertyCount> props
-        )
-        : extensions(exts), feature_types(feats), property_types(props) {}
-    };
-
-    template <std::size_t MaxExt = 256, //if my parser of the vk.xml is working these numbers cover over half of the total
-            std::size_t MaxFeat = 128,
-            std::size_t MaxProp = 128>
-    constexpr auto ExpandExtensions(
-        uint32_t vk_api_version,
-        const std::array<DeviceExtension, MaxExt>& requested,
-        std::size_t requested_count)
-    {
-        std::array<DeviceExtension, MaxExt> result_extensions{};
-        std::array<VkStructureType, MaxFeat> result_features{};
-        std::array<VkStructureType, MaxProp> result_properties{};
-        std::size_t ext_count = 0;
-        std::size_t feat_count = 0;
-        std::size_t prop_count = 0;
-
-        auto find_association = [&](std::string_view name) -> const ExtensionAssociation* {
-            for (auto const& assoc : static_extension_associations){
-                if (assoc.name == name) return &assoc;
-            }
-            return nullptr;
-        };
-
-        auto find_existing = [&](std::string_view name) -> DeviceExtension* {
-            for (std::size_t i = 0; i < ext_count; ++i){
-                if (result_extensions[i].name == name) return &result_extensions[i];
-            }
-            return nullptr;
-        };
-
-        auto contains = [](auto const& arr, std::size_t count, auto val) {
-            for (std::size_t i = 0; i < count; ++i){
-                if (arr[i] == val) return true;
-            }
-            return false;
-        };
-
-        std::function<void(std::string_view, bool)> addExtension;
-        addExtension = [&](std::string_view name, bool required) {
-            if (auto* existing = find_existing(name)) {
-                if (required && !existing->required) {
-                    existing->required = true;
-                }
-                return;
-            }
-
-            const ExtensionAssociation* assoc = find_association(name);
-            if (!assoc) return;
-
-            if (assoc->promotion_version && assoc->promotion_version <= vk_api_version) return;
-
-            if (ext_count < MaxExt) {
-                result_extensions[ext_count++] = DeviceExtension{name.data(), required, 0};
+        template<typename T>
+        auto T& GetFeature()        
+        requires (std::is_same_v<T, VkPhysicalDeviceFeatures2> || (std::same_as<T, FinalFeaturePack> || ...)
+        ) {
+            if constexpr(std::is_same_v<T, VkPhysicalDeviceFeatures2>){
+                return feature_base;
             }
             else{
-                //static_assert potentially
-                //only thing that needs to change is the callsize of this function
+                return features.Get<T>();
             }
-
-            if (assoc->feature_stype != VK_STRUCTURE_TYPE_MAX_ENUM &&
-                !contains(result_features, feat_count, assoc->feature_stype) &&
-                feat_count < MaxFeat
-            ) {
-                result_features[feat_count++] = assoc->feature_stype;
+        }
+        template<typename T>
+        const T& GetFeature() const
+        requires (std::is_same_v<T, VkPhysicalDeviceFeatures2> || (std::same_as<T, FinalFeaturePack> || ...))
+        {
+            if constexpr (std::is_same_v<T, VkPhysicalDeviceFeatures2>) {
+                return feature_base;
+            } else {
+                return features.Get<T>();
             }
+        }
 
-            if (assoc->property_stype != VK_STRUCTURE_TYPE_MAX_ENUM &&
-                !contains(result_properties, prop_count, assoc->property_stype) &&
-                prop_count < MaxProp
-            ) {
-                result_properties[prop_count++] = assoc->property_stype;
+        template<typename T>
+        auto T& GetProperty()
+        requires (std::is_same_v<T, VkPhysicalDeviceProperties2> || (std::same_as<T, FinalPropertyPack> || ...))
+        {   
+            if constexpr(std::is_same_v<T, VkPhysicalDeviceProperties2>){
+                return property_base;
             }
-
-            for (std::size_t i = 0; i < assoc->dep_count; ++i) {
-                addExtension(assoc->dependencies[i], required);
+            else{
+                return properties.Get<T>();
+            }   
+        }
+        template<typename T>
+        const T& GetProperty() const
+            requires (std::is_same_v<T, VkPhysicalDeviceProperties2> || (std::same_as<T, FinalPropertyPack> || ...))
+        {
+            if constexpr (std::is_same_v<T, VkPhysicalDeviceProperties2>) {
+                return property_base;
+            } else {
+                return properties.Get<T>();
             }
-        };
-
-        for (std::size_t i = 0; i < requested_count; ++i) {
-            addExtension(requested[i].name, requested[i].required);
         }
-
-        std::array<DeviceExtension, ext_count> exts{};
-        std::array<VkStructureType, feat_count> feats{};
-        std::array<VkStructureType, prop_count> props{};
-
-        for (std::size_t i = 0; i < ext_count; ++i) {
-            exts[i] = result_extensions[i];
-        }
-        for (std::size_t i = 0; i < feat_count; ++i) {
-            feats[i] = result_features[i];
-        }
-        for (std::size_t i = 0; i < prop_count; ++i) {
-            props[i] = result_properties[i];
-        }
-
-        return ExtensionExpansionHelper(exts, feats, props);
-    }
-
-
-    template <typename Array, std::size_t... Is>
-    struct tuple_from_array_impl;
-
-    template <typename T, std::size_t N, std::size_t... Is>
-    struct tuple_from_array_impl<std::array<T, N>, Is...> {
-        template <auto... Vs>
-        using helper = std::tuple<typename CppType<Vs>::Type...>;
-    };
-
-    template <auto& arr, std::size_t... Is>
-    using tuple_from_array_impl_t = std::tuple<typename CppType<decltype(arr[Is])>::Type...>;
-
-    template<std::size_t ext_count, typename FeatureParamPack, typename PropertyParamPack>
-    struct DeviceConstructionHelper{
-        std::array<DeviceExtension, ext_count> extensions;
-        VulkanStructContainer<FeatureParamPack> features;
-        VulkanStructContainer<PropertyParamPack> properties;
-
-        VkPhysicalDeviceFeatures2 feature_base;
-        VkPhysicalDeviceProperties2 property_base;
-
-        void DisableSupport(const char* name) {
-            //i need runtime linkage between the name and the feature/property
-            static_extension_assocations
-        }
-
 
         bool ExtensionSupported(const char* name) const {
-            //i need to build a compile time name to index relationship, but i dont have the emotional strength right now
             for(auto const& ext : extensions){
                 if(ext == name){
                     return ext.supported;
@@ -301,25 +245,6 @@ namespace EWE{
             property_base.pNext = properties.BuildPNextChain();
         }
 
-        template<typename T>
-        auto std::optional<T>& GetFeature() {
-            if constexpr(std::is_same_v<T, VkPhysicalDeviceFeatures2>){
-                return feature_base;
-            }
-            else{
-                return features.GetSupported<T>() ? features.Get<T>() : std::nullopt;
-            }
-        }
-
-        template<typename T>
-        auto std::optional<T>& GetProperty() {
-            if constexpr(std::is_same_v<T, VkPhysicalDeviceProperties2>){
-                return property_base;
-            }
-            else{
-                return properties.GetSupported<T>() ? properties.Get<T>() : std::nullopt;
-            }
-        }
 
         static [[nodiscard]] LogicalDevice ConstructDevice(VkPhysicalDevice physicalDevice){
             //check extensions
@@ -331,9 +256,11 @@ namespace EWE{
             
             std::vector<const char*> supported_extensions{};
 
+            uint64_t score = 0;
             for(auto& ext : extensions){
                 if(ext.CheckSupport(extensionProperties)){
                     supported_extensions.push_back(ext.name);
+                    score += supported_extensions.score;
                 }
                 else{
                     DisableSupport(name);
@@ -365,56 +292,38 @@ namespace EWE{
 
 
 
-
-
-    //benched for now
-
-
-
+    //i'd like to merge properties and features into one template base but it might not be worth the effort
+    template<uint32_t Vk_Version, typename FeatureParamPack>
     struct FeatureManager{
-        //any feature that was set to true is considered required
-        //the head is required to be VkPhysicalDeviceFeatures2
-        VkPhysicalDeviceFeatures2* incomingFeatures = nullptr;
-        std::vector<std::size_t> sizes;
-        std::size_t totalSize = 0;
-        VkBaseOutStructure* tail = nullptr; //basein makes the pNext a const* which is a bit annoying
-        uint64_t chainCount = 0;
+        
+        using VersionFeaturePack = typename VulkanVersionTypes<RoundDownVkVersion(Vk_Version)>::FeatureTypes;
+        using FinalFeaturePack = decltype(Deduplicate::unique_types_t(std::tuple<FeatureParamPack...>{}, VersionFeaturePack{}));
+        VulkanStructContainer<FinalFeaturePack> features;
+        VkPhysicalDeviceFeatures2 base;
 
-        //for comparison, the incomingfeatures will be copied to a second buffer
-        //if outfeatures is not equal to nullptr on deconstruction, it will be called with Free
-        VkPhysicalDeviceFeatures2* outFeatures = nullptr;
+        static FeatureManager PopulateFeatures(VkPhysicalDevice physicalDevice){
+            FeatureManager featureManager{};
+            //need to populate sTypes
+            //if i use sTypes to populate the templates for this struct that could make it a bit easier
+            featureManager.base.stype = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            featureManager.features.ForEach([](){
+                //fix this, it's not complete
+                data.sType = vk::CppType<feature_type>::Type::SType::GetVkStype;
+            };)
 
-        /*
-        * when C++26 comes, I'll enhance this so the active features can be retrieved
-        template<typename T>
-        T const& GetFeatureStruct(){
-            //step thru each feature, do reflection comparison to get the feature. throw an exception if it's not available
-            for(auto& feat : *this){
-                if(std::is_same_v<T, declype(feat)){
-                    return *feat;
-                }
-            }
-        }
-        */
+            base.pNext = features.BuildPNextChain();
+            vkGetPhysicalDeviceFeatures2(physicalDevice, &base);
 
-        void SetHead(VkPhysicalDeviceFeatures2* head) noexcept {
-            incomingFeatures = head;
-            tail = reinterpret_cast<VkBaseOutStructure*>(head);
+            auto copiedFeatures = 
         }
 
-        template<VulkanStruct VkStr>
-        void AddFeature(VkStr& feature){
-            sizes.push_back(sizeof(VkStr));
-            totalSize += sizeof(VkStr);
-            //assert(tail != nullptr);
-            tail->pNext = reinterpret_cast<VkBaseOutStructure*>(&feature);
-            tail = tail->pNext;
+        uint64_t ScoreFeatures(VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures2 copied_chain) const{
+
         }
 
-        [[nodiscard]] std::vector<FailedRequirement> CheckFeatures(VkPhysicalDevice physicalDevice);
-    private:
-        //compare is meant to be called within CheckFeatures
-        std::vector<FailedRequirement> Compare();
+        uint64_t ScoreFeatures(VkPhysicalDevice physicalDevice) const {
+            uint64_t ret;
+        }
     };
 
     struct PropertyManager{

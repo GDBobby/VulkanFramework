@@ -49,27 +49,39 @@ namespace EWE{
         }
     };
 
-    extern constexpr std::array<const ExtensionAssociation> static_extension_associations;
+    extern constexpr auto static_extension_associations;
 
+
+    constexpr std::string_view GetExtensionName(std::size_t index) noexcept {
+        static_assert(index < static_extension_associations.size());
+        return static_extension_associations[index];
+    }
     
     constexpr bool check_unique() {
-        for (size_t i = 0; i < extension_associations.size(); ++i)
-            for (size_t j = i + 1; j < static_extension_associations.size(); ++j)
-                if (static_extension_associations[i] == static_extension_associations[j])
+        for (size_t i = 0; i < static_extension_associations.size(); ++i){
+            for (size_t j = i + 1; j < static_extension_associations.size(); ++j){
+                if (static_extension_associations[i] == static_extension_associations[j]){
                     return false;
+                }
+            }
+        }
         return true;
     }
     static_assert(check_unique(), "Duplicate extension names in static_extension_associations!");
 
+    template <typename T>
+    constexpr bool always_false_v = false;
 
-    template <ExtensionAssociation const* Ext>
+    template <const char* Name>
     struct ExtensionIndex {
-        static constexpr size_t value = []{
-            // Suppose allExtensions is a constexpr array of all ExtensionAssociation
-            for (size_t i = 0; i < allExtensions.size(); ++i) {
-                if (&allExtensions[i] == Ext) return i;
+        static constexpr std::size_t value = [] {
+            for (std::size_t i = 0; i < allExtensions.size(); ++i) {
+                if (&allExtensions[i] == Name) {
+                    return i;
+                }
             }
-            return static_cast<size_t>(-1); // not found
+            static_assert(always_false_v<decltype(Name)>, "Extension not found in allExtensions");
+            return static_cast<std::size_t>(-1); // never reached
         }();
     };
 }
