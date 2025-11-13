@@ -2,7 +2,9 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Window.h"
 #include "EightWinds/LogicalDevice.h"
-#include "EightWinds/SwapChain.h"
+#include "EightWinds/Swapchain.h"
+
+#include "EightWinds/Helpers/DeviceExtensionHandling.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -50,47 +52,52 @@ int main(){
     //potentially, could make headless applications, but i don't personally have interest in supporting that at the moment
     EWE::Window window{instance, 800, 600, "Example Window"};
 
+
+    std::vector<EWE::RequestedExtension> requestedExtensions{
+        EWE::RequestedExtension{VK_KHR_SWAPCHAIN_EXTENSION_NAME, true, 0},
+        EWE::RequestedExtension{VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME, true, 0},
+        EWE::RequestedExtension{VK_EXT_MESH_SHADER_EXTENSION_NAME, true, 0},
+        EWE::RequestedExtension{VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, true, 0}
+    };
+    constexpr uint32_t rounded_down_vulkan_version = VK_MAKE_VERSION(1, 4, 0);
+    EWE::DeviceSpecializer<
+        rounded_down_vulkan_version,
+        FeatureManager<rounded_down_vulkan_version, 
+            VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
+            VkPhysicalDeviceMeshShaderFeaturesEXT,
+            VkPhysicalDeviceDescriptorIndexingFeatures,
+
+        >,
+        PropertyManager<rounded_down_vulkan_version,
+            VkPhysicalDeviceMeshShaderPropertiesEXT,
+            VkPhysicalDeviceDescriptorIndexingProperties
+
+        >
+    > deviceData{requestedExtensions};
     
-    VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dynState3{};
-    dynState3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+    auto& dynState3 = deviceData.GetFeature<VkPhysicalDeviceExtendedDynamicState3FeaturesEXT>();
     dynState3.extendedDynamicState3ColorBlendEnable = VK_TRUE;
     dynState3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
     dynState3.extendedDynamicState3ColorWriteMask = VK_TRUE;
     
-    VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{};
+    auto& meshShaderFeatures = deviceData.GetFeature<VkPhysicalDeviceMeshShaderFeaturesEXT>();
     meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
     meshShaderFeatures.meshShader = VK_TRUE;
     meshShaderFeatures.taskShader = VK_TRUE;
     
-    VkPhysicalDeviceFeatures2 features2{};
-    features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    auto& features2 = deviceData.GetFeature<VkPhysicalDeviceFeatures2>();
     features2.features.samplerAnisotropy = VK_TRUE;
     features2.features.geometryShader = VK_TRUE;
     features2.features.wideLines = VK_TRUE;
     //features2.features.tessellationShader = VK_TRUE;
 
-    VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
-    indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+    auto& indexingFeatures = deviceData.GetFeature<VkPhysicalDeviceDescriptorIndexingFeatures>();
     indexingFeatures.runtimeDescriptorArray = VK_TRUE;
     indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
     indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
     indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
     indexingFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
 
-    std::vector<EWE::DeviceExtension> extensions{
-        EWE::DeviceExtension{nullptr,                                                           VK_KHR_SWAPCHAIN_EXTENSION_NAME,                    true},
-        EWE::DeviceExtension{reinterpret_cast<VkBaseInStructure*>(&dynState3),                  VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME,     false},
-        EWE::DeviceExtension{reinterpret_cast<VkBaseInStructure*>(&meshShaderFeatures),         VK_EXT_MESH_SHADER_EXTENSION_NAME,                  false},
-        EWE::DeviceExtension{reinterpret_cast<VkBaseInStructure*>(&features2),                  nullptr,                                            true},
-        EWE::DeviceExtension{reinterpret_cast<VkBaseInStructure*>(indexingFeatures),            VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,          true},
-
-
-        //i actually dont know if i need this, embarrassing.
-        //i havent really figured out what it means when an extension gets promoted to core
-        //VkPhysicalDeviceSynchronization2FeaturesKHR synchronization_2_feature{};
-        //VkPhysicalDeviceDynamicRenderingFeatures dynamic_rendering_feature{};
-        //{.body = reinterpret_cast<VkBaseInStructure*>(&dynamic_rendering_feature), .name = VK_EXT_DYNAMIC_RENDERING} 
-    };
 
     //i need a way to request device features
 

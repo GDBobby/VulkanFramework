@@ -22,7 +22,7 @@ namespace EWE{
         bool required;
         uint64_t score = 0;
 
-        consteval [[nodiscard]] explicit DeviceExtension(const char* name, bool required, uint64_t score) noexcept
+        consteval [[nodiscard]] explicit RequestedExtension(const char* name, bool required, uint64_t score) noexcept
             : name{name}, required{required}, score{score}, supported{false}
         }
 
@@ -174,22 +174,21 @@ namespace EWE{
         }
     };
             
-    template<uint32_t Vk_Version, typename FeatureParamPack, typename PropertyParamPack>
-    struct DeviceConstructionHelper{
-        VkPhysicalDeviceProperties2 property_base;
-        //v1.1 includes features11, v1.2 for features12 and so on
-        using VersionPropertyPack = typename VulkanVersionTypes<RoundDownVkVersion(Vk_Version)>::PropertyTypes;
-        using FinalPropertyPack = decltype(Deduplicate::unique_types_t(std::tuple<PropertyParamPack...>{}, VersionPropertyPack{}));
-        VulkanStructContainer<FinalPropertyPack> properties;
+    template<uint32_t Vk_Version, typename FeatureMan, typename PropertyMan>
+    struct DeviceSpecializer{
+
+        static constexpr uint32_t vk_version = RoundDownVkVersion(Vk_Version);
 
         std::vector<DeviceExtension> extensions;
 
+        FeatureMan features;
+        PropertyMan properties;
+
         template<typename T>
         auto T& GetFeature()        
-        requires (std::is_same_v<T, VkPhysicalDeviceFeatures2> || (std::same_as<T, FinalFeaturePack> || ...)
-        ) {
+        requires (std::is_same_v<T, VkPhysicalDeviceFeatures2> || (std::same_as<T, FinalFeaturePack> || ...)) {
             if constexpr(std::is_same_v<T, VkPhysicalDeviceFeatures2>){
-                return feature_base;
+                return features.base;
             }
             else{
                 return features.Get<T>();
@@ -200,7 +199,7 @@ namespace EWE{
         requires (std::is_same_v<T, VkPhysicalDeviceFeatures2> || (std::same_as<T, FinalFeaturePack> || ...))
         {
             if constexpr (std::is_same_v<T, VkPhysicalDeviceFeatures2>) {
-                return feature_base;
+                return features.base;
             } else {
                 return features.Get<T>();
             }
@@ -211,7 +210,7 @@ namespace EWE{
         requires (std::is_same_v<T, VkPhysicalDeviceProperties2> || (std::same_as<T, FinalPropertyPack> || ...))
         {   
             if constexpr(std::is_same_v<T, VkPhysicalDeviceProperties2>){
-                return property_base;
+                return properties.base;
             }
             else{
                 return properties.Get<T>();
@@ -222,7 +221,7 @@ namespace EWE{
             requires (std::is_same_v<T, VkPhysicalDeviceProperties2> || (std::same_as<T, FinalPropertyPack> || ...))
         {
             if constexpr (std::is_same_v<T, VkPhysicalDeviceProperties2>) {
-                return property_base;
+                return properties.base;
             } else {
                 return properties.Get<T>();
             }
@@ -236,13 +235,6 @@ namespace EWE{
             }
 
             return false;
-        }
-
-        void PopulateFeatureData() noexcept {
-            feature_base.pNext = features.BuildPNextChain();
-        }
-        void PopulatePropertyData() noexcept {
-            property_base.pNext = properties.BuildPNextChain();
         }
 
 
@@ -269,7 +261,26 @@ namespace EWE{
         }
 
         static [[nodiscard]] VkPhysicalDevice ScoreDevices(std::vector<VkPhysicalDevice> physicalDevices) {
+            //im not handling requried properties/limits yet. might just wait until reflection for that.
 
+            //vkEnumeratePhysicalDevices()
+            
+            int16_t chosenDevice = -1;
+            uint64_t highest_score = 0;
+
+            for(uint16_t i = 0; i < physicalDevices.size(); i++){
+                auto featureCopy = features;
+                auto propertyCopy = properties;
+                featureCopy.Populate(dev);
+                propertyCopy.Populate(dev);
+                uint64_t devScore = featureCopy.Score(dev);
+                devScore += propertyCopy.Score(dev);
+                if(devScore > highest_score){
+                    highest_score = devScore;
+                    chosenDevice = i;
+                }
+            }
+            return physicalDevices[chosenDevice];
         }
     };
 
@@ -301,59 +312,55 @@ namespace EWE{
         VulkanStructContainer<FinalFeaturePack> features;
         VkPhysicalDeviceFeatures2 base;
 
-        static FeatureManager PopulateFeatures(VkPhysicalDevice physicalDevice){
+        static FeatureManager Populate(VkPhysicalDevice physicalDevice){
             FeatureManager featureManager{};
             //need to populate sTypes
             //if i use sTypes to populate the templates for this struct that could make it a bit easier
-            featureManager.base.stype = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-            featureManager.features.ForEach([](){
+            base.stype = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            features.ForEach([](){
                 //fix this, it's not complete
-                data.sType = vk::CppType<feature_type>::Type::SType::GetVkStype;
-            };)
+                data.sType = static_cast<VkStructureType>(vk::CppType<feature_type>::Type::StructureType);
+            });
 
             base.pNext = features.BuildPNextChain();
-            vkGetPhysicalDeviceFeatures2(physicalDevice, &base);
-
-            auto copiedFeatures = 
+            EWE_VK(vkGetPhysicalDeviceFeatures2, physicalDevice, &base);
         }
 
-        uint64_t ScoreFeatures(VkPhysicalDevice physicalDevice, VkPhysicalDeviceFeatures2 copied_chain) const{
+        uint64_t Score(VkPhysicalDevice physicalDevice) const {
+            uint64_t ret = 0;
+            features.ForEach([](){
+                ret += DeviceScoring<vk::CppType<feature_type>::Type>(data)(); //i think its a operator()
+            });
 
-        }
-
-        uint64_t ScoreFeatures(VkPhysicalDevice physicalDevice) const {
-            uint64_t ret;
+            return ret;
         }
     };
 
+    template<uint32_t Vk_Version, typename PropertyParamPack>
     struct PropertyManager{
-        /*
-        * i'd like this struct to own the lifetime of each property
-        * there's no point right now, i don't think there's a sophisticated way to access the contained data
-        * so until then, i'll just do a normal chain and let the user define their own explicit access
-        
-        */
-       //the head is required to be VkPhysicalDeviceProperties2
-        VkPhysicalDeviceProperties2 head{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, .pNext = nullptr};
-        std::size_t totalSize = 0;
-        //VkBaseOutStructure* tail = reinterpret_cast<VkBaseOutStructure*>(&head); //basein makes the pNext a const* which is a bit annoying
-        uint64_t chainCount = 0;
+ 
+        VkPhysicalDeviceProperties2 base;
+        //v1.1 includes features11, v1.2 for features12 and so on
+        using VersionPropertyPack = typename VulkanVersionTypes<RoundDownVkVersion(Vk_Version)>::PropertyTypes;
+        using FinalPropertyPack = decltype(Deduplicate::unique_types_t(std::tuple<PropertyParamPack...>{}, VersionPropertyPack{}));
+        VulkanStructContainer<FinalPropertyPack> properties;
 
-        template<VulkanStruct... VulkanTypes>
-        void AddPropertyStructs(VkPhysicalDevice device, VulkanTypes&... properties) noexcept {
-            if constexpr(sizeof...(VulkanTypes) > 0){
-                auto ptrs = std::array{ reinterpret_cast<VkBaseOutStructure*>(&properties)... };
-                head->pNext = ptrs[0];
+        static FeatureManager Populate(VkPhysicalDevice physicalDevice){
+            FeatureManager featureManager{};
+            //need to populate sTypes
+            //if i use sTypes to populate the templates for this struct that could make it a bit easier
+            base.stype = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+            base.pNext = properties.BuildPNextChain();
+            EWE_VK(vkGetPhysicalDeviceProperties2, physicalDevice, &base);
+        }
 
-                for (size_t i = 0; i < (ptrs.size() - 1); ++i) {
-                    ptrs[i]->pNext = ptrs[i + 1];
-                }
+        uint64_t Score(VkPhysicalDevice physicalDevice) const {
+            uint64_t ret = 0;
+            properties.ForEach([](){
+                ret += DeviceScoring<vk::CppType<feature_type>::Type>(data)(); //i think its a operator()
+            });
 
-                ptrs.back()->pNext = nullptr;
-                //tail = ptrs.back();
-            }
-            
-            vkGetPhysicalDeviceProperties2(device, &head);
+            return ret;
         }
     };
 

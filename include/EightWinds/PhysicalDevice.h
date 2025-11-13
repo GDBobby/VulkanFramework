@@ -1,6 +1,5 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/PhysicalDeviceHelpers.h"
 #include "EightWinds/Instance.h"
 
 #include <vector>
@@ -10,11 +9,9 @@ namespace EWE{
         Instance& instance;
 
         VkPhysicalDevice                    device;
-        //VkPhysicalDeviceLimits              limits; //properties.limits
 
-        VkPhysicalDeviceProperties properties;
+        //the device is selected and created separetely. pass in a constructed vkphysicaldevice
 
-        //VkSurfaceKHR surface, std::vector<DeviceExtension>& deviceExtensions
-        [[nodiscard]] explicit PhysicalDevice(Instance& instance, std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector) noexcept;
+        [[nodiscard]] explicit PhysicalDevice(Instance& instance, std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector);
     };
 }

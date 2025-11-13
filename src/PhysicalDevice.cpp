@@ -33,21 +33,6 @@ namespace EWE{
         }
     };
 
-    bool CheckExtensions(VkPhysicalDevice device, std::vector<DeviceExtension>& deviceExtensions){
-        uint32_t propertyCount;
-        EWE_VK(vkEnumerateDeviceExtensionProperties, device, nullptr, &propertyCount, nullptr);
-        std::vector<VkExtensionProperties> extensionProperties(propertyCount);
-        EWE_VK(vkEnumerateDeviceExtensionProperties, device, nullptr, &propertyCount, extensionProperties.data());
-
-        for(auto& ext : deviceExtensions){
-            if(ext.CheckSupport(extensionProperties)){
-                if(ext.required){
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
 
     bool IsDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<DeviceExtension>& deviceExtensions) {
         SwapChainSupportDetails swapChainSupport(device, surface);
@@ -62,7 +47,7 @@ namespace EWE{
     }
 
 
-    PhysicalDevice::PhysicalDevice(Instance& instance, std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector) noexcept
+    PhysicalDevice::PhysicalDevice(Instance& instance, std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector)
     : instance{instance} 
     {
         
@@ -71,69 +56,6 @@ namespace EWE{
         EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, devices.data());
 
         device = deviceSelector(devices);
-
-        /*
-        printf("Device count: %d\n", deviceCount);
-        
-        if (deviceCount == 0) {
-            printf("failed to find GPUs with Vulkan support!\n");
-            assert(false && "failed to find GPUs with Vulkan support!");
-        }
-
-        //bigger score == gooder device
-        std::list<std::pair<uint32_t, uint32_t>> deviceScores{};
-        for (uint32_t i = 0; i < deviceCount; i++) {
-
-            vkGetPhysicalDeviceProperties(devices[i], &properties);
-
-            uint32_t score = 0;
-            
-            score += (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) * 1000;
-            score += properties.limits.maxImageDimension2D;
-            std::string_view deviceNameTemp = properties.deviceName;
-#if AMD_TARGET
-            if (deviceNameTemp.find("AMD") == deviceNameTemp.npos) {
-                score = 0;
-            }
-#elif NVIDIA_TARGET
-            if (deviceNameTemp.find("GeForce") == deviceNameTemp.npos) {
-                score = 0;
-            }
-#elif INTEGRATED_TARGET
-            if (vkObject->properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-                score = 0;
-            }
-#endif
-
-            printf("Device Name:Score %s:%u \n", deviceNameTemp.data(), score);
-            for (auto iter = deviceScores.begin(); iter != deviceScores.end(); iter++) {
-
-                //big to little
-                if (iter->first < score) {
-                    deviceScores.insert(iter, { score, i });
-                }
-            }
-            if (deviceScores.size() == 0) {
-                deviceScores.push_back({ score, i });
-            }
-        }
-    
-        for (auto iter = deviceScores.begin(); iter != deviceScores.end(); iter++) {
-            if (IsDeviceSuitable(devices[iter->second], surface, deviceExtensions)) {
-                device = devices[iter->second];
-                break;
-            }
-            else {
-                printf("device unsuitable \n");
-            }
-        }
-
-        if (device == VK_NULL_HANDLE) {
-            printf("failed to find a suitable GPU! \n");
-            assert(false && "failed to find a suitable GPU!");
-        }
-        */
-        
     }
 
 }
