@@ -3,7 +3,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "Vulkan-Hpp/vulkan/vulkan.hpp"
+#include "vulkan/vulkan.hpp"
 
 #include <concepts>
 #include <tuple>
@@ -163,11 +163,16 @@ namespace EWE {
             ((f(std::get<Is>(data))), ...);
         }
         template <std::size_t... Is>
+        void BuildPNextChainStep(std::index_sequence<Is...>) {
+            (SetPNextForIndex<Is, Is + 1>(), ...);
+        }
+        template <std::size_t... Is>
         [[nodiscard]] void* BuildPNextChainImpl(std::index_sequence<Is...>) {
             if constexpr (sizeof...(Is) == 0) return nullptr;
 
-            ((SetPNextForIndex<Is, Is + 1>()), ...);
+            BuildPNextChainStep(std::make_index_sequence<sizeof...(Is) - 1>{});
 
+            // Last element
             SetPNextForIndex<sizeof...(Is) - 1, -1>();
 
             return &std::get<0>(data);
@@ -222,11 +227,11 @@ namespace EWE {
             vkGetPhysicalDeviceFeatures2(physicalDevice, &base);
         }
 
-        [[nodiscard]] uint64_t Score(VkPhysicalDevice physicalDevice) const {
-            uint64_t ret = 0;
+        [[nodiscard]] DeviceScore Score(VkPhysicalDevice physicalDevice) {
+            DeviceScore ret{};
             features.ForEach([&ret](auto& feature) {
                     using FeatureType = std::decay_t<decltype(feature)>;
-                    ret += DeviceScoring<FeatureType>{}(feature);
+                    ret.Add(DeviceScoring<FeatureType>{}(feature));
                 }
             );
 
@@ -262,12 +267,12 @@ namespace EWE {
             vkGetPhysicalDeviceProperties2(physicalDevice, &base);
         }
 
-        [[nodiscard]] uint64_t Score(VkPhysicalDevice physicalDevice) const {
-            uint64_t ret = 0;
+        [[nodiscard]] DeviceScore Score(VkPhysicalDevice physicalDevice) {
+            DeviceScore ret{};
             properties.ForEach([&ret](auto& property) {
-                using PropertyType = std::decay_t<decltype(property)>;
-                ret += DeviceScoring<PropertyType>{}(property);
-            }
+                    using PropertyType = std::decay_t<decltype(property)>;
+                    ret.Add(DeviceScoring<PropertyType>{}(property));
+                }
             );
 
             return ret;

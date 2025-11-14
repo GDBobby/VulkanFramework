@@ -65,6 +65,12 @@ namespace EWE{
     struct DeviceScore{
         bool metRequirements = true;
         uint64_t score = 0;
+
+        void Add(DeviceScore const& other) {
+            //i forget if &= is bitwise or not
+            metRequirements = metRequirements && other.metRequirements;
+            score += other.score;
+        }
     };
 
     template<typename T>

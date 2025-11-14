@@ -168,7 +168,7 @@ int main(){
         return -1;
     }
     EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, all_detected_physical_devices.data());
-    /*
+    
     auto evaluatedDevices = specDev.ScorePhysicalDevices(instance.instance);
 
     if (!evaluatedDevices[0].passedRequirements) {
@@ -189,9 +189,7 @@ int main(){
 
 
     EWE::Swapchain swapchain{logicalDevice};
-    */
-    VkPhysicalDevice physDevTesting;
-    specDev.features.Populate(physDevTesting);
+    
     //from here, create the render graph
     
 

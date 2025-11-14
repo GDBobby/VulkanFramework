@@ -109,7 +109,7 @@ namespace EWE{
             }
         }
 
-        static [[nodiscard]] std::vector<DeviceEvaluation> ScorePhysicalDevices(VkInstance instance) {
+        [[nodiscard]] std::vector<DeviceEvaluation> ScorePhysicalDevices(VkInstance instance) {
             //im not handling requried properties/limits yet. might just wait until reflection for that.
 
             uint32_t deviceCount;
@@ -125,16 +125,17 @@ namespace EWE{
 
             //i doubt it's possible to connect than than 255 devices
             for (auto& dev : physicalDevices) {
-                //if i make copies, i dont have to repop at the end.
-                //auto featureCopy = features;
-                //auto propertyCopy = properties;
                 features.Populate(dev);
                 properties.Populate(dev);
 
                 auto& devEval = ret.emplace_back();
 
-                devEval.score = features.Score(dev);
-                devEval.score += properties.Score(dev);
+                auto featureScore = features.Score(dev);
+                devEval.passedRequirements = devEval.passedRequirements && featureScore.metRequirements;
+                devEval.score += featureScore.score;
+                auto propertyScore = properties.Score(dev);
+                devEval.passedRequirements = devEval.passedRequirements && propertyScore.metRequirements;
+                devEval.score += propertyScore.score;
 
                 uint32_t propCount;
                 EWE_VK(vkEnumerateDeviceExtensionProperties, dev, nullptr, &propCount, nullptr);
@@ -172,6 +173,8 @@ namespace EWE{
         [[nodiscard]] LogicalDevice ConstructDevice(DeviceEvaluation& deviceEval, PhysicalDevice&& physicalDevice, VkBaseInStructure* pNextChain){
 
 
+            features.Populate(physicalDevice.device);
+            properties.Populate(physicalDevice.device);
             //check extensions
             
             VkDeviceCreateInfo deviceCreateInfo;
