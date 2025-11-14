@@ -13,7 +13,13 @@ namespace EWE{
     Buffer::Buffer(LogicalDevice& logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags2 usageFlags)
         : logicalDevice{logicalDevice}, usageFlags{ usageFlags } {
             
-        alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.physicalDevice.properties.limits);
+            //i dont really know how to handle this yet.
+            //device specializer holds the properties
+            //buit its tempalted, and i don't really want to template this or LogicalDevice
+            
+        //alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.physicalDevice.properties.limits);
+        printf("design not finalzied, potentially an error here\n");
+        alignmentSize = instanceSize;
         bufferSize = alignmentSize * instanceCount;
         
         VkBufferCreateInfo bufferInfo{};

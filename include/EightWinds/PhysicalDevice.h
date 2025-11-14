@@ -1,6 +1,7 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Instance.h"
+#include "EightWinds/QueueFamily.h"
 
 #include <vector>
 
@@ -8,10 +9,14 @@ namespace EWE{
     struct PhysicalDevice{
         Instance& instance;
 
-        VkPhysicalDevice                    device;
+        VkPhysicalDevice device;
 
-        //the device is selected and created separetely. pass in a constructed vkphysicaldevice
+        const std::vector<QueueFamily> queueFamilies;
 
-        [[nodiscard]] explicit PhysicalDevice(Instance& instance, std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector);
+        //the device is selected separately
+        [[nodiscard]] explicit PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
+        [[nodiscard]] explicit PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, std::vector<QueueFamily> const& queueFamilies);
+
+        PhysicalDevice(PhysicalDevice&& moveSrc) noexcept;
     };
 }

@@ -136,7 +136,7 @@ namespace EWE {
 
 	void PipelineBarrier::Submit() const {
         //need pool synchronization here
-		EWE_VK(vkCmdPipelineBarrier, cmdBuf,
+		vkCmdPipelineBarrier(cmdBuf,
 			srcStageMask, dstStageMask,
 			dependencyFlags,
 			static_cast<uint32_t>(memoryBarriers.size()), memoryBarriers.data(),
@@ -157,7 +157,7 @@ namespace EWE {
 		if (barriers.size() <= 1) {
 			return;
 		}
-#if EWE_DEBUG
+#if EWE_DEBUG_BOOL
 		assert(barriers.size() < 256 && "too many barriers"); //reduce the barrier count. if not possible, change the values and data types here
 #endif
 
@@ -192,13 +192,13 @@ namespace EWE {
 	}
 
 	namespace Barrier {
-		vkImageMemoryBarrier ChangeImageLayout(
+		VkImageMemoryBarrier ChangeImageLayout(
 			const VkImage image,
 			const VkImageLayout oldImageLayout,
 			const VkImageLayout newImageLayout,
 			VkImageSubresourceRange const& subresourceRange
 		) {
-			vkImageMemoryBarrier imageMemoryBarrier{};
+			VkImageMemoryBarrier imageMemoryBarrier{};
 			imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			imageMemoryBarrier.pNext = nullptr;
 			imageMemoryBarrier.oldLayout = oldImageLayout;
@@ -243,12 +243,12 @@ namespace EWE {
 
             switch (srcLayout) {
                 
-            case VkImageLayout::eUndefined:
+            case VK_IMAGE_LAYOUT_UNDEFINED:
                 // Image layout is undefined (or does not matter).
                 // Only valid as initial layout. No flags required.
                 barrier.srcAccessMask = 0;
                 break;
-            case VkImageLayout::ePreinitialized:
+            case VK_IMAGE_LAYOUT_PREINITIALIZED:
                 // Image is preinitialized.
                 // Only valid as initial layout for linear images; preserves memory
                 // contents. Make sure host writes have finished.
@@ -337,7 +337,7 @@ namespace EWE {
                 break;
             default:
                 /* Value not used by callers, so not supported. */
-#if EWE_DEBUG
+#if EWE_DEBUG_BOOL
                 assert(false && "unsupported dst layout transition");
 #else
 #if defined(_MSC_VER) && !defined(__clang__) // MSVC
@@ -353,7 +353,7 @@ namespace EWE {
 	
         void TransitionImageLayoutWithBarrier(CommandBuffer cmdBuf, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkImage& image, VkImageLayout srcLayout, VkImageLayout dstLayout, uint32_t mipLevels, uint8_t layerCount) {
             VkImageMemoryBarrier imageBarrier{ TransitionImageLayout(image, srcLayout, dstLayout, mipLevels, layerCount) };
-            EWE_VK(vkCmdPipelineBarrier, cmdBuf,
+            vkCmdPipelineBarrier(cmdBuf,
                 srcStageMask, dstStageMask,
                 0,
                 0, nullptr,
@@ -367,7 +367,7 @@ namespace EWE {
             VkImageMemoryBarrier imageBarrier{};
             imageBarrier.pNext = nullptr;
             imageBarrier.image = image;
-#if EWE_DEBUG
+#if EWE_DEBUG_BOOL
             assert(imageBarrier.image != VK_NULL_HANDLE && "transfering a null image?");
 #endif
             imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // or VK_IMAGE_ASPECT_DEPTH_BIT for depth images
@@ -390,7 +390,7 @@ namespace EWE {
                 imageBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for compute shader writes
                 imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT; // Access mask for transfer read operation
 
-                EWE_VK(vkCmdPipelineBarrier,
+                vkCmdPipelineBarrier(
                     cmdBuf,
                     srcStage, VK_PIPELINE_STAGE_VERTEX_SHADER_BIT, // pipeline stage
                     0, //dependency flags
@@ -409,7 +409,7 @@ namespace EWE {
                 imageBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
                 imageBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT; // Access mask for transfer read operation
-                EWE_VK(vkCmdPipelineBarrier,
+                vkCmdPipelineBarrier(
                     cmdBuf,
                     srcStage, dstStage, // pipeline stage
                     0, //dependency flags
@@ -426,7 +426,7 @@ namespace EWE {
                 imageBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
                 imageBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; // Access mask for compute shader writes
                 imageBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT; // Access mask for transfer read operation
-                EWE_VK(vkCmdPipelineBarrier,
+                vkCmdPipelineBarrier(
                     cmdBuf,
                     srcStage, dstStage, // pipeline stage
                     0, //dependency flags

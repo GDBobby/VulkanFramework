@@ -1,6 +1,6 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
-#include "Semaphore.h"
+#include "EightWinds/Semaphore.h"
 
 namespace EWE{
     struct Fence {

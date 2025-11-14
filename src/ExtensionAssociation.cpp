@@ -1,7 +1,9 @@
 // Auto-generated ExtensionAssociation table
+/*
 #include "EightWinds/Helpers/ExtensionAssociation.h"
 #include <array>
 namespace EWE{
+
 constexpr auto static_extension_associations = std::array{
     ExtensionAssociation{
         "VK_AMDX_dense_geometry_format",
@@ -2733,3 +2735,5 @@ constexpr auto static_extension_associations = std::array{
 
 
 } //namespace EWE
+
+*/

@@ -1,9 +1,11 @@
 #pragma once
 
+/*
 #include "EightWinds/VulkanHeader.h"
 
 #include <string_view>
 #include <span>
+#include <array>
 
 namespace EWE{
     //VUID-VkDeviceCreateInfo-pNext-04748
@@ -39,6 +41,9 @@ namespace EWE{
             for (size_t i = 0; i < dep_count; ++i) {
                 dependencies[i] = deps[i];
             }
+            for (std::size_t i = dep_count; i < MAX_DEPENDENCIES; ++i) {
+                dependencies[i] = nullptr;
+            }
         }
 
         constexpr bool operator==(std::string_view other) const noexcept{
@@ -49,7 +54,7 @@ namespace EWE{
         }
     };
 
-    extern constexpr auto static_extension_associations;
+    extern constexpr std::array<ExtensionAssociation, 446> static_extension_associations;
 
 
     constexpr std::string_view GetExtensionName(std::size_t index) noexcept {
@@ -72,16 +77,19 @@ namespace EWE{
     template <typename T>
     constexpr bool always_false_v = false;
 
+    constexpr std::size_t extension_name_to_index(const char* name) {
+        for (std::size_t i = 0; i < static_extension_associations.size(); ++i) {
+            if (&static_extension_associations[i] == name) {
+                return i;
+            }
+        }
+        static_assert(always_false_v<decltype(name)>, "Extension not found in allExtensions");
+        return static_cast<std::size_t>(-1); //warning silencer
+    }
+
     template <const char* Name>
     struct ExtensionIndex {
-        static constexpr std::size_t value = [] {
-            for (std::size_t i = 0; i < allExtensions.size(); ++i) {
-                if (&allExtensions[i] == Name) {
-                    return i;
-                }
-            }
-            static_assert(always_false_v<decltype(Name)>, "Extension not found in allExtensions");
-            return static_cast<std::size_t>(-1); // never reached
-        }();
+        static constexpr std::size_t value = extension_name_to_index(Name);
     };
 }
+*/

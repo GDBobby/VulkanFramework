@@ -9,10 +9,8 @@ namespace EWE{
         : logicalDevice{logicalDevice},
             drawSemaphores{logicalDevice, false},
             presentSemaphores{logicalDevice, false},
-            drawnFences{logicalDevice, false}
-        {
-            
-        }
+            drawnFences{logicalDevice}
+        {}
 
         VkExtent2D Swapchain::GetImageExtent(VkSurfaceCapabilitiesKHR const& caps, VkExtent2D framebuffer) noexcept {
             constexpr auto limitless_v = std::numeric_limits<std::uint32_t>::max();
@@ -27,7 +25,7 @@ namespace EWE{
             return std::clamp(3u, caps.minImageCount + 1, caps.maxImageCount);
         }
 
-        VkSurfaceFormatKHR Swapchain::GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) {
+        VkSurfaceFormatKHR Swapchain::GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) noexcept {
             constexpr auto srgb_formats_v = std::array{VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_A8B8G8R8_SRGB_PACK32};
 
             for (auto const srgb_format : srgb_formats_v) {

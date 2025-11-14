@@ -18,32 +18,11 @@ namespace EWE {
         return supportsSurface;
     }
 
-    QueueFamily::QueueFamily(PhysicalDevice& physicalDevice, uint8_t index, VkQueueFamilyProperties const& properties, VkSurfaceKHR surface) 
-    : physicalDevice{physicalDevice}, 
-        index{index}, properties{properties}
-    {
-        VkBool32 tempBool;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice.device, index, surface, &tempBool);
-        supportsSurface = tempBool;
-    }
-
-    std::vector<QueueFamily> QueueFamily::Enumerate(PhysicalDevice& physicalDevice, VkSurfaceKHR surface) {
-        uint32_t famPropCount;
-        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice.device, &famPropCount, nullptr);
-        std::vector<VkQueueFamilyProperties2> queueFamilies(famPropCount);
-        vkGetPhysicalDeviceQueueFamilyProperties2(physicalDevice.device, &famPropCount, queueFamilies.data());
-        
-        std::vector<QueueFamily> families;
-        families.reserve(queueFamilies.size());
-        assert(queueFamilies.size() <= 255); //this would be an embarrassing bug
-        for (uint8_t i = 0; i < queueFamilies.size(); i++) {
-            families.emplace_back(physicalDevice, i, queueFamilies[i].queueFamilyProperties, surface);
-        }
-
-        return families;
-    }
-
-
+    QueueFamily::QueueFamily(uint8_t index, VkQueueFamilyProperties const& properties, bool supportsSurface) 
+      : index{index}, 
+        properties{properties},
+        supportsSurface{supportsSurface}
+    {}
     
 /*
     std::vector<Queue> QueueRequest::RequestQueues(std::vector<QueueFamily> const& families, std::span<QueueRequest> requests) {

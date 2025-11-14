@@ -15,6 +15,17 @@
 
 namespace EWE{
 
+    constexpr uint32_t RoundDownVkVersion(uint32_t in_version) noexcept {
+        constexpr uint32_t mask = (1 << 12) - 1;
+        constexpr uint32_t inverted_mask = ~mask;
+        return in_version & inverted_mask;
+    }
+    template <typename T>
+    concept VulkanStruct = requires(T t) {
+        { t.sType } -> std::convertible_to<VkStructureType>;
+        { t.pNext } -> std::convertible_to<const void*>;
+    };
+
     void EWE_VK_RESULT(VkResult vkResult);
 
     template<typename F, typename... Args>

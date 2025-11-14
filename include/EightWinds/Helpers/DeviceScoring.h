@@ -7,12 +7,6 @@
 
 namespace EWE{
 
-    template <typename T>
-    concept VulkanStruct = requires(T t) {
-        { t.sType } -> std::convertible_to<VkStructureType>;
-        { t.pNext } -> std::convertible_to<const void*>;
-    };
-
     enum class WeightComparison{
         minimum,
         match,
@@ -69,12 +63,17 @@ namespace EWE{
     };
 
     struct DeviceScore{
-        bool metRequirements;
-        uint64_t score;
+        bool metRequirements = true;
+        uint64_t score = 0;
     };
 
     template<typename T>
-    struct DeviceScoring{};
+    struct DeviceScoring{
+        using ScoredType = void;
+        DeviceScore operator()(T const& src) const noexcept {
+            return DeviceScore{};
+        }
+    };
 
 
     template<>
@@ -130,46 +129,10 @@ namespace EWE{
         using ScoredType = VkPhysicalDeviceProperties;
         DeviceScore operator()(ScoredType const& features) const noexcept{
             using DefW = DefaultWeights<ScoredType>;
-
+            return {};
         }
     };
 
     template<typename T>
-    concept HasDeviceScoring = requires {typename DeviceScoring<T>;};
-    
-    template<HasDeviceScoring... Args>
-    struct ScoreInput{
-        std::tuple<Args...> values;
-
-        template<typename T>
-        constexpr auto& get() noexcept {
-            return std::get<T>(values);
-        }    
-        template<typename T>
-        constexpr const auto& get() const noexcept {
-            return std::get<T>(values);
-        }
-
-    private:
-
-        //helper function for GetTotalScore
-        template<typename T>
-        constexpr void AccumulateScore(DeviceScore& total) const noexcept {
-            const auto& scorer = get<T>(values);
-            DeviceScore s = DeviceScoring<T>()(scorer);
-            if (!s.metRequirements){
-                total.metRequirements = false;
-            }
-            total.score += s.score;
-        }
-    public:
-        constexpr DeviceScore GetTotalScore() const noexcept {
-            DeviceScore total{true, 0};
-
-            (AccumulateScore<Args>(total), ...);
-
-            return total;
-        }
-
-    };
+    concept HasDeviceScoring = requires {!std::is_void_v<typename DeviceScoring<T>::ScoredType>;};
 }//namespace EWE

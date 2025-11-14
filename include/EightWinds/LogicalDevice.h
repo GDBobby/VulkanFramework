@@ -8,19 +8,24 @@
 
 namespace EWE{
 
+    //the physical device can technically be used by more than 1 logical device
+    //i dont believe there's would be a benefit to that, besides offloading some synchronization to the OS/driver/whatever
+    //with a correct rendergraph, that shouldn't be an issue
+
+    //so following that logic, the logicaldevice will own the physicaldevice. 
+
     struct LogicalDevice{
-        //the physical device is tied to the logical device, it would make sense for the logical device to outright own it
         PhysicalDevice physicalDevice;
         VmaAllocator vmaAllocator;
 
         //queues are going to be like halfway between the physical and logical device kinda? 
         //the question being, does the queue own a reference to the logical device, or to the physical device?
         //as long as i initialize the physicalDevice first, I can make the queue families const
-        const std::vector<QueueFamily> queueFamilies;
+        std::vector<QueueFamily> queueFamilies;
 
-        //i think i'll let this get filtered out in the engine
+        //i think ill let the engine handle filtering the queues
         //i don't think there's a reason to use multiple queues in a single family currently.
-        //i might expose it anyways, idk
+        //i'll expose it anyways
         std::vector<Queue> queues; 
 
         VkDevice device;
@@ -29,10 +34,8 @@ namespace EWE{
 
         //if a user wanted to customize how the queues are made, id let them pass parameters thru here
         [[nodiscard]] explicit LogicalDevice(
-            Instance& instance, 
-            VkSurfaceKHR surface, 
-            std::function<VkPhysicalDevice(std::vector<VkPhysicalDevice>)> deviceSelector, 
-            std::vector<DeviceExtension>& deviceExtensions
+            PhysicalDevice&& physicalDevice,
+            VkDeviceCreateInfo& deviceCreateInfo
         );
     
     };
