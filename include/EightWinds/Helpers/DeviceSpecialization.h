@@ -12,8 +12,6 @@
 //use extern or whatever function pointers to get DeviceSpecializer functions
 //but by doing that, you'll lose almost all the benefits of having this templated in the first place unfortunately
 
-#include "vulkan/vulkan.hpp"
-
 #include <type_traits>
 #include <vector>
 #include <string_view>

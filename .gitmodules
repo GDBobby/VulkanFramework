@@ -7,6 +7,3 @@
 [submodule "external/vma"]
 	path = external/vma
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-[submodule "external/Vulkan-Hpp"]
-	path = external/Vulkan-Hpp
-	url = https://github.com/KhronosGroup/Vulkan-Hpp
