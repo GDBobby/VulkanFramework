@@ -30,7 +30,7 @@ namespace EWE{
 
     template<typename F, typename... Args>
     requires (std::is_invocable_v<F, Args...>)
-    constexpr VkResult EWE_VK(F&& f, Args&&... args) {
+    constexpr void EWE_VK(F&& f, Args&&... args) {
     #if WRAPPING_VULKAN_FUNCTIONS
         //call a preliminary function
     #endif
@@ -41,7 +41,7 @@ namespace EWE{
         }
         return vkResult;
 #else
-        return std::invoke(std::forward<F>(f), std::forward<Args>(args)...);
+        EWE_VK_RESULT(std::invoke(std::forward<F>(f), std::forward<Args>(args)...));
 #endif
         
     #if WRAPPING_VULKAN_FUNCTIONS

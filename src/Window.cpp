@@ -21,8 +21,6 @@ namespace EWE {
 	}
 
 	Window::Window(Instance& instance, uint32_t width, uint32_t height, std::string_view name) : instance{instance}, screenDimensions{width, height} {
-
-		glfwInit();
 		int count;
 		GLFWmonitor** monitors = glfwGetMonitors(&count);
 		auto mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -38,11 +36,11 @@ namespace EWE {
 				screenDimensions.width = mode->width;
 				screenDimensions.height = mode->height;
 			}
-		}
-		else {
-			printf("failed to find primary monitor \n");
-			screenDimensions.width = 1280;
-			screenDimensions.height = 720;
+			else {
+				printf("failed to find primary monitor \n");
+				screenDimensions.width = 1280;
+				screenDimensions.height = 720;
+			}
 		}
 
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);

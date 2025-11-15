@@ -1,5 +1,3 @@
-#pragma once
-
 #include "EightWinds/Buffer.h"
 
 namespace EWE{

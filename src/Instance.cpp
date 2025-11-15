@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_set>
 #include <stdexcept>
+#include <iterator>
 
 namespace EWE{ 
 
@@ -60,7 +61,11 @@ namespace EWE{
         
         std::vector<const char*> all_extensions{};
         all_extensions.reserve(requiredExtensions.size() + optionalExtensions.size());
-        std::copy(requiredExtensions.begin(), requiredExtensions.end(), all_extensions.end());
+        std::copy(
+            requiredExtensions.begin(),
+            requiredExtensions.end(),
+            std::back_inserter(all_extensions)
+        );
         if(!CheckInstanceExtensions(requiredExtensions, optionalExtensions)){
             //throw exception probably
             //im not really sure if I want to use exceptions or not

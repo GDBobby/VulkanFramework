@@ -3,7 +3,7 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Instance.h"
 #include "EightWinds/PhysicalDevice.h"
-#include "EightWinds/QueueFamily.h"
+#include "EightWinds/Backend/QueueFamily.h"
 #include "EightWinds/Queue.h"
 
 namespace EWE{
@@ -37,6 +37,8 @@ namespace EWE{
             PhysicalDevice&& physicalDevice,
             VkDeviceCreateInfo& deviceCreateInfo
         );
+
+        uint64_t GetBufferMinimumAlignment(VkBufferUsageFlags2 usageFlags) const;
     
     };
 }

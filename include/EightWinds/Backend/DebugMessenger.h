@@ -1,7 +1,7 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
 
-#include "Instance.h"
+#include "EightWinds/Instance.h"
 
 namespace EWE{
     class DebugMessenger {

@@ -2,8 +2,6 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/Helpers/DeviceScoring.h"
-
 #include <concepts>
 #include <cstdint>
 

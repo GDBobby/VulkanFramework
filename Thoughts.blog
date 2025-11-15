@@ -18,3 +18,31 @@ support short lived work, like transfers. I'll have to see how it evolves
 
 ## thoughts
 i feel like I'm creating a wrapper around a wrapper (vulkan.hpp). vulkanhpp feels completely redundant
+
+# 11/15
+## Device Specialization
+One of the big things I wanted to address was logical device specialization. I don't know how I would've worded that before, but that's
+where I'm at with it. Device Specialization is defined by API version, then extensions, then features. Properties are also tied to
+specialization, but they're more of a result than an input. Anyways, that led me to EightWinds/DeviceSpecialization/ (the entire folder as of now).
+Using EightWinds/DeviceSpecialization/DeviceSpecialization.h, the user can use template arguments of featuremanager and property manager (found in FeatureProperty.h)
+and the ExtensionManager (found in ExtensionHandler.h) to specialize the device AT COMPILE TIME. At run time, extensions will be filtered,
+and extension support can be polled at runtime. The main purpose of this, overall, is that an engine/application
+can specialize the device without a large amount of handwritten code, and without cracking open the framework. This amount of templates is
+going to harm compile time, but with a bit of effort, an engine should be able to mask DeviceSpecialization. 
+
+## Device Scoring
+This isn't finalized yet. But the idea is that each vulkan struct (im planning on separately scoring extensions) can be scored 
+in a method similar to std::hash. https://github.com/GDBobby/VulkanFramework/blob/086ad9375f5c60279580fad8696a5b4c5a50a119/include/EightWinds/Helpers/DeviceScoring.h#L76C1-L82C7
+Using this function, a default scoring method can be provided, and the plan is, the default can be easily overridden by an end-user
+that might want to prefer different options. But ideally, this would be publicly sourced and people more knowledgeable than me could
+help with default values.
+
+## fully optional
+I want the provided device specialization and device scoring to be fully customizable and optional. It would be a shame
+if someone was like "yeah I like everythign in here, except this one part" and that one part makes the entire thing unusable.
+I've been there with a few libs.
+
+## thoughts
+it's coming to a close, basically all I need now is pipelines. i'm having a big issue, in that I want the user to fully specialize the device, but
+i need to be able to access at least a few properties from within the framework. that would be uniform buffer minimum alignment and so on.
+

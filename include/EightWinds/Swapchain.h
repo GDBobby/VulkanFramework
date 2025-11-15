@@ -4,8 +4,8 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Window.h"
 #include "EightWinds/PerFlight.h"
-#include "EightWinds/Semaphore.h"
-#include "EightWinds/Fence.h"
+#include "EightWinds/Backend/Semaphore.h"
+#include "EightWinds/Backend/Fence.h"
 
 #include "EightWinds/CommandBuffer.h"
 

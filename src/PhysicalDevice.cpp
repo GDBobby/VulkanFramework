@@ -5,8 +5,8 @@
 
 namespace EWE{
 
-    std::vector<QueueFamily> EnumerateQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
-        uint32_t famPropCount;
+    std::vector<QueueFamily> EnumerateQueueFamilies(Instance& instance, VkPhysicalDevice device, VkSurfaceKHR surface) {
+        uint32_t famPropCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties2(device, &famPropCount, nullptr);
         std::vector<VkQueueFamilyProperties2> vkFamilies(famPropCount);
         vkGetPhysicalDeviceQueueFamilyProperties2(device, &famPropCount, vkFamilies.data());
@@ -23,7 +23,7 @@ namespace EWE{
         return queueFamilies;
     }
     PhysicalDevice::PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
-        : instance{ instance }, device{ physicalDevice }, queueFamilies{ EnumerateQueueFamilies(device, surface) }
+        : instance{ instance }, device{ physicalDevice }, queueFamilies{ EnumerateQueueFamilies(instance, device, surface) }
     {
     }
     PhysicalDevice::PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, std::vector<QueueFamily> const& queueFamilies)

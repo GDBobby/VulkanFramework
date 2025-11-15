@@ -129,6 +129,7 @@ namespace EWE{
                 properties.Populate(dev);
 
                 auto& devEval = ret.emplace_back();
+                devEval.device = dev;
 
                 auto featureScore = features.Score(dev);
                 devEval.passedRequirements = devEval.passedRequirements && featureScore.metRequirements;

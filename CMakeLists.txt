@@ -50,24 +50,6 @@ set(GLFW_VULKAN_STATIC ON CACHE BOOL "")
 
 add_subdirectory(external/glfw)
 
-#when i get lab to a stable point ill make it a git submodule
-if(NOT TARGET LinearAlgebra)
-	if(DEFINED LAB_PATH AND EXISTS "${LAB_PATH}/CMakeLists.txt")
-		message(STATUS "~~~~FOUND~~~~ Using local LAB from ${LAB_PATH}")
-		add_subdirectory(${LAB_PATH} ${LAB_PATH})
-		set(lab_LIB lab)
-	else()
-	Message(STATUS "!!!!FAILED!!!! to find lab_path in .env.cmake, using FetchContent")
-		FetchContent_Declare(
-			lab
-			GIT_REPOSITORY https://github.com/GDBobby/LAB
-			SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/lab"
-			GIT_TAG main
-		)
-		FetchContent_MakeAvailable(lab)
-	endif()
-endif()
-
 #potentially use a cmake option, USE_AFTERMATH
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/explicit_external/")
 
@@ -132,12 +114,13 @@ target_link_directories(${PROJECT_NAME} PUBLIC
 message(STATUS "linking libs")
 
 
-target_link_libraries(${PROJECT_NAME} 
+target_link_libraries(${PROJECT_NAME} PUBLIC
 	spirv-cross-core
 	spirv-cross-reflect
+	glfw
 	${Vulkan_LIBRARY}
-	$<$<CONFIG:Debug>:${AFTERMATH_LIBS}>
-  	LinearAlgebra::LinearAlgebra-compile-options
+	#$<$<CONFIG:Debug>:${AFTERMATH_LIBS}>
+  	#LinearAlgebra::LinearAlgebra-compile-options
 )
 
 set_target_properties(${PROJECT_NAME}
@@ -150,7 +133,8 @@ set_target_properties(${PROJECT_NAME}
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
 # target_precompile_headers(${PROJECT_NAME} PRIVATE include/EWGraphics/stdafx.h)
 
-option(BUILD_EWG_EXAMPLES OFF "build examples")
-if(BUILD_EWG_EXAMPLES)
+option(BUILD_EWG_EXAMPLES ON "build examples")
+#if(BUILD_EWG_EXAMPLES)
+message(STATUS "building ewg examples")
 add_subdirectory(examples)
-endif()
+#endif()

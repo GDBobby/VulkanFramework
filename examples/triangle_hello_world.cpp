@@ -4,9 +4,9 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Swapchain.h"
 
-#include "EightWinds/Helpers/ExtensionHandler.h"
-#include "EightWinds/Helpers/DeviceSpecialization.h"
-#include "EightWinds/Helpers/FeatureProperty.h"
+#include "EightWinds/Backend/DeviceSpecialization/Extensions.h"
+#include "EightWinds/Backend/DeviceSpecialization/DeviceSpecialization.h"
+#include "EightWinds/Backend/DeviceSpecialization/FeatureProperty.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -99,15 +99,15 @@ int main(){
 
 #endif
     };
+    if (!glfwInit()) {
+        printf("failed to glfw init\n");
+    }
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
     glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-    if(glfwExtensionCount != 0){
-        assert(glfwExtensions != nullptr);
-    }
-    else{
-        printf("glfw required 0 extensions, suspicious\n");
-    }
+    assert(glfwExtensionCount > 0 && "not supporting headless");
+    assert(glfwExtensions != nullptr);
+
     for(uint32_t i = 0; i < glfwExtensionCount; ++i){
         requiredExtensions.push_back(glfwExtensions[i]);
     }
@@ -175,8 +175,6 @@ int main(){
         return -1;
     }
 
-    
-    //i need a way to request device features
     EWE::PhysicalDevice physicalDevice{instance, evaluatedDevices[0].device, window.surface};
 
     EWE::LogicalDevice logicalDevice = specDev.ConstructDevice(
@@ -191,7 +189,7 @@ int main(){
     EWE::Swapchain swapchain{logicalDevice};
     
     //from here, create the render graph
-    
+    printf("returning successfully\n");
 
     return 0;
 }

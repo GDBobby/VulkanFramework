@@ -3,6 +3,8 @@
 
 #include "EightWinds/VulkanHeader.h"
 
+#include "EightWinds/Backend/DeviceSpecialization/Scoring.h"
+
 #include "vulkan/vulkan.hpp"
 
 #include <concepts>
