@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 3.23)
+
+
+project(triangle-hello-world)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+target_include_directories(${PROJECT_NAME} PUBLIC_HEADER
+    ../include
+)
+
+target_link_libraries(${PROJECT_NAME}
+    ewgraphics
+)
+
+add_executable(${PROJECT_NAME} "triangle_hello_world.cpp")

@@ -149,3 +149,8 @@ set_target_properties(${PROJECT_NAME}
 # Create source groups to maintain file structure in Visual Studio
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
 # target_precompile_headers(${PROJECT_NAME} PRIVATE include/EWGraphics/stdafx.h)
+
+option(BUILD_EWG_EXAMPLES OFF "build examples")
+if(BUILD_EWG_EXAMPLES)
+add_subdirectory(examples)
+endif()
