@@ -11,14 +11,15 @@
 
 namespace EWE {
 	struct Pipeline {
-		PipeLayout* pipeLayout;
+		LogicalDevice& logicalDevice;
+		PipeLayout* pipeLayout; //i dont remember why this is a pointer instead of a reference. i think i was very loosely controlling lifetime?
 		VkPipeline vkPipe;
 
 		const PipelineID myID;
 		PipelineID GetID() const { return myID; };
 
-		Pipeline(PipelineID id, PipeLayout* layout);
-		Pipeline(PipelineID id, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo);
+		Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout);
+		Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo);
 
 		Pipeline(Pipeline&) = delete;
 		Pipeline(Pipeline&&) = delete;
@@ -37,7 +38,9 @@ namespace EWE {
 
 		void BindDescriptor(uint8_t descSlot, VkDescriptorSet* descSet);
 		void BindPipeline();
-		void BindPipelineWithVPScissor();
+		
+		//i want to move this to the rendergraph
+		//void BindPipelineWithVPScissor();
 
 		void Push(void* push, uint8_t pushIndex = 0);
 #if DEBUG_NAMING

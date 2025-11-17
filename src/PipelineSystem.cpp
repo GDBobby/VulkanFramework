@@ -1,4 +1,4 @@
-#include "EightWinds/Pipeline/PipelineFactory.h"
+#include "EightWinds/Pipeline/PipelineSystem.h"
 
 #include <cassert>
 

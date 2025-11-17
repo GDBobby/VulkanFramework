@@ -4,7 +4,7 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/DescriptorSetLayout.h"
-#include "EightWinds/Shaders.h"
+#include "EightWinds/Shader.h"
 #include "EightWinds/Pipeline/PipelineBase.h"
 
 
@@ -21,6 +21,8 @@ namespace EWE {
 	//i think tess and geo are on the way out.
 
 	//im moving out vertex assembly, attributes, all of it
+	//i dont really want pointers in either config. if its unavoidable ill add it
+	//but id prefer it to be fully stack
 
 	//this needs a new home
 	//std::vector<VkDynamicState> dynamicStateEnables{};
@@ -33,9 +35,9 @@ namespace EWE {
 	//per pass is going to cover per viewport and all that as well
 	//how each pass is configured
 	struct PipelinePassConfig{
-		uint32_t viewportCount = 1;
+		uint32_t viewportCount = 1;//not going to be changed in 99.9% of games
 		uint32_t scissorCount = 1; //not going to be changed in 99.9% of games
-		VkSampleCountFlagBits rasterizationSamples;
+		VkSampleCountFlagBits rastSamples;
 		bool enable_sampleShading;
 			//depends on ^
 			//{
@@ -43,7 +45,7 @@ namespace EWE {
 			//}
 		bool alphaToCoverageEnable;
 		bool alphaToOneEnable;
-
+		std::vector<VkDynamicState> dynamicState{};
 		
 		//VkPipelineViewportStateCreateInfo viewportInfo{}; //condensed to just vp/scissor count
 		
@@ -52,23 +54,47 @@ namespace EWE {
 		
 		//im not going to allow specific sample selection. it might be useful but idk what for. seems like minSampleShading is the same thing. idk
 
-		//colorblendattachment could be an index
-		//particularly if it's tied to the swapchain
-		//or maybe the rendergraph handles this, idk
-		//same for depth
-		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+		//depth controlled exclusively by the pass?
 		VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
-		VkPipelineColorBlendStateCreateInfo colorBlendInfo{};
-		VkPipelineRenderingCreateInfo renderCreateInfo{};
+		VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
 		//^these are going to be defined externally, in the rendergraph i think.
 		//the user wont put their hands on this
-		//im going to leave it as is for the moment
+		//im going to leave it as is for the moment, it can probably be simplified
 
-		//std::vector<VkDynamicState> GetImplicitDynamicState{};
+		void SetDefaults() noexcept {
+			viewportCount = 1;
+			scissorCount = 1;
+			rastSamples = VK_SAMPLE_COUNT_1_BIT;
+			enable_sampleShading = false;
+			minSampleShading = 1.f;
+			alphaToCoverageEnable = VK_FALSE;
+			alphaToOneEnable = VK_FALSE;
+
+			dynamicState = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+			depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+			depthStencilInfo.pNext = nullptr;
+			depthStencilInfo.flags = 0;
+			depthStencilInfo.depthTestEnable = VK_TRUE;
+			depthStencilInfo.depthWriteEnable = VK_TRUE;
+			depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+
+			//need to play with all of this
+			depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+			depthStencilInfo.stencilTestEnable = VK_FALSE;
+			depthStencilInfo.front = {};  // Optional
+			depthStencilInfo.back = {};   // Optional
+			depthStencilInfo.minDepthBounds = 0.0f;  // Optional
+			depthStencilInfo.maxDepthBounds = 1.0f;  // Optional
+
+			//no valid defaults, this needs real data
+			//VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
+		}
+
 	};
 
 	struct DepthBias {
-		bool enable;
+		bool  enable;
 		float constantFactor;
 		float clamp;
 		float slopeFactor;
@@ -79,11 +105,21 @@ namespace EWE {
 		bool depthClamp;
 		bool rasterizerDiscard;
 		VkPolygonMode polygonMode;
-		VkCullModeFlags cullmode;
+		VkCullModeFlags cullMode;
 		VkFrontFace frontFace;
 		DepthBias depthBias;
 		VkPrimitiveTopology topology;
 		bool primitiveRestart;
+
+		//i think im only going to allow 1 blend attachment max
+		//if its disabled, blendAttachment.blendEnabled, it wont be added to blendStateCreateInfo
+		//i think this is per object but im not sure
+		VkPipelineColorBlendAttachmentState blendAttachment;
+
+		//i need to mess with this
+		float blendConstants[4];
+
+		//VkLogicOp blendLogicOp; //need to play iwth this
 	};
 
 	/*
@@ -157,6 +193,6 @@ namespace EWE {
 #endif
 	protected:
 		//internal
-		void CreateVkPipeline_SecondStage(PipelineConfigInfo& configInfo, VkGraphicsPipelineCreateInfo& pipelineInfo);
+		//void CreateVkPipeline_SecondStage(PipelineConfigInfo& configInfo, VkGraphicsPipelineCreateInfo& pipelineInfo);
 	};
 }

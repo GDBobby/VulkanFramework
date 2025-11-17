@@ -3,18 +3,25 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Backend/DescriptorPool.h"
 
+#include "EightWinds/Data/KeyValueContainer.h"
+
 #include <vector>
 
 namespace EWE{
 
 
-    //this needs a better name
     namespace Descriptor{
-        using Bindings = std::vector<VkDescriptorSetLayoutBinding>;
 
+        using Bindings = std::vector<VkDescriptorSetLayoutBinding>;
+        
         struct Set{
-            uint8_t index;
-            Bindings bindings;
+            //union{
+            //    struct{
+                    uint8_t index;
+                    Bindings bindings;
+            //    };
+            //    KeyValuePair<uint8_t, Bindings> kvPair;
+            //};
         };
 
         //this is for built descriptors, and designed to be binded to the pipeline/commandbuffer

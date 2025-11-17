@@ -37,7 +37,7 @@ namespace EWE{
         void* mapped = nullptr;
 
 
-        static constexpr [[nodiscard]] VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags2KHR usageFlags, VkPhysicalDeviceLimits const& limits) {
+        static [[nodiscard]] constexpr VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags2KHR usageFlags, VkPhysicalDeviceLimits const& limits) {
             VkDeviceSize minOffsetAlignment = 1;
             
             if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT) 

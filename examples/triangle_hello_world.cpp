@@ -4,6 +4,7 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Swapchain.h"
 
+#include "EightWinds/Pipeline/Layout.h"
 #include "EightWinds/Pipeline/PipelineBase.h"
 #include "EightWinds/Pipeline/Graphics.h"
 
@@ -191,20 +192,20 @@ int main(){
     auto* triangle_vert = new EWE::Shader(logicalDevice, "examples/common/shaders/basic.vert.spv");
     auto* triangle_frag = new EWE::Shader(logicalDevice, "examples/common/shaders/basic.frag.spv");
 
-    EWE::PipeLayout triangle_layout(logicalDevice, { triangle_vert, triangle_frag });
+    EWE::PipeLayout triangle_layout(logicalDevice, std::initializer_list<EWE::Shader*>{ triangle_vert, triangle_frag });
 
-
-    EWE::PipelineConfigInfo configInfo;
+    //create a renderpass here
+    //EWE::PipelineConfigInfo configInfo;
     std::vector<VkDynamicState> dynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     VkPipelineRenderingCreateInfo renderingCreateInfo{};
     renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     renderingCreateInfo.pNext = nullptr;
     renderingCreateInfo.colorAttachmentCount = 1;
-    auto swapImageFormat = swapchain.
-    renderingCreateInfo.pColorAttachmentFormats = ;
+    //auto swapImageFormat = swapchain.
+    //renderingCreateInfo.pColorAttachmentFormats = ;
 
-    EWE::Pipeline* triangle_pipe = EWE::GraphicsPipeline(logicalDevice, 0, triangle_layout, configInfo, dynamicStates, );
+    //EWE::Pipeline* triangle_pipe = EWE::GraphicsPipeline(logicalDevice, 0, triangle_layout, configInfo, dynamicStates, );
 
     //from here, create the render graph
     printf("returning successfully\n");

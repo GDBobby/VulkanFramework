@@ -41,12 +41,11 @@ namespace EWE{
         SetLayout::SetLayout(DescriptorPool& pool) noexcept 
             : pool{ pool }, bindless{ false } 
         {
-            
+        
         }
 
         SetLayout::SetLayout(SetLayout&& moveSrc) noexcept
             : pool{moveSrc.pool}, bindless{moveSrc.bindless}
-
         {
             vkDSL = moveSrc.vkDSL;
             moveSrc.vkDSL = VK_NULL_HANDLE;
@@ -54,7 +53,7 @@ namespace EWE{
         SetLayout& SetLayout::operator=(SetLayout&& moveSrc) noexcept{
             assert(pool == moveSrc.pool);
 
-            throw std::runtime_error("not fulyl setup, the old dsl needs to be deconstructed");
+            printf("not fulyl setup, the old dsl needs to be deconstructed");
             vkDSL = moveSrc.vkDSL;
             return *this;
         }

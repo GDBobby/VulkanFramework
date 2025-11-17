@@ -35,5 +35,5 @@ namespace EWE{
         
 		std::unordered_map<PipelineID, ::EWE::Pipeline*> pipelineMap{};
 		std::unordered_map<PipelineID, std::string> pipelineNames{};
-	}
+	};
 }

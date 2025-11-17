@@ -1,15 +1,21 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
+#include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Shader.h"
+#include "EightWinds/DescriptorSetLayout.h"
 
 #include "EightWinds/Data/KeyValueContainer.h"
+
+#include <initializer_list>
+#include <array>
+#include <vector>
 
 namespace EWE {
 	enum class PipelineType {
 		Vertex, //combination of vertex, fragment - optional geom/tess
 		Compute,
 		Mesh, //task mesh
-		MeshWithMeshDisabled,
+		//MeshWithMeshDisabled, //theoretical at the moment
 		Raytracing, //any RT combo
 		Scheduler, //graph/scheduling - distinct? idk
 
@@ -21,61 +27,20 @@ namespace EWE {
 		case PipelineType::Vertex: return VK_PIPELINE_BIND_POINT_GRAPHICS;
 		case PipelineType::Compute: return VK_PIPELINE_BIND_POINT_COMPUTE;
 		case PipelineType::Mesh: return VK_PIPELINE_BIND_POINT_GRAPHICS;
-		case PipelineType::MeshWithMeshDisabled: return VK_PIPELINE_BIND_POINT_GRAPHICS; //this is a bit more ambiguous
+		//case PipelineType::MeshWithMeshDisabled: return VK_PIPELINE_BIND_POINT_GRAPHICS; //this is a bit more ambiguous
 		case PipelineType::Raytracing: return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
 			//Scheduler, //graph/scheduling - distinct? idk
 		}
 		EWE_UNREACHABLE;
 	}
-	/* template specializing pipelines
-	template<PipelineType>
-	struct PipelineTraits;
-
-	template<>
-	struct PipelineTraits<PipelineType::Vertex> {
-		static constexpr std::array stages{
-			ShaderStage::Vertex,
-			ShaderStage::Fragment,
-			ShaderStage::Geometry,
-			ShaderStage::TessControl,
-			ShaderStage::TessEval,
-		};
-	};
-	template<>
-	struct PipelineTraits<PipelineType::Mesh> {
-		static constexpr std::array stages{
-			ShaderStage::Task,
-			ShaderStage::Mesh,
-			ShaderStage::Vertex
-		};
-	};
-
-	template<>
-	struct PipelineTraits<PipelineType::Compute> {
-		static constexpr std::array stages{
-			ShaderStage::Compute,
-		};
-		static constexpr std::string_view GetStageName(uint8_t index) {
-			return magic_enum::enum_name(stages[index]);
-		}
-	};
-
-	template<PipelineType>
-	static constexpr uint8_t GetPipeLayoutStageIndex(ShaderStage stage) {
-		for (uint8_t i = 0; i < PipelineTraits<PipelineType>::stages.size(); i++) {
-			if (stage == PipelineTraits<PipelineType>::stages[i]) {
-				return i;
-			}
-		}
-		EWE_UNREACHABLE;
-		return 0; //error silencing
-	}
-	*/
-
 
 	struct PipeLayout {
 		LogicalDevice& logicalDevice;
 		VkPipelineLayout vkLayout;
+		//i suspect theres a mismangement of the Tracker references here
+		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<::EWE::Shader*> shaders) noexcept;
+		//temporarily i need to disable this. i need to figure out how to fix ShaderFactory inclusion dependency
+		//PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<std::string_view> shaderFileLocations);
 
 		//using PipeTraits = PipelineTraits<PipelineType>;
 		//i dont like the array much, i might do a KeyValuePair or something
@@ -90,10 +55,7 @@ namespace EWE {
 		//this doesnt need to be explicitly called after construction
 		void CreateVkPipeLayout();
 
-		PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<Shader*> shaders);
 
-		//temporarily i need to disable this. i need to figure out how to fix ShaderFactory inclusion dependency
-		//PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<std::string_view> shaderFileLocations);
 
 #if PIPELINE_HOT_RELOAD
 		void HotReload();
@@ -103,4 +65,4 @@ namespace EWE {
 		void SetDebugName(const char* name);
 #endif
 	};
-}
+} //namespace EWE

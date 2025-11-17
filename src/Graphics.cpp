@@ -11,10 +11,6 @@
 
 namespace EWE {
 
-	void PipelineConfigInfo::Enable2DConfig() {
-		depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-	}
-
 #if PIPELINE_HOT_RELOAD
 	void imgui_vkbool(std::string_view name, VkBool32& vkBool) {
 		bool loe = vkBool;
@@ -249,53 +245,6 @@ namespace EWE {
 	}
     */
 
-	void GraphicsPipeline::CreateVkPipeline_SecondStage(
-        PipelineConfigInfo& configInfo, 
-        VkGraphicsPipelineCreateInfo& pipelineInfo
-    ) {
-
-
-		std::vector<KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>> temp{};
-		for (auto& stage : copySpecInfo) {
-			temp.push_back(KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>(stage.key, Shader::VkSpecInfo_RAII(stage.value)));
-		}
-		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
-		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = pipeLayout->GetStageData(temp);
-		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
-		pipelineCreateInfo.pStages = shaderStages.data();
-
-		pipelineInfo.pNext = &configInfo.pipelineRenderingInfo;
-
-        /*
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(configInfo.attributeDescriptions.size());
-		vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(configInfo.bindingDescriptions.size());
-		vertexInputInfo.pVertexAttributeDescriptions = configInfo.attributeDescriptions.data();
-		vertexInputInfo.pVertexBindingDescriptions = configInfo.bindingDescriptions.data();
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-        */
-        
-
-        
-
-
-		pipelineInfo.pViewportState = &configInfo.viewportInfo;
-		pipelineInfo.pRasterizationState = &configInfo.rasterizationInfo;
-		configInfo.multisampleInfo.pSampleMask = configInfo.sampleMask;
-		pipelineInfo.pMultisampleState = &configInfo.multisampleInfo;
-
-		pipelineInfo.pColorBlendState = &configInfo.colorBlendInfo;
-		pipelineInfo.pDepthStencilState = &configInfo.depthStencilInfo;
-		pipelineInfo.pDynamicState = &configInfo.dynamicStateInfo;
-
-		pipelineInfo.layout = pipeLayout->vkLayout;
-		pipelineInfo.subpass = configInfo.subpass;
-
-		EWE_VK(vkCreateGraphicsPipelines, logicalDevice.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &vkPipe);
-	}
-
 	void GraphicsPipeline::CreateVkPipeline(
         PipelinePassConfig const& passConfig, 
         PipelineObjectConfig const& objectConfig,
@@ -304,7 +253,12 @@ namespace EWE {
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineCreateInfo.pNext = &configInfo.pipelineRenderingInfo;
+		pipelineCreateInfo.pNext = &passConfig.pipelineRenderingCreateInfo;
+        pipelineCreateInfo.layout = pipeLayout->vkLayout;
+        pipelineCreateInfo.renderPass = VK_NULL_HANDLE; //DNI
+        pipelineCreateInfo.subpass = 0; //sub render pass, DNI
+        pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE; //derivates, DNI
+        pipelineCreateInfo.basePipelineIndex = 0; //derivates, DNI;
 
         //shaders
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = pipeLayout->GetStageData(temp);
@@ -319,7 +273,7 @@ namespace EWE {
 		
         //input assembly
         VkPipelineInputAssemblyStateCreateInfo inputAssCreateInfo{};
-        inputAssCreateInfo.sType = VK_STRUCTURE_TYPE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        inputAssCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssCreateInfo.pNext = nullptr;
         inputAssCreateInfo.flags = 0; //reserved
         inputAssCreateInfo.topology = objectConfig.topology;
@@ -331,18 +285,74 @@ namespace EWE {
 
         //const  VkPipelineRasterizationStateCreateInfo *  pRasterizationState;
         VkPipelineRasterizationStateCreateInfo rasterStateCreateInfo{};
-        rasterStateCreateInfo.sType = VK_STRUCTURE_TYPE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterStateCreateInfo.pNext = nullptr;
         rasterStateCreateInfo.flags = 0;
         rasterStateCreateInfo.depthClampEnable = objectConfig.depthClamp;
         rasterStateCreateInfo.rasterizerDiscardEnable = objectConfig.rasterizerDiscard;
-        rasterStateCreateInfo.polygonMode = objectConfig.
+        rasterStateCreateInfo.polygonMode = objectConfig.polygonMode;
+        rasterStateCreateInfo.cullMode = objectConfig.cullMode;
+        //i could do a memcpy, but idk if it matters
+        rasterStateCreateInfo.depthBiasEnable = objectConfig.depthBias.enable;
+        rasterStateCreateInfo.depthBiasConstantFactor = objectConfig.depthBias.constantFactor;
+        rasterStateCreateInfo.depthBiasClamp = objectConfig.depthBias.clamp;
+        rasterStateCreateInfo.depthBiasSlopeFactor = objectConfig.depthBias.slopeFactor;
+        rasterStateCreateInfo.lineWidth = 1.f; //this should be a dynamic state if its actually necessary
         pipelineCreateInfo.pRasterizationState = &rasterStateCreateInfo;
-        //const  VkPipelineMultisampleStateCreateInfo *  pMultisampleState;
-        //const  VkPipelineDepthStencilStateCreateInfo *  pDepthStencilState;
-        //const  VkPipelineColorBlendStateCreateInfo *  pColorBlendState;
-        //const  VkPipelineDynamicStateCreateInfo *  pDynamicState;
 
+        //const  VkPipelineMultisampleStateCreateInfo *  pMultisampleState;
+        VkPipelineMultisampleStateCreateInfo msCreateInfo{};
+        msCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;            
+        /*
+        https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineMultisampleStateCreateInfo.html
+        potential pNext
+        */
+        msCreateInfo.pNext = nullptr;
+
+        msCreateInfo.flags = 0;
+        msCreateInfo.rasterizationSamples = passConfig.rastSamples;
+        msCreateInfo.sampleShadingEnable = passConfig.enable_sampleShading;
+        msCreateInfo.minSampleShading = passConfig.minSampleShading;
+        msCreateInfo.pSampleMask = nullptr;
+        msCreateInfo.alphaToCoverageEnable = passConfig.alphaToCoverageEnable;
+        msCreateInfo.alphaToOneEnable = passConfig.alphaToOneEnable;
+        pipelineCreateInfo.pMultisampleState = &msCreateInfo;
+
+        //const  VkPipelineDepthStencilStateCreateInfo *  pDepthStencilState;
+        pipelineCreateInfo.pDepthStencilState = &passConfig.depthStencilInfo;
+        //const  VkPipelineColorBlendStateCreateInfo *  pColorBlendState;
+        VkPipelineColorBlendStateCreateInfo blendCreateInfo{};
+        blendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+        blendCreateInfo.pNext = nullptr;
+        //https://docs.vulkan.org/refpages/latest/refpages/source/VkPipelineColorBlendStateCreateInfo.html
+        //potential flags
+        blendCreateInfo.flags = 0;
+
+        //need to play with these 2, they'll be object based
+        blendCreateInfo.logicOpEnable = false;//maybe, idk
+        blendCreateInfo.logicOp = VK_LOGIC_OP_MAX_ENUM;
+
+        if(objectConfig.blendAttachment.blendEnable){
+            blendCreateInfo.attachmentCount = 1;
+            blendCreateInfo.pAttachments = &objectConfig.blendAttachment;
+        }
+        else{
+            blendCreateInfo.attachmentCount = 0;
+        }
+        memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);
+
+        pipelineCreateInfo.pColorBlendState = &blendCreateInfo;
+
+        //const  VkPipelineDynamicStateCreateInfo *  pDynamicState;
+        VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{};
+        dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicStateCreateInfo.flags = 0;
+        dynamicStateCreateInfo.pNext = nullptr;
+
+        dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(passConfig.dynamicState.size());
+        dynamicStateCreateInfo.pDynamicStates = passConfig.dynamicState.data();
+
+        pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 	}
 
 
@@ -353,7 +363,7 @@ namespace EWE {
         PipelinePassConfig const& passConfig, 
         PipelineObjectConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState//deduced maybe?
-    ) : Pipeline{ pipeID, layout }
+    ) : Pipeline{ logicalDevice, pipeID, layout }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif
@@ -369,7 +379,7 @@ namespace EWE {
         PipelineObjectConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
         std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
-    ) : Pipeline{ pipeID, layout, specInfo }
+    ) : Pipeline{ logicalDevice, pipeID, layout, specInfo }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif

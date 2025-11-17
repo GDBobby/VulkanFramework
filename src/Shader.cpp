@@ -66,6 +66,7 @@ namespace EWE {
 				break;
 			}
 		}
+		assert(temp_set_ref != nullptr);
 		
 		temp_set_ref->bindings.push_back(
 			VkDescriptorSetLayoutBinding{
@@ -376,7 +377,15 @@ namespace EWE {
 
 		specInfo.mapEntryCount = static_cast<uint32_t>(mapEntries.size());
 		specInfo.pMapEntries = mapEntries.data();
-		memPtr = reinterpret_cast<uint64_t>(malloc(specInfo.dataSize));
+		try {
+			memPtr = reinterpret_cast<uint64_t>(malloc(specInfo.dataSize));
+		}
+		catch (const std::runtime_error& e) {
+			printf("malloc error - %s\n", e.what());
+			specInfo.mapEntryCount = 0;
+			specInfo.pData = nullptr;
+		}
+		assert(memPtr != 0);
 
 		std::size_t offset = 0;
 		for (uint8_t i = 0; i < mapEntries.size(); i++) {
@@ -412,4 +421,84 @@ namespace EWE {
 			free(reinterpret_cast<void*>(memPtr));
 		}
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+	Shader* ShaderFactory::GetShaderIfExist(std::string const& path) {
+		auto modFind = shaderModuleMap.find(path);
+		if (modFind == shaderModuleMap.end()) {
+			return nullptr;
+		}
+		else {
+			std::unique_lock<std::mutex> uniqLock{ shaderMapMutex };
+			modFind->second.usageCount++;
+			return modFind->second.shader;
+		}
+	}
+
+	Shader* ShaderFactory::GetShader(std::string_view filepath) {
+		auto modFind = shaderModuleMap.find(filepath);
+		if (modFind == shaderModuleMap.end()) {
+			auto empRet = shaderModuleMap.emplace(filepath, new Shader(logicalDevice, filepath));
+			assert(empRet.second);
+			return empRet.first->second.shader;
+		}
+		else {
+			shaderMapMutex.lock();
+			modFind->second.usageCount++;
+			return modFind->second.shader;
+		}
+	}
+	Shader* ShaderFactory::CreateShader(std::string_view filepath, const std::size_t dataSize, const void* data) {
+		assert(shaderModuleMap.find(filepath) == shaderModuleMap.end());
+
+		auto empRet = shaderModuleMap.emplace(filepath, new Shader(logicalDevice, filepath, dataSize, data));
+		assert(empRet.second);
+		return empRet.first->second.shader;
+	}
+
+	void ShaderFactory::DestroyShader(Shader& shader) {
+		if (shader.shaderStageCreateInfo.module != VK_NULL_HANDLE) {
+			shaderMapMutex.lock();
+
+			auto findRet = shaderModuleMap.find(shader.filepath);
+			if (findRet == shaderModuleMap.end()) {
+#if EWE_DEBUG_BOOL
+				printf("trying to delete a shader that's not in the shader moduel map\n");
+#endif
+			}
+			else {
+				findRet->second.usageCount--;
+				if (findRet->second.usageCount <= 0) {
+					vkDestroyShaderModule(logicalDevice.device, shader.shaderStageCreateInfo.module, nullptr);
+					shaderModuleMap.erase(findRet);
+				}
+			}
+
+			shaderMapMutex.unlock();
+#if PIPELINE_HOT_RELOAD
+			return;
+#endif
+			EWE_UNREACHABLE;
+		}
+	}
+
+	void ShaderFactory::DestroyAllShaders() {
+		shaderMapMutex.lock();
+		for (auto iter = shaderModuleMap.begin(); iter != shaderModuleMap.end(); iter++) {
+			vkDestroyShaderModule(logicalDevice.device, iter->second.shader->shaderStageCreateInfo.module, nullptr);
+		}
+		shaderModuleMap.clear();
+		shaderMapMutex.unlock();
+	}
+
 }

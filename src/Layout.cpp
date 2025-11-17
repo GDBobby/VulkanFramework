@@ -1,12 +1,15 @@
 #include "EightWinds/Pipeline/Layout.h"
 
-#include "EightWinds/ShaderFactory.h"
+//#include "EightWinds/ShaderFactory.h"
 
 #if PIPELINE_HOT_RELOAD
 #include "EWGraphics/imgui/imgui.h"
 #endif
 
 #include <algorithm>
+
+//theres a number of errors here, why are they not beign picked up
+
 
 namespace EWE {
 	Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, Shader::Stage::COUNT> const& shaders) {
@@ -18,7 +21,10 @@ namespace EWE {
 			if (shader == nullptr) {
 				continue;
 			}
-			highestSize = lab::Max(highestSize, static_cast<uint8_t>(shader->descriptorSets->setLayouts.size()));
+			//highestSize = lab::Max(highestSize, static_cast<uint8_t>(shader->descriptorSets->setLayouts.size()));
+			//im not including lab in the framework anymore
+			const uint8_t tempSize = static_cast<uint8_t>(shader->descriptorSets.sets.size());
+			highestSize = highestSize > tempSize ? highestSize : tempSize;
 		}
 		ret.sets.clear();
 		ret.sets.reserve(highestSize);
@@ -54,10 +60,10 @@ namespace EWE {
 				if (!hasSetMatch) {
 					//this needs to be done so it's not moved, and is instead copied
 					//i could potentially use std::copy to pass it into the constructor as well
-					auto const& constRefBindings = set.value->bindings;
+					auto const& constRefBindings = set.bindings;
 
 					//ret->setLayouts.push_back(set.key, Construct<Descriptor::SetLayout>(constRefBindings));
-                    ret.sets.push_back(set.index, std::copy(constRefBindings));
+                    ret.sets.push_back(Descriptor::Set(.index = set.index, .bindings = constRefBindings));
 				}
 			}
 		}		
@@ -68,8 +74,8 @@ namespace EWE {
 		);
 
 		for (auto& dsl : ret.sets) {
-			assert(dsl.value->bindings.size() > 0);
-            //i need to figure out what to do with this
+			assert(dsl.bindings.size() > 0);
+            //this needs to be promoted to a full dsl
 			dsl.value->BuildVkDSL();
 			//std::string debug_name = std::string(fileLocation.data()) + std::string(" - dsl#") + std::to_string(dsl.first);
 			//DebugNaming::SetObjectName(dsl.second->vkDSL, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, debug_name.c_str());
@@ -115,7 +121,7 @@ namespace EWE {
 		return merged;
 	}
 
-	PipeLayout::PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<Shader*> shaders)
+	PipeLayout::PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<::EWE::Shader*> shaders) noexcept
 		: logicalDevice{logicalDevice}
 	{
 		this->shaders.fill(nullptr);
@@ -127,6 +133,7 @@ namespace EWE {
 		CreateVkPipeLayout();
 	}
 
+	/* temporarily disabled until i figure out how to let shader interact with ShaderFactory
 	PipeLayout::PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<std::string_view> shaderFileLocations)
 		: logicalDevice{ logicalDevice }
 	{
@@ -139,6 +146,7 @@ namespace EWE {
 		pushConstantRanges = MergePushRanges(this->shaders);
 		CreateVkPipeLayout();
 	}
+	*/
 
 	std::vector<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
 		std::vector<VkPipelineShaderStageCreateInfo> ret{};
@@ -191,23 +199,32 @@ namespace EWE {
 		plCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 		plCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 
-		if (VK::Object->globalEmptyDSL == VK_NULL_HANDLE) {
-			VkDescriptorSetLayoutCreateInfo emptyInfo{};
-			emptyInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			emptyInfo.bindingCount = 0;
-			emptyInfo.pBindings = nullptr;
+		//if (VK::Object->globalEmptyDSL == VK_NULL_HANDLE) {
+		//	VkDescriptorSetLayoutCreateInfo emptyInfo{};
+		//	emptyInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		//	emptyInfo.bindingCount = 0;
+		//	emptyInfo.pBindings = nullptr;
 
-			EWE_VK(vkCreateDescriptorSetLayout, logicalDevice.device, &emptyInfo, nullptr, &VK::Object->globalEmptyDSL);
-		}
+		//	EWE_VK(vkCreateDescriptorSetLayout, logicalDevice.device, &emptyInfo, nullptr, &VK::Object->globalEmptyDSL);
+		//}
 		uint8_t highestCount = 0;
 		for (auto& dsl : descriptorSets.sets) {
-			highestCount = lab::Max(highestCount, dsl.index); //theyre sorted, i need to add back() to KVContainer
+			//highestCount = lab::Max(highestCount, dsl.index); //theyre sorted, i need to add back() to KVContainer
+			highestCount = highestCount > dsl.index ? highestCount : dsl.index;
 		}
-		std::vector<VkDescriptorSetLayout> layouts(highestCount + 1, VK::Object->globalEmptyDSL);
+		std::vector<VkDescriptorSetLayout> layouts(highestCount + 1, VK_NULL_HANDLE);
 		for (uint8_t i = 0; i < descriptorSets.sets.size(); i++) {
             //this needs to be dealt with
-			layouts[descriptorSets.sets[i].index] = descriptorSets->sets[i].bindings->vkDSL;
+			//promote this to a type that has the vkdsl
+			layouts[descriptorSets.sets[i].index] = descriptorSets.sets[i].bindings->vkDSL;
 		}
+
+		//potentially do a second pass to assert none are null_handle, which I believe is a bug, or a very poor shader
+#if EWE_DEBUG_BOOL
+		for(uint8_t i = 0; i < layouts.size(); i++){
+			assert(layouts[i] != VK_NULL_HANDLE);
+		}
+#endif	
 
 		plCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
 		plCreateInfo.pSetLayouts = layouts.data();
