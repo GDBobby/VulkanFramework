@@ -4,16 +4,23 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Swapchain.h"
 
+#include "EightWinds/Pipeline/PipelineBase.h"
+#include "EightWinds/Pipeline/Graphics.h"
+
 #include "EightWinds/Backend/DeviceSpecialization/Extensions.h"
 #include "EightWinds/Backend/DeviceSpecialization/DeviceSpecialization.h"
 #include "EightWinds/Backend/DeviceSpecialization/FeatureProperty.h"
 
+#include "EightWinds/Shader.h"
+
 #include <cstdint>
 #include <cstdio>
 #include <cassert>
+#include <filesystem>
 
 
-constexpr uint32_t application_wide_vk_version = VK_MAKE_VERSION(1, 4, 0);
+    //the variant is useless, but VK_MAKE_VERSION is deprecated
+constexpr uint32_t application_wide_vk_version = VK_MAKE_API_VERSION(0, 1, 4, 0);
 
     //weights are at minimum 1,
     //so if a property has a weight of 1, and a quanity of 32k, it'll be worth 64k
@@ -89,8 +96,6 @@ struct SwapChainSupportDetails {
 };
 
 int main(){
-    
-    //create an instance
 
 
     std::vector<const char*> requiredExtensions{
@@ -114,17 +119,6 @@ int main(){
 
     std::unordered_map<std::string, bool> optionalExtensions{};
 
-    /*
-        Instance(
-            const uint32_t api_version, 
-            std::vector<const char*> const& requiredExtensions, 
-            std::unordered_map<std::string, bool>& optionalExtensions, 
-            vkAllocationCallbacks const* allocCallbacks
-        );
-    */
-
-
-    //the variant is useless, but VK_MAKE_VERSION is deprecated
     EWE::Instance instance(application_wide_vk_version, requiredExtensions, optionalExtensions);
 
     //once the instance is created, create a surface
@@ -187,9 +181,37 @@ int main(){
 
 
     EWE::Swapchain swapchain{logicalDevice};
+
+    printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
     
+    //need to fix htis
+    std::filesystem::current_path("C:/Projects/VulkanFramework");
+    printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
+
+    auto* triangle_vert = new EWE::Shader(logicalDevice, "examples/common/shaders/basic.vert.spv");
+    auto* triangle_frag = new EWE::Shader(logicalDevice, "examples/common/shaders/basic.frag.spv");
+
+    EWE::PipeLayout triangle_layout(logicalDevice, { triangle_vert, triangle_frag });
+
+
+    EWE::PipelineConfigInfo configInfo;
+    std::vector<VkDynamicState> dynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+
+    VkPipelineRenderingCreateInfo renderingCreateInfo{};
+    renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    renderingCreateInfo.pNext = nullptr;
+    renderingCreateInfo.colorAttachmentCount = 1;
+    auto swapImageFormat = swapchain.
+    renderingCreateInfo.pColorAttachmentFormats = ;
+
+    EWE::Pipeline* triangle_pipe = EWE::GraphicsPipeline(logicalDevice, 0, triangle_layout, configInfo, dynamicStates, );
+
     //from here, create the render graph
     printf("returning successfully\n");
+
+    delete triangle_vert;
+    delete triangle_frag;
+
 
     return 0;
 }

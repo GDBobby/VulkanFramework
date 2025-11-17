@@ -15,6 +15,8 @@
 
 namespace EWE{
 
+    using PipelineID = uint64_t;
+
     constexpr uint32_t RoundDownVkVersion(uint32_t in_version) noexcept {
         constexpr uint32_t mask = (1 << 12) - 1;
         constexpr uint32_t inverted_mask = ~mask;

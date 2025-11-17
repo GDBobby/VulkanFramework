@@ -11,10 +11,15 @@ namespace EWE{
     struct DescriptorPool{
 
         LogicalDevice& logicalDevice;
+
+        [[nodicard]] explicit DescriptorPool(LogicalDevice& logicalDevice) : logicalDevice{ logicalDevice } {}
         
         VkDescriptorPool pool;
 
         uint8_t descriptorCount = 0;
 
+        bool operator==(DescriptorPool const& other) const noexcept {
+            return pool == other.pool;
+        }
     };
 }

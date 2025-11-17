@@ -22,10 +22,10 @@
 namespace EWE{
 
     struct DeviceEvaluation {
-        VkPhysicalDevice device;
-        uint64_t score;
+        VkPhysicalDevice device = VK_NULL_HANDLE;
+        uint64_t score = 0;
         bool passedRequirements = true;
-        std::vector<bool> supported_extensions;
+        std::vector<bool> supported_extensions{};
 
         /*
 

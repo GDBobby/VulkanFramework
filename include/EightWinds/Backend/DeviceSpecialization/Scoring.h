@@ -9,7 +9,7 @@ namespace EWE{
 
     enum class WeightComparison{
         minimum,
-        match,
+        equal,
         maximum,
         //could do minimum equal, minimum not equal. not sure if necessary
         //other

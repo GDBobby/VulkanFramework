@@ -1,14 +1,12 @@
 #include "EightWinds/Shader.h"
 
-
-#include "EWGraphics/Data/magic_enum.hpp"
 #include "spirvcross/spirv_reflect.hpp"
 
 
 #include <algorithm>
 
-#include <unordered_map>
 #include <cassert>
+#include <fstream>
 #define SANITY_CHECK true
 
 #if SANITY_CHECK
@@ -20,8 +18,6 @@
 namespace EWE {
 
 	std::vector<char> ReadShaderFile(std::string_view filepath) {
-
-		//const std::string enginePath = filepath;
 
 		std::ifstream shaderFile{};
 		shaderFile.open(filepath.data(), std::ios::binary);
@@ -41,25 +37,45 @@ namespace EWE {
 	}
 
 
-	void AddBinding(spirv_cross::Compiler const& compiler, DescriptorLayoutPack* layoutPack, spirv_cross::Resource const& res, VkDescriptorType descType, VkShaderStageFlagBits stageFlag) {
+	void AddBinding(spirv_cross::Compiler const& compiler, Descriptor::LayoutPack& layoutPack, spirv_cross::Resource const& res, VkDescriptorType descType, VkShaderStageFlagBits stageFlag) {
 
 		const uint32_t setIndex = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
-		if(!layoutPack->setLayouts.Contains(setIndex)) {
-			layoutPack->setLayouts.push_back(setIndex, Construct<DescriptorSetLayout>());
+		
+		bool set_contained = false;
+		for(auto& set : layoutPack.sets){
+			if(set.index == setIndex){
+				set_contained = true;
+				break;
+			}
 		}
+		if(!set_contained){
+			layoutPack.sets.emplace_back(setIndex, Descriptor::Bindings{});
+		}
+		
 		uint32_t descCount = 1;
 		auto const& type = compiler.get_type(res.type_id);
 		if (!type.array.empty() && type.array[0] != 0) {
 			descCount = type.array[0];
 		}
 		compiler.get_name(res.id);
-		
 
-		layoutPack->setLayouts.at(setIndex).value->bindings.push_back(
+		EWE::Descriptor::Set* temp_set_ref = nullptr;
+		for(auto& layout : layoutPack.sets){
+			if(layout.index == setIndex){
+				temp_set_ref = &layout;
+				break;
+			}
+		}
+		
+		temp_set_ref->bindings.push_back(
 			VkDescriptorSetLayoutBinding{
 				.binding = compiler.get_decoration(res.id, spv::DecorationBinding),
 				.descriptorType = descType,
 				.descriptorCount = descCount,
+				//this is a notable issue, maybe not significant
+				//i think the only way to rectify this, keep it tight while allowing for cross-shader sets,
+				//would be to use extensive rendergraph testing
+				//tbh, vulkan not allowing the descriptor set itself to have looser usage is crazy
 				.stageFlags = VK_SHADER_STAGE_ALL,//bad but going with it for now
 				.pImmutableSamplers = nullptr,
 			}
@@ -67,10 +83,10 @@ namespace EWE {
 	}
 
 
-	DescriptorLayoutPack* CreateDescriptorLayoutPack(spirv_cross::Compiler const& compiler, VkShaderStageFlagBits stageFlag) {
+	Descriptor::LayoutPack CreateDescriptorLayoutPack(spirv_cross::Compiler const& compiler, VkShaderStageFlagBits stageFlag) {
 		auto const& resources = compiler.get_shader_resources();
 
-		DescriptorLayoutPack* ret = Construct<DescriptorLayoutPack>();
+		Descriptor::LayoutPack ret{};// = Construct<Descriptor::LayoutPack>();
 
 #define AddBindingType(vec, descType) for(auto& binding : vec) {AddBinding(compiler, ret, binding, descType, stageFlag);}
 
@@ -81,8 +97,8 @@ namespace EWE {
 		AddBindingType(resources.separate_samplers, VK_DESCRIPTOR_TYPE_SAMPLER);
 		AddBindingType(resources.separate_images, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 
-		for (auto& set : ret->setLayouts) {
-			std::sort(set.value->bindings.begin(), set.value->bindings.end(),
+		for (auto& set : ret.sets) {
+			std::sort(set.bindings.begin(), set.bindings.end(),
 				[](VkDescriptorSetLayoutBinding const& a, VkDescriptorSetLayoutBinding const& b) {
 					return a.binding < b.binding;
 				}
@@ -294,7 +310,7 @@ namespace EWE {
 		shaderCreateInfo.codeSize = dataSize;
 		shaderCreateInfo.pCode = reinterpret_cast<const uint32_t*>(data);
 		shaderCreateInfo.flags = 0;
-		EWE_VK(vkCreateShaderModule, VK::Object->vkDevice, &shaderCreateInfo, nullptr, &shaderStageCreateInfo.module);
+		EWE_VK(vkCreateShaderModule, logicalDevice.device, &shaderCreateInfo, nullptr, &shaderStageCreateInfo.module);
 
 #if DEBUG_NAMING
 		DebugNaming::SetObjectName(shaderStageCreateInfo.module, VK_OBJECT_TYPE_SHADER_MODULE, filepath.data());
@@ -306,48 +322,45 @@ namespace EWE {
 	}
 
 
-	Shader::Shader(std::string_view fileLocation) : filepath{ fileLocation.data() }, descriptorSets{ nullptr } {
+	Shader::Shader(LogicalDevice& logicalDevice, std::string_view fileLocation) 
+    : logicalDevice{logicalDevice}, filepath{ fileLocation.data() }, descriptorSets{} {
 		std::vector<char> shaderData = ReadShaderFile(fileLocation);
 		ReadReflection(shaderData.size(), shaderData.data());
 		CompileModule(shaderData.size(), shaderData.data());
 	}
-	Shader::Shader(std::string_view fileLocation, const std::size_t dataSize, const void* data) : filepath{ fileLocation.data() }, descriptorSets{ nullptr } {
+
+	Shader::Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data) 
+    : logicalDevice{logicalDevice}, filepath{ fileLocation.data() }, descriptorSets{} {
 		ReadReflection(dataSize, data);
 		CompileModule(dataSize, data);
 	}
 
-
-	Shader::Shader() : filepath{} {} //idk how to initialize shaderstageinfo yet
+	Shader::Shader(LogicalDevice& logicalDevice) 
+    : logicalDevice{logicalDevice}, filepath{} 
+	{}
+	
 	Shader::~Shader() {
 		if (shaderStageCreateInfo.module != VK_NULL_HANDLE) {
-			EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, shaderStageCreateInfo.module, nullptr);
+			vkDestroyShaderModule(logicalDevice.device, shaderStageCreateInfo.module, nullptr);
 		}
+#if PIPELINE_HOT_RELOAD
 		for (auto& staleModule : staleModules) {
 			if (staleModule != VK_NULL_HANDLE) {
-				EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, staleModule, nullptr);
+				vkDestroyShaderModule(logicalDevice.device, staleModule, nullptr);
 			}
 		}
 		staleModules.clear();
-		if (descriptorSets) {
-			Deconstruct(descriptorSets);
-		}
+#endif
 	}
-
+#if PIPELINE_HOT_RELOAD
 	void Shader::HotReload() {
 		staleModules.push_back(shaderStageCreateInfo.module);
 		shaderStageCreateInfo.module = VK_NULL_HANDLE;
-		if (descriptorSets != nullptr) {
-			Deconstruct(descriptorSets);
-		}
-		descriptorSets = nullptr;
 		std::vector<char> shaderData = ReadShaderFile(filepath);
 		CompileModule(shaderData.size(), shaderData.data());
 		ReadReflection(shaderData.size(), shaderData.data());
 	}
-
-	void Shader::DrawImgui() {
-
-	}
+#endif
 
 	Shader::VkSpecInfo_RAII::VkSpecInfo_RAII(std::vector<Shader::SpecializationEntry> const& entries) 
 		: mapEntries(entries.size())
@@ -399,160 +412,4 @@ namespace EWE {
 			free(reinterpret_cast<void*>(memPtr));
 		}
 	}
-
-	struct ShaderModuleTracker {
-		Shader* shader;
-		
-		int16_t usageCount;
-		template<class... Args>
-		requires (std::is_constructible_v<Shader, Args...>)
-		explicit ShaderModuleTracker(std::in_place_t, Args&&... args) : shader(Construct<Shader>(std::forward<Args>(args)...)), usageCount(1) {}
-		explicit ShaderModuleTracker(Shader* shader) : shader{ shader }, usageCount{ 1 } {}
-	};
-	struct StringHash {
-		using is_transparent = void;
-		std::size_t operator()(std::string_view sv) const noexcept {
-			return std::hash<std::string_view>{}(sv);
-		}
-	};
-
-	struct StringEqual {
-		using is_transparent = void;
-		bool operator()(std::string_view a, std::string_view b) const noexcept {
-			return a == b;
-		}
-	};
-
-	//this hash isnt working correctly
-	std::unordered_map<std::string, ShaderModuleTracker, StringHash, StringEqual> shaderModuleMap;
-	std::mutex shaderMapMutex;
-
-
-	Shader* GetShaderIfExist(std::string const& path) {
-		auto modFind = shaderModuleMap.find(path);
-		if (modFind == shaderModuleMap.end()) {
-			return nullptr;
-		}
-		else {
-			std::unique_lock<std::mutex> uniqLock{ shaderMapMutex };
-			modFind->second.usageCount++;
-			return modFind->second.shader;
-		}
-	}
-
-	Shader* GetShader(std::string_view filepath) {
-		auto modFind = shaderModuleMap.find(filepath);
-		if (modFind == shaderModuleMap.end()) {
-			auto empRet = shaderModuleMap.emplace(filepath, Construct<Shader>(filepath));
-			assert(empRet.second);
-			return empRet.first->second.shader;
-		}
-		else {
-			shaderMapMutex.lock();
-			modFind->second.usageCount++;
-			return modFind->second.shader;
-		}
-	}
-	Shader* CreateShader(std::string_view filepath, const std::size_t dataSize, const void* data) {
-		assert(shaderModuleMap.find(filepath) == shaderModuleMap.end());
-
-		auto empRet = shaderModuleMap.emplace(filepath, Construct<Shader>(filepath, dataSize, data));
-		assert(empRet.second);
-		return empRet.first->second.shader;
-	}
-
-	void DestroyShader(Shader& shader) {
-		if (shader.shaderStageCreateInfo.module != VK_NULL_HANDLE) {
-			shaderMapMutex.lock();
-			
-			auto findRet = shaderModuleMap.find(shader.filepath);
-			if (findRet == shaderModuleMap.end()) {
-#if EWE_DEBUG
-				printf("trying to delete a shader that's not in the shader moduel map\n");
-#endif
-			}
-			else {
-				findRet->second.usageCount--;
-				if (findRet->second.usageCount <= 0) {
-					EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, shader.shaderStageCreateInfo.module, nullptr);
-					shaderModuleMap.erase(findRet);
-				}
-			}
-
-			shaderMapMutex.unlock();
-#if PIPELINE_HOT_RELOAD
-			return;
-#endif
-			EWE_UNREACHABLE;
-		}
-	}
-
-	void DestroyAllShaders() {
-		shaderMapMutex.lock();
-		for (auto iter = shaderModuleMap.begin(); iter != shaderModuleMap.end(); iter++) {
-			EWE_VK(vkDestroyShaderModule, VK::Object->vkDevice, iter->second.shader->shaderStageCreateInfo.module, nullptr);
-		}
-		shaderModuleMap.clear();
-		shaderMapMutex.unlock();
-	}
-
-
-
-
-//	void ShaderGroup::Validate() const {
-//#if EWE_DEBUG
-//		bool hasNormalPipeline = false;
-//		hasNormalPipeline |= shaderData[ShaderStage::Vertex].filepath.size() > 0;
-//		hasNormalPipeline |= shaderData[ShaderStage::Geometry].filepath.size() > 0;
-//		hasNormalPipeline |= shaderData[ShaderStage::tessControl].filepath.size() > 0;
-//		hasNormalPipeline |= shaderData[ShaderStage::tessEval].filepath.size() > 0;
-//
-//		bool hasMeshPipeline = false;
-//		hasMeshPipeline |= shaderData[ShaderStage::task].filepath.size() > 0;
-//		hasMeshPipeline |= shaderData[ShaderStage::mesh].filepath.size() > 0;
-//
-//		bool hasRaytracingPipelines = false;
-//
-//		assert((hasMeshPipeline + hasNormalPipeline + hasRaytracingPipelines) == 1);
-//		for (uint8_t i = 0; i < ShaderStage::COUNT; i++) {
-//			if ((shaderData[i].shader != VK_NULL_HANDLE) && (shaderData[i].filepath.size() == 0)) {
-//				printf("this shader won't be tracked\n");
-//			}
-//		}
-//#endif
-//	}
-
-	//void ShaderGroup::RenderIMGUI() {
-	//	static int currentImguiIndex = 0;
-	//	if (imguiIndex < 0) {
-	//		imguiIndex = currentImguiIndex;
-	//		currentImguiIndex++;
-	//	}
-
-	//	std::string extension = "##p";
-	//	extension += std::to_string(imguiIndex);
-
-	//	std::string treeName = "shaderStrings";
-	//	treeName += extension;
-
-	//	const auto str_callback = [](ImGuiInputTextCallbackData* data) -> int {
-	//		if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-	//			auto* str = static_cast<std::string*>(data->UserData);
-	//			str->resize(data->BufTextLen);
-	//			data->Buf = str->data();
-	//		}
-	//		return 0;
-	//		};
-
-
-	//	if (ImGui::TreeNode(treeName.c_str())) {
-	//		for (uint8_t i = 0; i < ShaderStage::COUNT; i++) {
-	//			ImGui::InputText(magic_enum::enum_name(static_cast<ShaderStage::Bits>(i)).data(), shaderData[i].filepath.data(), shaderData[i].filepath.capacity() + 1, ImGuiInputTextFlags_CallbackResize, str_callback, &shaderData[i].filepath);
-	//		}
-
-	//		ImGui::TreePop();
-	//	}
-	//}
-
-
 }
