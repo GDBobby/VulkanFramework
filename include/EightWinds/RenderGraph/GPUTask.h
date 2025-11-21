@@ -5,28 +5,32 @@
 //equivalent a renderpass subpass?
 
 namespace EWE{
-    struct RenderStep{
-        vk::Image colorImage;
-        vk::ImageView colorAttachmentView;
-        vk::Format colorFormat;
-        bool ownsColorImage; //if true, destroy on deconstruction
-
-        vk::Image depthStencilImage;
-        vk::ImageView depthStencilView;
-        vk::Format depthStencilFormat;
-        bool ownsDepthImage; //if true, destroy on deconstruction
-
-        vk::Image resolveImage;
-        vk::ImageView resolveView;
-        bool ownsResolveImage; //if true, destroy on deconstruction
-
-        vk::Extent2D renderExtent;
-        vk::SampleCountFlagBits samples; //multi-sample-anti-aliasing
+    struct GPUTask{
+        
     };
 
-    class ScopedRendering {
+    struct RenderTask{
+        VkImage colorImage;
+        VkImageView colorAttachmentView;
+        VkFormat colorFormat;
+        bool ownsColorImage; //if true, destroy on deconstruction
+
+        VkImage depthStencilImage;
+        VkImageView depthStencilView;
+        VkFormat depthStencilFormat;
+        bool ownsDepthImage; //if true, destroy on deconstruction
+
+        VkImage resolveImage;
+        VkImageView resolveView;
+        bool ownsResolveImage; //if true, destroy on deconstruction
+
+        VkExtent2D renderExtent;
+        VkSampleCountFlagBits samples; //multi-sample-anti-aliasing
+    };
+
+    class ScopedTask {
     public:
-        ScopedRendering(vk::CommandBuffer cmdBuf, RenderStep const& step)
+        ScopedTask(VkCommandBuffer cmdBuf, GPUTask const& step)
             : m_cmdBuf(cmdBuf)
         {
             m_colorAttachmentInfo = vk::RenderingAttachmentInfo{
@@ -73,9 +77,9 @@ namespace EWE{
         }
 
     private:
-        vk::CommandBuffer m_cmdBuf;
-        vk::RenderingAttachmentInfo m_colorAttachmentInfo{};
-        vk::RenderingAttachmentInfo m_depthAttachmentInfo{};
-        vk::RenderingInfo m_renderingInfo{};
+        VkCommandBuffer m_cmdBuf;
+        VkRenderingAttachmentInfo m_colorAttachmentInfo{};
+        VkRenderingAttachmentInfo m_depthAttachmentInfo{};
+        VkRenderingInfo m_renderingInfo{};
     };
 }

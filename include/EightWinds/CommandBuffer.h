@@ -50,4 +50,37 @@ namespace EWE{
 
         static bool InitLabelFunctions() noexcept;
     };
+
+    struct DetailedCommandBuffer{
+        VkCommandBuffer cmdBuf;
+
+
+        void BindPipeline(PipelineID pipeID);
+
+        //i think i want a descirptor set that contains the details for buffers and images contained
+        void BindDescriptor(VkDescriptorSet set);
+
+        void BindVertexBuffer(VkBuffer vert);
+        void BindIndexBuffer(VkBuffer index);
+
+        void Push(void* push);
+
+        //this shouldnt be used directly
+        void BeginRender(VkRenderingInfo const& renderInfo);
+        void EndRender();
+
+        void PipelineBarrier(PipelineBarrier const& pipeBarrier);
+
+        void BeginLabel(const char* name, float red, float green, float blue) noexcept;
+        void EndLabel() noexcept;
+
+        void SetDynamicState(VkDynamicState dynState, void* ambiguousData);
+
+        template<typename F, typename... Args>
+        auto SetDynamicState(F&& f, Args&&... args)
+        requires std::is_invocable_v<F, VkCommandBuffer, Args...>
+        {
+            return std::forward<F>(f)(cmdBuf, std::forward<Args>(args)...);
+        }
+    };
 }
