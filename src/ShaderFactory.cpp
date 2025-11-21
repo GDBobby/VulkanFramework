@@ -4,6 +4,23 @@
 #include <cassert>
 
 namespace EWE{
+
+
+        ShaderModuleTracker::ShaderModuleTracker(LogicalDevice& logicalDevice, std::string_view fileLocation) 
+		: ShaderModuleTracker{new Shader(logicalDevice, fileLocation)} 
+		{
+
+		}
+        ShaderModuleTracker::ShaderModuleTracker(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data) 
+		: ShaderModuleTracker{new Shader(logicalDevice, fileLocation, dataSize, data)}
+		{
+
+		}
+        ShaderModuleTracker::ShaderModuleTracker(LogicalDevice& logicalDevice) 
+		: ShaderModuleTracker{new Shader(logicalDevice)}
+		{
+
+		}
     
 	//this hash isnt working correctly
 

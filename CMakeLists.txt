@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 3.22)
 
 project(ewgraphics)
 
@@ -39,7 +39,7 @@ if(POLICY CMP0077)
 	cmake_policy(SET CMP0077 NEW)
 endif()
 
-add_subdirectory(external/include/spirvcross)
+add_subdirectory(external/spirvcross)
 add_subdirectory(external/vma)
 
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
@@ -69,8 +69,9 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADER_FILES})
 
 # 1. Set VULKAN_SDK_PATH in .env.cmake to target specific vulkan version
 if (DEFINED VULKAN_SDK_PATH)
-  set(Vulkan_INCLUDE_DIR "${VULKAN_SDK_PATH}/Include") # 1.1 Make sure this include path is correct
-  set(Vulkan_LIB_DIR "${VULKAN_SDK_PATH}/Lib") # 1.2 Make sure lib path is correct
+  message(STATUS "vulkan sdk path - ${VULKAN_SDK_PATH}")
+  set(Vulkan_INCLUDE_DIR "${VULKAN_SDK_PATH}/include") # 1.1 Make sure this include path is correct
+  set(Vulkan_LIB_DIR "${VULKAN_SDK_PATH}/lib") # 1.2 Make sure lib path is correct
   set(Vulkan_FOUND "True")
   if(UNIX)
   	set(Vulkan_LIBRARY libvulkan.so)

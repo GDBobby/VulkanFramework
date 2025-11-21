@@ -4,7 +4,9 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Framework.h"
 
-#include "vma/vk_mem_alloc.h"
+#include "vma/include/vk_mem_alloc.h"
+
+
 
 namespace EWE{
     struct StagingBuffer{
@@ -38,7 +40,7 @@ namespace EWE{
         void* mapped = nullptr;
 
 
-        static [[nodiscard]] constexpr VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags2KHR usageFlags, VkPhysicalDeviceLimits const& limits) {
+        [[nodiscard]] static constexpr VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags2KHR usageFlags, VkPhysicalDeviceLimits const& limits) {
             VkDeviceSize minOffsetAlignment = 1;
             
             if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT) 

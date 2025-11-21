@@ -99,6 +99,7 @@ struct SwapChainSupportDetails {
 
 int main() {
 
+    VK_HEADER_VERSION_COMPLETE;
 
     std::vector<const char*> requiredExtensions{
 #ifdef _DEBUG
@@ -264,7 +265,7 @@ int main() {
 
     //this will also get filled out by the rendergraph
     VkRenderingInfo renderingInfo{};
-    renderingInfo.
+    
     while (true) {
         EWE::CommandBuffer& currentCmdBuf = commandBuffers[currentFrame];
         EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);

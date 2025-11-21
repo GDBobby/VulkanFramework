@@ -1,5 +1,6 @@
 #include "EightWinds/Backend/DebugMessenger.h"
 
+#include <cstring>
 #include <cassert>
 
 #define enableValidationLayers EWE_DEBUG_BOOL

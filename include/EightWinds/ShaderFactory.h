@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "Eightwinds/LogicalDevice.h"
+#include "EightWinds/LogicalDevice.h"
 
 #include <concepts>
 #include <unordered_map>
@@ -17,8 +17,16 @@ namespace EWE{
         int16_t usageCount;
 
         template<class... Args>
-        requires (std::is_constructible_v<Shader, Args...>)
-        explicit ShaderModuleTracker(std::in_place_t, Args&&... args) : shader(new Shader(std::forward<Args>(args)...)), usageCount(1) {}
+        static ShaderModuleTracker Create(Args&&... args);
+        [[nodiscard]] explicit ShaderModuleTracker(LogicalDevice& logicalDevice, std::string_view fileLocation);
+        [[nodiscard]] explicit ShaderModuleTracker(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data);
+        [[nodiscard]] explicit ShaderModuleTracker(LogicalDevice& logicalDevice);
+
+        /*
+		explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation);
+		Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data);
+		Shader(LogicalDevice& logicalDevice);
+        */
 
         explicit ShaderModuleTracker(Shader* shader) : shader{ shader }, usageCount{ 1 } {}
     };
