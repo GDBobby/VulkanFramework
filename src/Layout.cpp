@@ -12,6 +12,20 @@
 
 
 namespace EWE {
+
+	constexpr VkPipelineBindPoint BindPointFromType(PipelineType pt) {
+		switch (pt) {
+		case PipelineType::Vertex: return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		case PipelineType::Compute: return VK_PIPELINE_BIND_POINT_COMPUTE;
+		case PipelineType::Mesh: return VK_PIPELINE_BIND_POINT_GRAPHICS;
+		//case PipelineType::MeshWithMeshDisabled: return VK_PIPELINE_BIND_POINT_GRAPHICS; //this is a bit more ambiguous
+		case PipelineType::Raytracing: return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+			//Scheduler, //graph/scheduling - distinct? idk
+		}
+		EWE_UNREACHABLE;
+	}
+
+
 	Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, Shader::Stage::COUNT> const& shaders) {
 		assert(shaders.size() > 0);
 		Descriptor::LayoutPack ret{};
@@ -63,7 +77,7 @@ namespace EWE {
 					auto const& constRefBindings = set.bindings;
 
 					//ret->setLayouts.push_back(set.key, Construct<Descriptor::SetLayout>(constRefBindings));
-                    ret.sets.push_back(Descriptor::Set(.index = set.index, .bindings = constRefBindings));
+                    ret.sets.push_back(Descriptor::Set{.index = set.index, .bindings = constRefBindings});
 				}
 			}
 		}		
@@ -76,7 +90,7 @@ namespace EWE {
 		for (auto& dsl : ret.sets) {
 			assert(dsl.bindings.size() > 0);
             //this needs to be promoted to a full dsl
-			dsl.value->BuildVkDSL();
+			//dsl.value->BuildVkDSL();
 			//std::string debug_name = std::string(fileLocation.data()) + std::string(" - dsl#") + std::to_string(dsl.first);
 			//DebugNaming::SetObjectName(dsl.second->vkDSL, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, debug_name.c_str());
 		}
@@ -121,8 +135,8 @@ namespace EWE {
 		return merged;
 	}
 
-	PipeLayout::PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<::EWE::Shader*> shaders) noexcept
-		: logicalDevice{logicalDevice}
+	PipeLayout::PipeLayout(Framework& framework, std::initializer_list<::EWE::Shader*> shaders) noexcept
+		: framework{framework}
 	{
 		this->shaders.fill(nullptr);
 		for (auto& shader : shaders) {
@@ -131,22 +145,24 @@ namespace EWE {
 		descriptorSets = MergeDescriptorSets(this->shaders);
 		pushConstantRanges = MergePushRanges(this->shaders);
 		CreateVkPipeLayout();
+		bindPoint = BindPointFromType(pipelineType);
 	}
 
-	/* temporarily disabled until i figure out how to let shader interact with ShaderFactory
-	PipeLayout::PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<std::string_view> shaderFileLocations)
-		: logicalDevice{ logicalDevice }
+	
+	PipeLayout::PipeLayout(Framework& framework, std::initializer_list<std::string_view> shaderFileLocations)
+		: framework{framework}
 	{
 		this->shaders.fill(nullptr);
 		for (auto& fileLocation : shaderFileLocations) {
-			Shader* shader = ShaderFactory::GetShader(fileLocation);
+			Shader* shader = framework.shaderFactory.GetShader(fileLocation);
 			shaders[Shader::Stage(shader->shaderStageCreateInfo.stage).value] = shader;
 		}
 		descriptorSets = MergeDescriptorSets(this->shaders);
 		pushConstantRanges = MergePushRanges(this->shaders);
 		CreateVkPipeLayout();
+		bindPoint = BindPointFromType(pipelineType);
 	}
-	*/
+	
 
 	std::vector<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
 		std::vector<VkPipelineShaderStageCreateInfo> ret{};
@@ -212,11 +228,13 @@ namespace EWE {
 			//highestCount = lab::Max(highestCount, dsl.index); //theyre sorted, i need to add back() to KVContainer
 			highestCount = highestCount > dsl.index ? highestCount : dsl.index;
 		}
-		std::vector<VkDescriptorSetLayout> layouts(highestCount + 1, VK_NULL_HANDLE);
+
+		const bool hasSets = descriptorSets.sets.size() > 0;
+		std::vector<VkDescriptorSetLayout> layouts(highestCount + hasSets, VK_NULL_HANDLE);
 		for (uint8_t i = 0; i < descriptorSets.sets.size(); i++) {
             //this needs to be dealt with
 			//promote this to a type that has the vkdsl
-			layouts[descriptorSets.sets[i].index] = descriptorSets.sets[i].bindings->vkDSL;
+			layouts[descriptorSets.sets[i].index] = framework.dslCache.Get(descriptorSets.sets[i].bindings);
 		}
 
 		//potentially do a second pass to assert none are null_handle, which I believe is a bug, or a very poor shader
@@ -229,7 +247,7 @@ namespace EWE {
 		plCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
 		plCreateInfo.pSetLayouts = layouts.data();
 
-		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
+		EWE_VK(vkCreatePipelineLayout, framework.logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
 	}
 
 #if PIPELINE_HOT_RELOAD

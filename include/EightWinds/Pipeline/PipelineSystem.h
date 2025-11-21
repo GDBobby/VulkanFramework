@@ -1,14 +1,17 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/Pipeline/PipelineBase.h"
+
+#include <unordered_map>
+#include <string>
 
 namespace EWE{
+
+	struct Pipeline;
     //need to make this an object instead of a namespace
 	//same problem as factory, where the best place to put it would be logicaldevice
 	//but logicaldevice is included by what this includes
 	struct PipelineSystem {
-		LogicalDevice& logicalDevice;
 
 		Pipeline* At(PipelineID pipeID);
 
@@ -33,7 +36,9 @@ namespace EWE{
 
         private:
         
-		std::unordered_map<PipelineID, ::EWE::Pipeline*> pipelineMap{};
+		std::unordered_map<PipelineID, Pipeline*> pipelineMap{};
+#if DEBUG_NAMING
 		std::unordered_map<PipelineID, std::string> pipelineNames{};
+#endif
 	};
 }

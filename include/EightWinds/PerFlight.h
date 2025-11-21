@@ -40,11 +40,26 @@ namespace EWE{
                 std::construct_at(&resources()[i], std::forward<Args>(args)...);
             }
         }
+        template <std::invocable<size_t> Factory>
+        requires std::constructible_from<Resource, std::invoke_result_t<Factory, size_t>>
+        PerFlight(Factory&& factory) {
+            for (size_t i = 0; i < max_frames_in_flight; ++i)
+                std::construct_at(&resources()[i], std::invoke(factory, i));
+        }
 
         ~PerFlight() {
             for (size_t i = 0; i < max_frames_in_flight; ++i) {
                 std::destroy_at(&resources()[i]);
             }
         }
+
+        Resource* begin() noexcept { return resources(); }
+        Resource* end()   noexcept { return resources() + max_frames_in_flight; }
+
+        const Resource* begin() const noexcept { return resources(); }
+        const Resource* end()   const noexcept { return resources() + max_frames_in_flight; }
+
+        const Resource* cbegin() const noexcept { return resources(); }
+        const Resource* cend()   const noexcept { return resources() + max_frames_in_flight; }
     };
 }

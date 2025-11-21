@@ -32,7 +32,7 @@ namespace EWE{
 #if DEBUGGING_DEVICE_LOST                                                                                        
         if (vkResult == VK_ERROR_DEVICE_LOST) { EWE::VKDEBUG::OnDeviceLost(); }
 #endif
-        assert(vkResult == VK_SUCCESS && "VK_ERROR");
+        assert(vkResult == VK_SUCCESS);
     }
     #endif
 }

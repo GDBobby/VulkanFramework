@@ -12,7 +12,8 @@ namespace EWE{
 
         LogicalDevice& logicalDevice;
 
-        [[nodicard]] explicit DescriptorPool(LogicalDevice& logicalDevice) : logicalDevice{ logicalDevice } {}
+        [[nodicard]] explicit DescriptorPool(LogicalDevice& logicalDevice) noexcept
+         : logicalDevice{ logicalDevice } {}
         
         VkDescriptorPool pool;
 

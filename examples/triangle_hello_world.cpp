@@ -18,6 +18,7 @@
 #include <cstdio>
 #include <cassert>
 #include <filesystem>
+#include <chrono>
 
 
     //the variant is useless, but VK_MAKE_VERSION is deprecated
@@ -96,7 +97,7 @@ struct SwapChainSupportDetails {
     [[nodiscard]] bool Adequate() const { return !formats.empty() && !presentModes.empty(); }
 };
 
-int main(){
+int main() {
 
 
     std::vector<const char*> requiredExtensions{
@@ -114,7 +115,7 @@ int main(){
     assert(glfwExtensionCount > 0 && "not supporting headless");
     assert(glfwExtensions != nullptr);
 
-    for(uint32_t i = 0; i < glfwExtensionCount; ++i){
+    for (uint32_t i = 0; i < glfwExtensionCount; ++i) {
         requiredExtensions.push_back(glfwExtensions[i]);
     }
 
@@ -125,24 +126,24 @@ int main(){
     //once the instance is created, create a surface
     //the surface needs to be known, to check if the physical devices can render to it
     //potentially, could make headless applications, but i don't personally have interest in supporting that at the moment
-    EWE::Window window{instance, 800, 600, "Example Window"};
+    EWE::Window window{ instance, 800, 600, "Example Window" };
 
 
     DeviceSpec specDev{};
 
     //vk::CppType<VkPhysicalDeviceMeshShaderFeaturesEXT>::Type meshCPPTypeObject;
     //VULKAN_HPP_CPP_VERSION;
-    
+
     auto& dynState3 = specDev.GetFeature<VkPhysicalDeviceExtendedDynamicState3FeaturesEXT>();
     dynState3.extendedDynamicState3ColorBlendEnable = VK_TRUE;
     dynState3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
     dynState3.extendedDynamicState3ColorWriteMask = VK_TRUE;
-    
+
     auto& meshShaderFeatures = specDev.GetFeature<VkPhysicalDeviceMeshShaderFeaturesEXT>();
     meshShaderFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT;
     meshShaderFeatures.meshShader = VK_TRUE;
     meshShaderFeatures.taskShader = VK_TRUE;
-    
+
     auto& features2 = specDev.GetFeature<VkPhysicalDeviceFeatures2>();
     features2.features.samplerAnisotropy = VK_TRUE;
     features2.features.geometryShader = VK_TRUE;
@@ -160,54 +161,117 @@ int main(){
     EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, nullptr);
     std::vector<VkPhysicalDevice> all_detected_physical_devices(deviceCount);
     if (deviceCount == 0) {
+        printf("0 devices found, exiting\n");
         return -1;
     }
     EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, all_detected_physical_devices.data());
-    
+
     auto evaluatedDevices = specDev.ScorePhysicalDevices(instance.instance);
 
     if (!evaluatedDevices[0].passedRequirements) {
+        printf("highest score device failed requirements, exiting\n");
         return -1;
     }
 
-    EWE::PhysicalDevice physicalDevice{instance, evaluatedDevices[0].device, window.surface};
+    EWE::PhysicalDevice physicalDevice{ instance, evaluatedDevices[0].device, window.surface };
 
     EWE::LogicalDevice logicalDevice = specDev.ConstructDevice(
-        evaluatedDevices[0], 
+        evaluatedDevices[0],
         //i want physicaldevice to be moved, but i might just construct it inside the logicaldevice
         //the main thing is i just dont want to repopulate the queues
-        std::forward<EWE::PhysicalDevice>(physicalDevice), 
+        std::forward<EWE::PhysicalDevice>(physicalDevice),
         nullptr
     );
 
+    EWE::Queue* renderQueue = nullptr;
+    for (auto& queue : logicalDevice.queues) {
+        if (queue.family.SupportsSurfacePresent() && queue.family.SupportsGraphics()) {
+            renderQueue = &queue;
+            break;
+        }
+    }
+    if (renderQueue == nullptr) {
+        printf("failed to find a render queue, exiting\n");
+        return -1;
+    }
+    
 
-    EWE::Swapchain swapchain{logicalDevice};
+    EWE::Swapchain swapchain{ logicalDevice, window, *renderQueue };
 
     printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
-    
+
     //need to fix htis
     std::filesystem::current_path("C:/Projects/VulkanFramework");
     printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
+    EWE::Framework framework(logicalDevice);
+    framework.properties = specDev.GetProperty<VkPhysicalDeviceProperties2>().properties;
 
-    auto* triangle_vert = new EWE::Shader(logicalDevice, "examples/common/shaders/basic.vert.spv");
-    auto* triangle_frag = new EWE::Shader(logicalDevice, "examples/common/shaders/basic.frag.spv");
+    auto* triangle_vert = framework.shaderFactory.GetShader("examples/common/shaders/basic.vert.spv");
+    auto* triangle_frag = framework.shaderFactory.GetShader("examples/common/shaders/basic.frag.spv");
 
-    EWE::PipeLayout triangle_layout(logicalDevice, std::initializer_list<EWE::Shader*>{ triangle_vert, triangle_frag });
+
+    EWE::PipeLayout triangle_layout(framework, std::initializer_list<EWE::Shader*>{ triangle_vert, triangle_frag });
 
     //create a renderpass here
     //EWE::PipelineConfigInfo configInfo;
-    std::vector<VkDynamicState> dynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    std::vector<VkDynamicState> dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
 
     VkPipelineRenderingCreateInfo renderingCreateInfo{};
     renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     renderingCreateInfo.pNext = nullptr;
     renderingCreateInfo.colorAttachmentCount = 1;
-    //auto swapImageFormat = swapchain.
-    //renderingCreateInfo.pColorAttachmentFormats = ;
 
-    //EWE::Pipeline* triangle_pipe = EWE::GraphicsPipeline(logicalDevice, 0, triangle_layout, configInfo, dynamicStates, );
+
+    
+    EWE::CommandPool renderCmdPool{logicalDevice, *renderQueue, false};
+    std::vector<VkCommandBuffer> cmdBufVector(2, VK_NULL_HANDLE);
+
+    VkCommandBufferAllocateInfo cmdBufAllocInfo{};
+    cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdBufAllocInfo.pNext = nullptr;
+    cmdBufAllocInfo.commandBufferCount = 2;
+    cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdBufAllocInfo.commandPool = renderCmdPool.commandPool;
+    
+    EWE::EWE_VK(vkAllocateCommandBuffers, logicalDevice.device, &cmdBufAllocInfo, cmdBufVector.data());
+    renderCmdPool.allocatedBuffers += 2;
+
+    std::vector<EWE::CommandBuffer> commandBuffers{};
+    commandBuffers.emplace_back(renderCmdPool, cmdBufVector[0]);
+    commandBuffers.emplace_back(renderCmdPool, cmdBufVector[1]);
+
+    uint8_t currentFrame = 0;
+    auto timeBegin = std::chrono::high_resolution_clock::now();
+
 
     //from here, create the render graph
+
+    //passconfig should be using a full rendergraph setup
+    EWE::PipelinePassConfig passConfig;
+    passConfig.SetDefaults();
+    EWE::PipelineObjectConfig objectConfig;
+    objectConfig.SetDefaults();
+
+    std::vector<VkDynamicState> dynamicState{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    EWE::GraphicsPipeline triangle_pipeline{ logicalDevice, 0, &triangle_layout, passConfig, objectConfig, dynamicState };
+
+    uint8_t frameIndex = 0;
+    VkCommandBufferBeginInfo cmdBeginInfo{};
+    cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBeginInfo.pNext = nullptr;
+    cmdBeginInfo.pInheritanceInfo = nullptr;
+    cmdBeginInfo.flags = 0;
+
+    //this will also get filled out by the rendergraph
+    VkRenderingInfo renderingInfo{};
+    renderingInfo.
+    while (true) {
+        EWE::CommandBuffer& currentCmdBuf = commandBuffers[currentFrame];
+        EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
+        vkCmdBeginRendering(currentCmdBuf.cmdBuf, &renderingInfo);
+    }
+
+
     printf("returning successfully\n");
 
     delete triangle_vert;

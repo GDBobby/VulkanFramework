@@ -59,7 +59,7 @@ namespace EWE{
         }
         usageTracking.push({});
 #endif
-        vkBeginCommandBuffer(cmdBuf, &beginInfo);
+        EWE_VK(vkBeginCommandBuffer, cmdBuf, &beginInfo);
     }
     void CommandBuffer::BeginSingleTime() noexcept {
         inUse = true;

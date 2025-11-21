@@ -11,9 +11,9 @@ namespace EWE{
         VkQueueFamilyProperties properties; //2 includes properties1, but I dont' really see the point in 2
         bool supportsSurface;
 
-        uint8_t index; //queue family index
+        uint32_t index; //queue family index
 
-        [[nodiscard]] explicit QueueFamily(uint8_t index, VkQueueFamilyProperties const& properties, bool supportsSurface);
+        [[nodiscard]] explicit QueueFamily(uint32_t index, VkQueueFamilyProperties const& properties, bool supportsSurface);
 
         bool SupportsGraphics() const;
         bool SupportsCompute() const;

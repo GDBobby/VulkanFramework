@@ -261,15 +261,29 @@ namespace EWE {
         pipelineCreateInfo.basePipelineIndex = 0; //derivates, DNI;
 
         //shaders
+        std::vector<KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>> temp{};
+		for (auto& stage : copySpecInfo) {
+			temp.push_back(KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>(stage.key, Shader::VkSpecInfo_RAII(stage.value)));
+		}
 		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = pipeLayout->GetStageData(temp);
 		pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
 		pipelineCreateInfo.pStages = shaderStages.data();
 
         
-        //vertex input
-        auto& vertShader = pipeLayout->shaders[Shader::Stage::Vertex];
-        auto vertInputInfo = vertShader.GetVertexInputInfo();
-        pipelineCreateInfo.pVertexInputState = &vertInputInfo;
+        //vertex input - im going to enforce programmable vertex pulling (PVP)
+        //https://ktstephano.github.io/rendering/opengl/prog_vtx_pulling
+        //the way nabla does it (at least in the examples) every vertex is just simplified to vec4s, regardless of real data(each vec3 pos would get a padding of 1 float i guess)
+        VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo{};
+        vertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        vertexInputStateCreateInfo.pNext = nullptr;
+        vertexInputStateCreateInfo.flags = 0;
+        vertexInputStateCreateInfo.vertexBindingDescriptionCount = 0;
+        vertexInputStateCreateInfo.vertexAttributeDescriptionCount = 0;
+        //the pointers dont matter
+        
+        //auto& vertShader = pipeLayout->shaders[Shader::Stage::Vertex];
+        //auto vertInputInfo = vertShader.GetVertexInputInfo();
+        pipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo;
 		
         //input assembly
         VkPipelineInputAssemblyStateCreateInfo inputAssCreateInfo{};
@@ -356,14 +370,15 @@ namespace EWE {
 	}
 
 
-	GraphicsPipeline::GraphicsPipeline noexcept(
+	GraphicsPipeline::GraphicsPipeline(
         LogicalDevice& logicalDevice, 
         PipelineID pipeID, 
         PipeLayout* layout, //the layout SHOULD cover the input assembly
         PipelinePassConfig const& passConfig, 
         PipelineObjectConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState//deduced maybe?
-    ) : Pipeline{ logicalDevice, pipeID, layout }
+    ) noexcept
+     : Pipeline{ logicalDevice, pipeID, layout }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif
@@ -371,7 +386,7 @@ namespace EWE {
 		//read the default spec info
 		CreateVkPipeline(passConfig, objectConfig, dynamicState);
 	}
-	GraphicsPipeline::GraphicsPipeline noexcept(
+	GraphicsPipeline::GraphicsPipeline(
         LogicalDevice& logicalDevice, 
         PipelineID pipeID, 
         PipeLayout* layout, //the layout SHOULD cover the input assembly
@@ -379,7 +394,8 @@ namespace EWE {
         PipelineObjectConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
         std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
-    ) : Pipeline{ logicalDevice, pipeID, layout, specInfo }
+    ) noexcept
+    : Pipeline{ logicalDevice, pipeID, layout, specInfo }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif

@@ -1,4 +1,5 @@
 #include "EightWinds/Pipeline/PipelineSystem.h"
+#include "EightWinds/Pipeline/PipelineBase.h"
 
 #include <cassert>
 
@@ -9,11 +10,18 @@ namespace EWE{
 			assert(foundPipe != pipelineMap.end());
 			return foundPipe->second;
 		}
+#if DEBUG_NAMING
 		void PipelineSystem::Emplace(std::string const& pipeName, PipelineID pipeID, Pipeline* pipe) {
 			assert(!pipelineMap.contains(pipeID));
 			pipelineMap.emplace(pipeID, pipe);
 			pipelineNames.emplace(pipeID, pipeName);
 		}
+#else
+		void PipelineSystem::Emplace(PipelineID pipeID, Pipeline* pipe) {
+			assert(!pipelineMap.contains(pipeID));
+			pipelineMap.emplace(pipeID, pipe);
+		}
+#endif
 		bool PipelineSystem::OptionalDestructAt(PipelineID pipeID) {
 			auto foundPipe = pipelineMap.find(pipeID);
 
@@ -36,7 +44,9 @@ namespace EWE{
 				delete pipe.second;
 			}
 			pipelineMap.clear();
+#if DEBUG_NAMING
 			pipelineNames.clear();
+#endif
 		}
 
 

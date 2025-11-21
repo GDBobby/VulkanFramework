@@ -1,12 +1,13 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/DescriptorSetLayout.h"
+
+#include <unordered_map>
 
 namespace EWE{
     namespace Backend{
-            //were ignoring the count
-            //which could potentially become an issue
+        //the count isnt hashed
+        //i think that means it gets put in the same bucket?
         struct BindingsEqual {
             bool operator()(Descriptor::Bindings const& lhs, Descriptor::Bindings const& rhs) const {
                 if (lhs.size() != rhs.size()) {
@@ -15,8 +16,8 @@ namespace EWE{
                 for (size_t i = 0; i < lhs.size(); ++i) {
                     const bool binding = lhs[i].binding != rhs[i].binding;
                     const bool descType = lhs[i].descriptorType != rhs[i].descriptorType;
-                    //const bool descCount = lhs[i].descriptorCount != rhs[i].descriptorCount;
-                    if(!binding || !descType){
+                    const bool descCount = lhs[i].descriptorCount != rhs[i].descriptorCount;
+                    if(!binding || !descType || !descCount){
                         return false;
                     }
                 }
@@ -36,50 +37,49 @@ namespace EWE{
             }
         }
         
-        uint64_t BindingHash(const Descriptor::Bindings& bindings) {
-            uint64_t hash = 0;
-            size_t shift = 0;
+        struct BindingsHash{
+            std::size_t operator()(Descriptor::Bindings const& bindings) const {
+                uint64_t hash = 0;
+                size_t shift = 0;
 
-            for (auto const& bind : bindings) {
+                for (auto const& bind : bindings) {
 
-                const uint64_t index = bind.binding & 0xF;
-                // Pack 4 bits for binding index + 3 bits for descriptor type
-                hash |= (index << shift);
-                shift += 4;
+                    const uint64_t index = bind.binding & 0xF;
+                    // Pack 4 bits for binding index + 3 bits for descriptor type
+                    hash |= (index << shift);
+                    shift += 4;
 
-                //assuming ALWAYS less than 15 bindings. might need a warning/assert for that
-                const uint64_t code = DescriptorTypeCode(bind.descriptorType);
-                hash |= (code << shift);
-                shift += 3;
-            }
+                    //assuming ALWAYS less than 15 bindings. might need a warning/assert for that
+                    const uint64_t code = DescriptorTypeCode(bind.descriptorType);
+                    hash |= (code << shift);
+                    shift += 3;
+                }
 
-            // MurmurHash3-style finalizer for bit mixing
-            hash ^= hash >> 33;
-            hash *= 0xff51afd7ed558ccdULL;
-            hash ^= hash >> 33;
-            hash *= 0xc4ceb9fe1a85ec53ULL;
-            hash ^= hash >> 33;
-            return hash;
-        }
-        
-        struct DescriptorSetLayoutKeyHash {
-            size_t operator()(const DescriptorSetLayoutKey& key) const {
-                return BindingHash(key.bindings);
+                // MurmurHash3
+                hash ^= hash >> 33;
+                hash *= uint64_t(0xff51afd7ed558ccd);
+                hash ^= hash >> 33;
+                hash *= uint64_t(0xc4ceb9fe1a85ec53);
+                hash ^= hash >> 33;
+                return hash;
             }
         };
 
 
         struct DSLCache{
+            VkDevice device;
 
-
-            LogicalDevice& logicalDevice;
-            std::unordered_map<uint64_t, VkDescriptorSetLayout>
-            [[nodiscard]] explicit DSLCache(LogicalDevice& logicalDevice) noexcept;
+            [[nodiscard]] explicit DSLCache(VkDevice device) noexcept;
             ~DSLCache();
-            VkDescriptorSetLayout Get(Descriptor::Bindings const& bindings) noexcept;
+
+            [[nodiscard]] VkDescriptorSetLayout Get(Descriptor::Bindings const& bindings) noexcept;
             void Free(VkDescriptorSetLayout) noexcept;
 
-            std::unordered_map<Descriptor::Bindings, VkDescriptorSetLayout, DescriptorSetLayoutKeyHash, BindingsEqual> cache;
+            //https://martin.ankerl.com/2022/08/27/hashmap-bench-01/
+            //if the hashing speed becomes an issue, check that^
+            //this is designed to be interchangeable behind the scenes, so that it can be improved/changed/whatever without reworking an engine
+        private:
+            std::unordered_map<Descriptor::Bindings, VkDescriptorSetLayout, BindingsHash, BindingsEqual> cache;
 
         };
     }

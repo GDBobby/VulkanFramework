@@ -5,8 +5,9 @@ namespace EWE{
     LogicalDevice::LogicalDevice(
         PhysicalDevice&& physicalDevice,
         VkDeviceCreateInfo& deviceCreateInfo
-    )
-    : physicalDevice{std::forward<PhysicalDevice>(physicalDevice)}
+    ) noexcept
+    : instance{physicalDevice.instance},
+        physicalDevice{std::forward<PhysicalDevice>(physicalDevice)}
     {
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         //pnext is set before coming into this function
@@ -24,16 +25,16 @@ namespace EWE{
         //i read that priorities only matter when there are multiple queues in a family
         //but its a bit vague, so I'll probably set them across families anyways
         std::vector<float> queuePriorities{};
-        queuePriorities.reserve(queueFamilies.size());
+        queuePriorities.reserve(physicalDevice.queueFamilies.size());
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.queueCount = 1;
         queueCreateInfo.pNext = nullptr;// this is just for protected bit, and i think it requires vkdevicequeuecreateinfo2 or something
 
-        for(uint8_t i = 0; i < queueFamilies.size(); i++){
-            queueCreateInfo.queueFamilyIndex = queueFamilies[i].index;
-            auto& family = queueFamilies[i];
+        for(uint8_t i = 0; i < physicalDevice.queueFamilies.size(); i++){
+            queueCreateInfo.queueFamilyIndex = physicalDevice.queueFamilies[i].index;
+            auto& family = physicalDevice.queueFamilies[i];
 
             const float familyOffset = (i * 0.01f);
 
@@ -81,7 +82,10 @@ namespace EWE{
 
         EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
 
-
+        for(auto& qci : queueCreateInfos){
+            //VkDevice logicalDeviceExplicit, QueueFamily& family, float priority
+            queues.emplace_back(device, physicalDevice.queueFamilies[qci.queueFamilyIndex], queuePriorities[qci.queueFamilyIndex]);
+        }
     }
 
     //a separate function will allow for customizaiton of queues

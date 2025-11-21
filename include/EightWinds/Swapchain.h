@@ -29,17 +29,21 @@ namespace EWE{
 
     struct Swapchain{
         LogicalDevice& logicalDevice;
+        Window& window;
+        Queue& presentQueue;
 
-        [[nodiscard]] explicit Swapchain(LogicalDevice& logicalDevice) noexcept;
+        [[nodiscard]] explicit Swapchain(LogicalDevice& logicalDevice, Window& window, Queue& presentQueue) noexcept;
 
         std::vector<VkPresentModeKHR> presentModes{};
         VkSwapchainCreateInfoKHR swapCreateInfo;//i dont nromaly keep these, ill have to come back to this
-        VkSwapchainKHR swapchain;
+        VkSwapchainKHR activeSwapchain;
 
         uint32_t imageIndex;
 
         std::vector<VkImage> images;
         std::vector<VkImageView> imageViews;
+
+        VkImageLayout currentLayout;
         
         //most likely, sync will be controlled by the rendergraph, and absorbed from here
         //but until i get that working, having them here will be helpful
@@ -48,6 +52,10 @@ namespace EWE{
         PerFlight<Semaphore> presentSemaphores;
         PerFlight<Fence> drawnFences; 
 
+        bool CreateSwapchain();
+        bool RecreateSwapchain();
+        bool RecreateSwapchain(VkPresentModeKHR desiredPresentMode);
+        bool AcquireNextImage(uint8_t frameIndex);
 
         //im assuming htis gets absorbed by the render graph
         /*
@@ -63,14 +71,7 @@ namespace EWE{
         }
         */
 
-        [[nodiscard]] VkPresentModeKHR GetOptimalPresentMode() const {
-            
-            static constexpr auto desired_v = std::array{VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR};
-            for (auto const desired : desired_v) {
-                if (std::ranges::find(presentModes, desired) != presentModes.end()) { return desired; }
-            }
-            return VK_PRESENT_MODE_FIFO_KHR;
-        }
+        [[nodiscard]] VkPresentModeKHR GetOptimalPresentMode() const;
         
         [[nodiscard]] static VkSurfaceFormatKHR GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) noexcept;
         [[nodiscard]] static VkCompositeAlphaFlagBitsKHR GetCompositeAlpha(VkSurfaceCapabilitiesKHR const& caps) noexcept;

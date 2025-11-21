@@ -36,13 +36,13 @@ namespace EWE {
 #endif
 		std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> copySpecInfo;
 
-		void BindDescriptor(uint8_t descSlot, VkDescriptorSet* descSet);
-		void BindPipeline();
+		void BindDescriptor(VkCommandBuffer cmdBuf, uint8_t descSlot, VkDescriptorSet* descSet);
+		void BindPipeline(VkCommandBuffer cmdBuf);
 		
 		//i want to move this to the rendergraph
 		//void BindPipelineWithVPScissor();
 
-		void Push(void* push, uint8_t pushIndex = 0);
+		void Push(VkCommandBuffer cmdBuf, void* push, uint8_t pushIndex = 0);
 #if DEBUG_NAMING
 		void SetDebugName(const char* name);
 #endif

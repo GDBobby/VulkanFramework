@@ -18,7 +18,7 @@ namespace EWE {
         return supportsSurface;
     }
 
-    QueueFamily::QueueFamily(uint8_t index, VkQueueFamilyProperties const& properties, bool supportsSurface) 
+    QueueFamily::QueueFamily(uint32_t index, VkQueueFamilyProperties const& properties, bool supportsSurface) 
       : index{index}, 
         properties{properties},
         supportsSurface{supportsSurface}

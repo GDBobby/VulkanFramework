@@ -46,3 +46,6 @@ I've been there with a few libs.
 it's coming to a close, basically all I need now is pipelines. i'm having a big issue, in that I want the user to fully specialize the device, but
 i need to be able to access at least a few properties from within the framework. that would be uniform buffer minimum alignment and so on.
 
+## 11/15
+i'm curious if hooking (runtime assembly manipulation) would be the most optimal optimization route for extension branching. Only 1 direction will be taken in the branch
+for the entire runtime. So, my hypothesis is not branching at all, just inject the correct path.

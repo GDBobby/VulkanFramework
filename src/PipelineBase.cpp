@@ -14,7 +14,7 @@
 namespace EWE {
 
 
-#if PIPELINE_HOT_RELOAD
+//#if PIPELINE_HOT_RELOAD
 	std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> SpecInitializer(PipeLayout* layout) {
 		uint8_t shaderCount = 0;
 		std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> ret{};
@@ -25,14 +25,16 @@ namespace EWE {
 		}
 		return ret;
 	}
-#endif
+//#endif
 
 	Pipeline::Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout) 
 	: 
 		logicalDevice{logicalDevice},
 		myID{ id },
-		pipeLayout{ layout }, 
-		copySpecInfo{ SpecInitializer(layout) }
+		pipeLayout{ layout }
+//#if PIPELINE_HOT_RELOAD
+		, copySpecInfo{ SpecInitializer(layout) }
+//#endif
 	{}
 
 	Pipeline::Pipeline(LogicalDevice& logicalDevice, PipelineID pipeID, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo)
@@ -45,8 +47,8 @@ namespace EWE {
 
 
 	void Pipeline::BindDescriptor(VkCommandBuffer cmdBuf, uint8_t descSlot, VkDescriptorSet* descSet) {
-		EWE_VK(vkCmdBindDescriptorSets, cmdBuf,
-			BindPointFromType(pipeLayout->pipelineType),
+		vkCmdBindDescriptorSets(cmdBuf,
+			pipeLayout->bindPoint,
 			pipeLayout->vkLayout,
 			descSlot, 1,
 			descSet,
@@ -55,16 +57,16 @@ namespace EWE {
 	}
 
 	void Pipeline::BindPipeline(VkCommandBuffer cmdBuf) {
-		EWE_VK(vkCmdBindPipeline, cmdBuf, BindPointFromType(pipeLayout->pipelineType), vkPipe);
+		vkCmdBindPipeline(cmdBuf, pipeLayout->bindPoint, vkPipe);
 	}
 	//void Pipeline::BindPipelineWithVPScissor() {
 	//	BindPipeline();
 	//	EWE_VK(vkCmdSetViewport, VK::Object->GetFrameBuffer(), 0, 1, &VK::Object->viewport);
 	//	EWE_VK(vkCmdSetScissor, VK::Object->GetFrameBuffer(), 0, 1, &VK::Object->scissor);
 	//}
-	void Pipeline::Push(void* push, uint8_t pushIndex) {
+	void Pipeline::Push(VkCommandBuffer cmdBuf, void* push, uint8_t pushIndex) {
 		auto& range = pipeLayout->pushConstantRanges[pushIndex];
-		EWE_VK(vkCmdPushConstants, VK::Object->GetFrameBuffer(), pipeLayout->vkLayout, range.stageFlags, range.offset, range.size, push);
+		vkCmdPushConstants(cmdBuf, pipeLayout->vkLayout, range.stageFlags, range.offset, range.size, push);
 	}
 
 #if DEBUG_NAMING

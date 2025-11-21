@@ -11,8 +11,6 @@ namespace EWE{
 
 
     namespace Descriptor{
-
-        using Bindings = std::vector<VkDescriptorSetLayoutBinding>;
         
         struct Set{
             //union{
