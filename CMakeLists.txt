@@ -19,8 +19,6 @@ option(USE_SSE "Enable SSE optimizations" OFF)
 option(USE_AVX2 "Enable AVX2 optimizations" ON)
 option(FORCE_DEBUG_MODE "Internal Debugging In Release Mode" OFF)
 
-set(is_project_root OFF)
-
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 	set(is_project_root ON)
 else()

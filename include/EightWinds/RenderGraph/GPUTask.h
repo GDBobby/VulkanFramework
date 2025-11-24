@@ -2,84 +2,38 @@
 
 #include "EightWinds/VulkanHeader.h"
 
+#include "EightWinds/Backend/RenderInfo.h"
+#include "EightWinds/CommandExecute.h"
+
+#include <span>
+
 //equivalent a renderpass subpass?
 
 namespace EWE{
+
+    //the id of this task is its address
     struct GPUTask{
-        
-    };
+        GPUTask* feedsInto = nullptr; //if its nullptr its a present/submission
 
-    struct RenderTask{
-        VkImage colorImage;
-        VkImageView colorAttachmentView;
-        VkFormat colorFormat;
-        bool ownsColorImage; //if true, destroy on deconstruction
+        CommandExecutor commandExecutor{};
 
-        VkImage depthStencilImage;
-        VkImageView depthStencilView;
-        VkFormat depthStencilFormat;
-        bool ownsDepthImage; //if true, destroy on deconstruction
+        //idk if i want to commit to renderInfo here yet
+        std::optional<RenderInfo> renderInfo;
 
-        VkImage resolveImage;
-        VkImageView resolveView;
-        bool ownsResolveImage; //if true, destroy on deconstruction
+        //write and read resources separate?
+        std::span<Buffer> buffers;
+        std::span<Images> images;
 
-        VkExtent2D renderExtent;
-        VkSampleCountFlagBits samples; //multi-sample-anti-aliasing
-    };
+        GPUTask() = default;
+        GPUTask(GPUTask const&) = delete;
+        GPUTask& operator=(GPUTask const&) = delete;
 
-    class ScopedTask {
-    public:
-        ScopedTask(VkCommandBuffer cmdBuf, GPUTask const& step)
-            : m_cmdBuf(cmdBuf)
-        {
-            m_colorAttachmentInfo = vk::RenderingAttachmentInfo{
-                .imageView = step.colorAttachmentView,
-                .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                .loadOp = vk::AttachmentLoadOp::eClear,
-                .storeOp = vk::AttachmentStoreOp::eStore,
-                .clearValue = vk::ClearValue(vk::ClearColorValue(std::array<float,4>{0.f, 0.f, 0.f, 1.f}))
-            };
+        //i dont know if i want it to be movable or not yet, but for now this is fine
+        GPUTask(GPUTask&&) = default;
+        GPUTask& operator=(GPUTask&&) = delete;
 
-            if (step.resolveView) {
-                m_colorAttachmentInfo.resolveMode = vk::ResolveModeFlagBits::eAverage;
-                m_colorAttachmentInfo.resolveImageView = step.resolveView;
-                m_colorAttachmentInfo.resolveImageLayout = vk::ImageLayout::eColorAttachmentOptimal;
-            }
-
-            if (step.depthStencilView) {
-                m_depthAttachmentInfo = vk::RenderingAttachmentInfo{
-                    .imageView = step.depthStencilView,
-                    .imageLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-                    .loadOp = vk::AttachmentLoadOp::eLoad,
-                    .storeOp = vk::AttachmentStoreOp::eStore,
-                    .clearValue = vk::ClearValue(vk::ClearDepthStencilValue{1.0f, 0})
-                };
-            }
-
-            m_renderingInfo = vk::RenderingInfo{
-                .renderArea = vk::Rect2D({0, 0}, step.extent),
-                .layerCount = 1,
-                .colorAttachmentCount = 1,
-                .pColorAttachments = &m_colorAttachmentInfo,
-                .pDepthAttachment = step.depthStencilView ? &m_depthAttachmentInfo : nullptr
-            };
-
-            m_cmdBuf.beginRendering(m_renderingInfo);
-        }
-
-        ScopedRendering(RenderStep const& step){
-
-        }
-
-        ~ScopedRendering() {
-            m_cmdBuf.endRendering();
-        }
-
-    private:
-        VkCommandBuffer m_cmdBuf;
-        VkRenderingAttachmentInfo m_colorAttachmentInfo{};
-        VkRenderingAttachmentInfo m_depthAttachmentInfo{};
-        VkRenderingInfo m_renderingInfo{};
+        //im not committed to putting the command buffer here. 
+        //i might let each GPUTask create its own command buffer on execution
+        //void Execute(CommandBuffer& cmdBuf) const noexcept;
     };
 }

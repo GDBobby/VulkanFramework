@@ -49,3 +49,42 @@ i need to be able to access at least a few properties from within the framework.
 ## 11/15
 i'm curious if hooking (runtime assembly manipulation) would be the most optimal optimization route for extension branching. Only 1 direction will be taken in the branch
 for the entire runtime. So, my hypothesis is not branching at all, just inject the correct path.
+
+## 11/21
+it's pretty much all there. i'm not sure if i have the patience to complete the render graph before i get the first triangle render or not.
+it wouldn't take long to just get the triangle on screen, but it won't be very productive, give nthat i'll have to just go back and erase all
+of the temp code, and replace it with healthy longer term systems. i've never done a render graph before, BUT, i recently watched a Vulkanized
+video talking about optimizing rendergraphs down to the spirv level. seems exciting, i probably won't be that ambitious, BUT, i'd like to keep
+that in mind.
+
+the goal I have right now, i'd like to be able to compile a level based engine's rendergraph. basically, i'll have a small area (probably less than 100m, up to 1km-ish)
+and a number of resources (descriptors, buffers, images) to make that happen. The idea, is these resources are tied to the lifetime of this level, nothing more nothing less.
+POTENTIALLY, a certain type of entity could have a more precise scope than the entire level, and have resources tied to it, but the level comes first. levels MAY be transferable
+to chunks in an open world game, idk. 
+
+ANYWAYS, the plan is to register commands to a framework-level command buffer, as opposed to directly recording to VkCommandBuffer. It'll be a bit
+similar to global state tracking, if a draw is commanded, it'll check the command binded descriptors, which will give information on their required
+buffers and images, along with the status, read or write. Given that, I can then set a priority, probably just setting what the task needs to be done
+before which other task (with the final task being a submit).
+
+I'm not too sure how to give the buffers/images meaningful IDs that don't also require hashmaps for some kind of lookup, but I'll have to crack that
+egg when I get to it.
+
+## 11/22
+im not confident in any particular direction, so i'm planning a bit more than usual, and moving significantly slower lol. i think building an intricate
+series of commands is the way to go. I suspect it'll be transferable to GPU work graphs (not that either of my cards support that, or probably ever will)
+
+but anyways, real talk, the plan is to have three functions now as opposed to two.
+PREVIOUSLY, i had Logic() and Render(), now I want to add RecordRender() and I want to change the old Render() to ExecuteRender()
+the concept will be in today's push, 
+
+RecordRender - 
+
+DetailedCommandBuffer will store commands, and it will attach a boolean to some amount of commands. this boolean is a pointer, and
+in ExecuteRender, the value of the boolean for that frame is determined, deciding if that group of commands will be executed or not.
+
+
+ExecuteRender - 
+
+This is going to be similar to the old Render(), but instead of dealing with direct vulkan commands, it'll just deal with booleans that
+were defined in the recording. Other data will be updated here, like buffer content, and whatever.

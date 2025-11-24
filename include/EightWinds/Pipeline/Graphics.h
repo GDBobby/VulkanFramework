@@ -61,35 +61,7 @@ namespace EWE {
 		//the user wont put their hands on this
 		//im going to leave it as is for the moment, it can probably be simplified
 
-		void SetDefaults() noexcept {
-			viewportCount = 1;
-			scissorCount = 1;
-			rastSamples = VK_SAMPLE_COUNT_1_BIT;
-			enable_sampleShading = false;
-			minSampleShading = 1.f;
-			alphaToCoverageEnable = VK_FALSE;
-			alphaToOneEnable = VK_FALSE;
-
-			dynamicState = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-
-			depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-			depthStencilInfo.pNext = nullptr;
-			depthStencilInfo.flags = 0;
-			depthStencilInfo.depthTestEnable = VK_TRUE;
-			depthStencilInfo.depthWriteEnable = VK_TRUE;
-			depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-
-			//need to play with all of this
-			depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-			depthStencilInfo.stencilTestEnable = VK_FALSE;
-			depthStencilInfo.front = {};  // Optional
-			depthStencilInfo.back = {};   // Optional
-			depthStencilInfo.minDepthBounds = 0.0f;  // Optional
-			depthStencilInfo.maxDepthBounds = 1.0f;  // Optional
-
-			//no valid defaults, this needs real data
-			//VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
-		}
+		void SetDefaults() noexcept;
 
 	};
 
@@ -118,33 +90,7 @@ namespace EWE {
 		//i need to mess with this
 		float blendConstants[4];
 
-		void SetDefaults() noexcept {
-			depthClamp = false;
-			rasterizerDiscard = false;
-			polygonMode = VK_POLYGON_MODE_FILL;
-			cullMode = VK_CULL_MODE_NONE;
-			frontFace = VK_FRONT_FACE_CLOCKWISE;
-			depthBias.enable = VK_FALSE;
-			depthBias.constantFactor = 0.f;
-			depthBias.clamp = 0.f;
-			depthBias.slopeFactor = 0.f;
-
-			topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-
-			blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-			blendAttachment.blendEnable = VK_FALSE;
-			blendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-			blendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-			blendAttachment.colorBlendOp = VK_BLEND_OP_ADD;              // Optional
-			blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-			blendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-			blendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;              // Optional
-
-			blendConstants[0] = 0.f;
-			blendConstants[1] = 0.f;
-			blendConstants[2] = 0.f;
-			blendConstants[3] = 0.f;
-		}
+		void SetDefaults() noexcept;
 
 		//VkLogicOp blendLogicOp; //need to play iwth this
 	};
