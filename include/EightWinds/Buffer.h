@@ -39,6 +39,8 @@ namespace EWE{
 
         void* mapped = nullptr;
 
+        VkDeviceAddress deviceAddress;
+
 
         [[nodiscard]] static constexpr VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags2KHR usageFlags, VkPhysicalDeviceLimits const& limits) {
             VkDeviceSize minOffsetAlignment = 1;

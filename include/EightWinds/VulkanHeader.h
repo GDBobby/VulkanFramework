@@ -14,10 +14,6 @@
 #include "vma/include/vk_mem_alloc.h"
 
 namespace EWE{
-    
-    namespace Descriptor{
-        using Bindings = std::vector<VkDescriptorSetLayoutBinding>;
-    }
 
     using PipelineID = uint64_t;
 

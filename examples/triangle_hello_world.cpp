@@ -21,6 +21,10 @@
 #include <chrono>
 
 
+//https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_device_address_binding_report.html
+//vk_ext_device_fault
+//^ potential debugging extension
+
     //the variant is useless, but VK_MAKE_VERSION is deprecated
 constexpr uint32_t application_wide_vk_version = VK_MAKE_API_VERSION(0, 1, 4, 0);
 
@@ -36,13 +40,15 @@ constexpr EWE::ConstEvalStr swapchainExt{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 constexpr EWE::ConstEvalStr dynState3Ext{ VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME };
 constexpr EWE::ConstEvalStr meshShaderExt{ VK_EXT_MESH_SHADER_EXTENSION_NAME };
 constexpr EWE::ConstEvalStr descriptorIndexingExt{ VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME };
+constexpr EWE::ConstEvalStr bufferAddressExt{ VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME };
 
 
 using Example_ExtensionManager = EWE::ExtensionManager<application_wide_vk_version,
     EWE::ExtensionEntry<swapchainExt, true, 0>,
     EWE::ExtensionEntry<dynState3Ext, true, 0>,
     EWE::ExtensionEntry<meshShaderExt, false, 100000>,
-    EWE::ExtensionEntry<descriptorIndexingExt, true, 0>
+    EWE::ExtensionEntry<descriptorIndexingExt, true, 0>,
+    EWE::ExtensionEntry<bufferAddressExt, true, 0>
 >;
 
 

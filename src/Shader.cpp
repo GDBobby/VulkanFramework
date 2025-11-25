@@ -59,6 +59,7 @@ namespace EWE {
 		}
 		compiler.get_name(res.id);
 
+
 		EWE::Descriptor::Set* temp_set_ref = nullptr;
 		for(auto& layout : layoutPack.sets){
 			if(layout.index == setIndex){
@@ -68,7 +69,11 @@ namespace EWE {
 		}
 		assert(temp_set_ref != nullptr);
 		
-		temp_set_ref->bindings.push_back(
+		//this readwrite feedback wont work with device buffer addresses
+		//bool isReadable  = !compiler.has_decoration(res.id, spv::DecorationNonReadable);
+		bool isWritable  = !compiler.has_decoration(res.id, spv::DecorationNonWritable);
+		temp_set_ref->bindings.writes.push_back(isWritable);
+		temp_set_ref->bindings.vkBindings.push_back(
 			VkDescriptorSetLayoutBinding{
 				.binding = compiler.get_decoration(res.id, spv::DecorationBinding),
 				.descriptorType = descType,
@@ -98,12 +103,9 @@ namespace EWE {
 		AddBindingType(resources.separate_samplers, VK_DESCRIPTOR_TYPE_SAMPLER);
 		AddBindingType(resources.separate_images, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 
+
 		for (auto& set : ret.sets) {
-			std::sort(set.bindings.begin(), set.bindings.end(),
-				[](VkDescriptorSetLayoutBinding const& a, VkDescriptorSetLayoutBinding const& b) {
-					return a.binding < b.binding;
-				}
-			);
+			set.bindings.Sort();
 		}
 
 

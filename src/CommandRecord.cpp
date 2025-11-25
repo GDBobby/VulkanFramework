@@ -10,26 +10,18 @@ namespace EWE{
         records.push_back(CommandInstruction{cmdType, paramOffset});
 
     }
-    void BindCommand(std::vector<CommandInstruction>& records, CommandInstruction::Type cmdType, std::size_t paramSize){
-        std::size_t paramOffset = 0;
-        if(records.size() > 0){
-            paramOffset = records.back().paramOffset + CommandInstruction::GetParamSize(records.back().type);
-        }
-        records.push_back(CommandInstruction{cmdType, paramOffset, paramSize});
-
-    }
     
 
-    void CommandRecord::BindPipeline(){
+    void CommandRecord::BindPipeline(Pipeline* pipeline){
         BindCommand(records, CommandInstruction::Type::BindPipeline, sizeof(Pipeline*));
     }
 
     //i think i might need more data here
     //void BindDescriptor(VkDescriptorSet set);
     
-    void CommandRecord::Push(void* push, std::size_t pushSize){
+    void CommandRecord::Push(){
         //assert a pipeline is binded
-        BindCommand(records, CommandInstruction::Type::PushConstants, pushSize);
+        BindCommand(records, CommandInstruction::Type::PushConstant);
     }
 
     void CommandRecord::BeginRender(){
@@ -45,7 +37,7 @@ namespace EWE{
         //BindCommand(records, CommandType::PipelineBarrier, sizeof(PipelineBarrier));
     }
 
-    void CommandRecord::BeginLabel(const char* name, float red, float green, float blue) noexcept{
+    void CommandRecord::BeginLabel() noexcept{
         BindCommand(records, CommandInstruction::Type::BeginLabel, sizeof(const char*) + sizeof(float) * 3);
     }
     void CommandRecord::EndLabel() noexcept{

@@ -1,11 +1,12 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/CommandInstruction.h"
+#include "EightWinds/Command/Instruction.h"
 
 #include "EightWinds/RenderGraph/GPUTask.h"
 
 #include <array>
+#include <string>
 
 namespace EWE{
     //forward declared just to save a bit of compile time
@@ -21,6 +22,10 @@ namespace EWE{
         CommandRecord(CommandRecord&&) = delete;
         CommandRecord& operator=(CommandRecord&&) = delete;
 
+        //if it was compiled, i want an error when another command is added
+        //unless i want duplicate command lists, that only have minor differentiations
+        bool wasCompiled = false;
+
 #if 1 //COMMAND_RECORD_NAMING
         std::string name;
 #endif
@@ -29,7 +34,7 @@ namespace EWE{
         that would be std::vector<uint8_t> or something
 
         other options - lambdas, use reference capture (keep lifetime in mind)
-        lambdas are going to be extensively more expensive, but potentially drastically easier (idk)
+        lambdas are going to be extensively more expensive, but drastically easier (idk)
     */
 
         //this isnt going to help me setup bindless at all.
@@ -37,24 +42,23 @@ namespace EWE{
         
         std::vector<CommandInstruction> records{};
         //i think i need GPUTask::Execute to just write directly to the param pool, so I don't need to worry about references/pointers
-        //thats things like vertex count if it becomes variable
+        //thats things like vertex count
         //param pool is going into GPUTask
         //std::vector<uint8_t> paramPool;
 
         GPUTask Compile() noexcept;
 
-
-        void BindPipeline();
+        //the push constant size needs the pipeline id.
+        //optimization would need push constant size known at compile time (or optimization time, if theyre separate)
+        //potentially, write optimized instructions to a file and read it back later
+        void BindPipeline(Pipeline*);
 
         //i think i want a descirptor set that contains the details for buffers and images contained
         //im not sure how to do this yet
+        //with some further inspection, i want to exclusively use device buffer address
         void BindDescriptor();
 
-        //if i force Progammable Vertex Pulling these won't be used
-        void BindVertexBuffer();
-        void BindIndexBuffer();
-
-        void Push(void* push, std::size_t pushSize);
+        void Push();
 
         //this shouldnt be used directly
         void BeginRender();
@@ -64,7 +68,7 @@ namespace EWE{
         //potentially dont even allow this to be called explicitly?
         void Barrier();
 
-        void BeginLabel(const char* name, float red, float green, float blue) noexcept;
+        void BeginLabel() noexcept;
         void EndLabel() noexcept;
 
         void SetDynamicState(VkDynamicState dynState);

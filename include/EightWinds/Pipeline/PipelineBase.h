@@ -21,9 +21,9 @@ namespace EWE {
 		Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout);
 		Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo);
 
-		Pipeline(Pipeline&) = delete;
+		Pipeline(Pipeline const&) = delete;
 		Pipeline(Pipeline&&) = delete;
-		Pipeline& operator=(Pipeline&) = delete;
+		Pipeline& operator=(Pipeline const&) = delete;
 		Pipeline& operator=(Pipeline&&) = delete;
 
 #if PIPELINE_HOT_RELOAD

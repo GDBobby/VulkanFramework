@@ -5,7 +5,7 @@
 
 #include "EightWinds/ShaderFactory.h"
 #include "EightWinds/Pipeline/PipelineSystem.h"
-#include "EightWinds/Backend/DSLCache.h"
+#include "EightWinds/Backend/Descriptors/LayoutCache.h"
 //#include "EightWinds/Backend/ResourceHandler.h"
 
 
@@ -27,7 +27,7 @@ namespace EWE{
         ShaderFactory shaderFactory;
         PipelineSystem pipelineSystem;
         //CommandBufferFactory cbFac;//handles command buffer pools underneath it
-        Backend::DSLCache dslCache;
+        Backend::Descriptor::LayoutCache dslCache;
         //DescriptorFactory descFact;//this fact will need a ref to dslcache
         
         //this is going to be a copy. i need it internally for buffer alignment.

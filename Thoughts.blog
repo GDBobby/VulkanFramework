@@ -88,3 +88,9 @@ ExecuteRender -
 
 This is going to be similar to the old Render(), but instead of dealing with direct vulkan commands, it'll just deal with booleans that
 were defined in the recording. Other data will be updated here, like buffer content, and whatever.
+
+## 11/25
+ive kinda just been staring at the command containers just trying to figure out how I want to do them for
+the last few days. i think having a global push constant structure, and making it required to be uniform across
+all pipelines will make the compilation of the command record much simpler. i think that will make it possible for
+compile time optimization 

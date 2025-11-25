@@ -3,7 +3,7 @@
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/Backend/RenderInfo.h"
-#include "EightWinds/CommandExecute.h"
+#include "EightWinds/Command/Execute.h"
 
 #include <span>
 
@@ -18,11 +18,7 @@ namespace EWE{
         CommandExecutor commandExecutor{};
 
         //idk if i want to commit to renderInfo here yet
-        std::optional<RenderInfo> renderInfo;
-
-        //write and read resources separate?
-        std::span<Buffer> buffers;
-        std::span<Images> images;
+        //std::optional<RenderInfo> renderInfo;
 
         GPUTask() = default;
         GPUTask(GPUTask const&) = delete;

@@ -1,4 +1,4 @@
-#include "EightWinds/CommandPool.h"
+#include "EightWinds/Command/CommandPool.h"
 
 
 namespace EWE{

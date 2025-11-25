@@ -9,7 +9,9 @@ namespace EWE{
     }
 
     Buffer::Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags2 usageFlags)
-        : framework{framework}, usageFlags{ usageFlags } {
+        : framework{framework}, 
+        usageFlags{ usageFlags } 
+        {
             
             //i dont really know how to handle this yet.
             //device specializer holds the properties
@@ -26,5 +28,11 @@ namespace EWE{
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
         vmaCreateBuffer(framework.logicalDevice.vmaAllocator, &bufferInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
+        
+        VkBufferDeviceAddressInfo bdaInfo{};
+        bdaInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+        bdaInfo.pNext = nullptr;
+        bdaInfo.buffer = buffer_info.buffer;
+        deviceAddress = vkGetBufferDeviceAddress(framework.logicalDevice.device, &bdaInfo);
     }
 }
