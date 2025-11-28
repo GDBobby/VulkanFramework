@@ -1,4 +1,4 @@
-#include "EightWinds/RenderGraph/RenderInfo.h"
+#include "EightWinds/Backend/RenderInfo.h"
 
 #include <cassert>
 

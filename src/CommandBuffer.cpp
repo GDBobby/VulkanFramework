@@ -4,19 +4,10 @@
 
 namespace EWE{
 
-    PFN_vkCmdBeginDebugUtilsLabelEXT pfnBeginLabel;
-    PFN_vkCmdEndDebugUtilsLabelEXT pfnEndLabel;
-
-    static bool InitLabelFunctions(VkDevice device) noexcept {
-        pfnBeginLabel = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT");
-        pfnEndLabel = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT");
-
-        return pfnBeginLabel != nullptr && pfnEndLabel != nullptr;
-    }
-
     
     CommandBuffer::CommandBuffer(CommandPool& commandPool, VkCommandBuffer cmdBuf) noexcept
-        : commandPool{commandPool}
+        : commandPool{commandPool},
+        cmdBuf{cmdBuf}
     {
         VkCommandBufferBeginInfo cmdBufBeginInfo{};
         cmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -74,32 +65,5 @@ namespace EWE{
         usageTracking.push({});
 #endif
         EWE_VK(vkBeginCommandBuffer, cmdBuf, &beginInfo);
-    }
-
-#define DEBUG_NAMING 1
-
-    void CommandBuffer::BeginLabel(const char* name, float red, float green, float blue) noexcept {
-#if DEBUG_NAMING
-        VkDebugUtilsLabelEXT utilLabel{};
-        utilLabel.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-        utilLabel.pNext = nullptr;
-        utilLabel.color[0] = red;
-        utilLabel.color[1] = green;
-        utilLabel.color[2] = blue;
-        utilLabel.color[3] = 1.f;
-        utilLabel.pLabelName = name;
-        //cmdBuf.beginDebugUtilsLabelEXT(utilLabel);
-        pfnBeginLabel(cmdBuf, &utilLabel);
-
-#endif
-        ++labelDepth;
-
-    }
-    void CommandBuffer::EndLabel() noexcept {
-#if DEBUG_NAMING
-        //cmdBuf.endDebugUtilsLabelEXT();
-        pfnEndLabel(cmdBuf);
-#endif
-        --labelDepth;
     }
 }

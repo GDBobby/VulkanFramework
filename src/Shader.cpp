@@ -37,7 +37,7 @@ namespace EWE {
 	}
 
 
-	void AddBinding(spirv_cross::Compiler const& compiler, Descriptor::LayoutPack& layoutPack, spirv_cross::Resource const& res, VkDescriptorType descType, VkShaderStageFlagBits stageFlag) {
+	void AddBinding(spirv_cross::Compiler const& compiler, Backend::Descriptor::LayoutPack& layoutPack, spirv_cross::Resource const& res, VkDescriptorType descType, VkShaderStageFlagBits stageFlag) {
 
 		const uint32_t setIndex = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 		
@@ -49,7 +49,7 @@ namespace EWE {
 			}
 		}
 		if(!set_contained){
-			layoutPack.sets.emplace_back(setIndex, Descriptor::Bindings{});
+			layoutPack.sets.emplace_back(setIndex, Backend::Descriptor::Bindings{});
 		}
 		
 		uint32_t descCount = 1;
@@ -60,7 +60,7 @@ namespace EWE {
 		compiler.get_name(res.id);
 
 
-		EWE::Descriptor::Set* temp_set_ref = nullptr;
+		Backend::Descriptor::Set* temp_set_ref = nullptr;
 		for(auto& layout : layoutPack.sets){
 			if(layout.index == setIndex){
 				temp_set_ref = &layout;
@@ -89,10 +89,10 @@ namespace EWE {
 	}
 
 
-	Descriptor::LayoutPack CreateDescriptorLayoutPack(spirv_cross::Compiler const& compiler, VkShaderStageFlagBits stageFlag) {
+	Backend::Descriptor::LayoutPack CreateDescriptorLayoutPack(spirv_cross::Compiler const& compiler, VkShaderStageFlagBits stageFlag) {
 		auto const& resources = compiler.get_shader_resources();
 
-		Descriptor::LayoutPack ret{};// = Construct<Descriptor::LayoutPack>();
+		Backend::Descriptor::LayoutPack ret{};// = Construct<Descriptor::LayoutPack>();
 
 #define AddBindingType(vec, descType) for(auto& binding : vec) {AddBinding(compiler, ret, binding, descType, stageFlag);}
 

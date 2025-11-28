@@ -86,6 +86,12 @@ namespace EWE{
             //VkDevice logicalDeviceExplicit, QueueFamily& family, float priority
             queues.emplace_back(device, physicalDevice.queueFamilies[qci.queueFamilyIndex], queuePriorities[qci.queueFamilyIndex]);
         }
+
+#if DEBUG_NAMING
+        BeginLabel = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT");
+        EndLabel = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT");
+        printf("setup object naming\n");
+#endif
     }
 
     //a separate function will allow for customizaiton of queues

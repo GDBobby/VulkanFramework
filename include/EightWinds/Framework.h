@@ -5,7 +5,7 @@
 
 #include "EightWinds/ShaderFactory.h"
 #include "EightWinds/Pipeline/PipelineSystem.h"
-#include "EightWinds/Backend/Descriptors/LayoutCache.h"
+#include "EightWinds/Backend/Descriptor/LayoutCache.h"
 //#include "EightWinds/Backend/ResourceHandler.h"
 
 
@@ -37,6 +37,7 @@ namespace EWE{
         //im considering using hooks (x86 assembly, code injection type hooks) to inline the branches for these extensions
         bool graphicsLibraryEnabled = false;
         bool meshShadersEnabled = false;
+        bool deviceFaultEnabled = false;
     };
 
 }

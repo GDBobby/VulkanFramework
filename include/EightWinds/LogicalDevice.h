@@ -32,7 +32,14 @@ namespace EWE{
             VkDeviceCreateInfo& deviceCreateInfo
         ) noexcept;
 
-        uint64_t GetBufferMinimumAlignment(VkBufferUsageFlags2 usageFlags) const;
-    
+        //uint64_t GetBufferMinimumAlignment(VkBufferUsageFlags2 usageFlags) const;
+
+#if DEBUG_NAMING
+        PFN_vkCmdBeginDebugUtilsLabelEXT BeginLabel;
+        PFN_vkCmdEndDebugUtilsLabelEXT EndLabel;
+
+        PFN_vkSetDebugUtilsObjectNameEXT deubUtilsObjectName = nullptr;
+        void SetObjectName(void* objectHandle, VkObjectType objectType, std::string_view name) const;
+#endif
     };
 }

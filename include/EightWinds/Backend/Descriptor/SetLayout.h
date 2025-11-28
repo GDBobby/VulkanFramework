@@ -1,8 +1,8 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/Backend/Descriptors/DescriptorPool.h"
-#include "EightWinds/Backend/Descriptors/Binding.h"
+#include "EightWinds/Backend/Descriptor/DescriptorPool.h"
+#include "EightWinds/Backend/Descriptor/Binding.h"
 
 #include "EightWinds/Data/KeyValueContainer.h"
 

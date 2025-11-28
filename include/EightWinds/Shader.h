@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
-#include "EightWinds/Backend/Descriptors/SetLayout.h"
+#include "EightWinds/Backend/Descriptor/SetLayout.h"
 
 #include <vector>
 #include <mutex> //factory
@@ -108,7 +108,7 @@ namespace EWE {
 		std::string filepath{}; 
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo;
 
-		Descriptor::LayoutPack descriptorSets;
+		Backend::Descriptor::LayoutPack descriptorSets;
 
         //VkPipelineVertexInputStateCreateInfo
 		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes{};

@@ -24,6 +24,24 @@ namespace EWE{
         float green;
         float blue;
     };
+    struct DispatchParamPack{
+        uint32_t x;
+        uint32_t y;
+        uint32_t z;
+    };
+    struct ViewportScissorParamPack{
+        VkViewport viewport;
+        VkRect2D scissor;
+    };
+    struct ViewportScissorWithCountParamPack{
+        static constexpr uint32_t ArbitraryViewportCountLimit = 10;
+        static constexpr uint32_t ArbitraryScissorCountLimit = 10;
+        //lets set an arbitrary limit to 10
+        VkViewport viewports[ArbitraryViewportCountLimit];
+        VkRect2D scissors[ArbitraryScissorCountLimit];
+        uint32_t currentViewportCount = 0;
+        uint32_t currentScissorCount = 0;
+    };
 
     struct CommandInstruction{
         enum class Type : uint8_t {
@@ -32,8 +50,7 @@ namespace EWE{
             //descriptor needs to be expanded to handle images and buffers
             BindDescriptor,
 
-            PushConstant,
-            SetDynamicState,   
+            PushConstant, 
 
             BeginRender,
             EndRender,
@@ -43,6 +60,10 @@ namespace EWE{
             Dispatch,
 
             PipelineBarrier,
+
+            //dynamicstate
+            DS_ViewportScissor,
+            DS_ViewportScissorWithCount,
 
             BeginLabel,
             EndLabel,
@@ -60,13 +81,36 @@ namespace EWE{
             //these 3 dont have any independent functionality
             EndIf,
             LoopEnd,
-            SwitchEnd
+            SwitchEnd,
+
+            //im only going to implement vp scissor for the moment
+            DS_LineWidth,
+            DS_DepthBias,
+            DS_BlendConstants,
+            DS_DepthBounds,
+            DS_StencilCompareMask,
+            DS_StencilWriteMask,
+            DS_StencilReference,
+            DS_CullMode,
+            DS_FrontFace,
+            DS_PrimitiveTopology,
+            DS_DepthTestEnable,
+            DS_DepthWriteEnable,
+            DS_DepthCompareOp,
+            DS_DepthBoundsTestEnable,
+            DS_StencilTestEnable,
+            DS_StencilOp,
+            DS_RasterizerDiscardEnable,
+            DS_DepthBiasEnable,
+            DS_PrimitiveRestartEnable,
+            //wtf is a stipple
+            //DS_LineStipple,
+
         };
 
         Type type;
         std::size_t paramOffset;
 
-        
         CommandInstruction(Type type, std::size_t offset)
             : type(type), paramOffset(offset) 
         {}

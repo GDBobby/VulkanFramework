@@ -12,8 +12,16 @@
 
 namespace EWE{
 
+    CommandExecutor::CommandExecutor(LogicalDevice& logicalDevice) noexcept
+    : logicalDevice{logicalDevice}
+    {
+
+    }
+
     namespace Exec{
         struct ExecContext {
+            LogicalDevice& device;
+
             std::vector<CommandInstruction> const& instructions;
             std::size_t& iterator;
             CommandBuffer& cmdBuf;
@@ -39,13 +47,14 @@ namespace EWE{
         void BindPipeline(ExecContext& ctx);
         void BindDescriptor(ExecContext& ctx);
         void Push(ExecContext& ctx);
-        void SetDynamicState(ExecContext& ctx);
         void BeginRender(ExecContext& ctx);
         void EndRender(ExecContext& ctx);
         void Draw(ExecContext& ctx);
         void DrawIndexed(ExecContext& ctx);
         void Dispatch(ExecContext& ctx);
         void Barrier(ExecContext& ctx);
+        void ViewportScissor(ExecContext& ctx);
+        void ViewportScissorWithCount(ExecContext& ctx);
         void BeginLabel(ExecContext& ctx);
         void EndLabel(ExecContext& ctx);
 
@@ -59,23 +68,24 @@ namespace EWE{
     } //namespace Exec
 
     static constexpr auto dispatchTable = std::array{
-        &Exec::BindPipeline,     //0
-        &Exec::BindDescriptor,   //1
-        &Exec::Push,             //4
-        &Exec::SetDynamicState,  //5
-        &Exec::BeginRender,      //6
-        &Exec::EndRender,        //7
-        &Exec::Draw,             //8
-        &Exec::DrawIndexed,      //9
-        &Exec::Dispatch,         //10
-        &Exec::Barrier,          //11  
-        &Exec::BeginLabel,       //12
-        &Exec::EndLabel,         //13
-        &Exec::IfStatement,      //14
-        &Exec::LoopBegin,        //15
-        &Exec::Switch,           //16
-        &Exec::Case,             //17
-        &Exec::Default,          //18
+        &Exec::BindPipeline,
+        &Exec::BindDescriptor, 
+        &Exec::Push, 
+        &Exec::BeginRender, 
+        &Exec::EndRender,
+        &Exec::Draw,
+        &Exec::DrawIndexed,
+        &Exec::Dispatch,
+        &Exec::Barrier, 
+        &Exec::ViewportScissor,
+        &Exec::ViewportScissorWithCount,
+        &Exec::BeginLabel,
+        &Exec::EndLabel,
+        &Exec::IfStatement,
+        &Exec::LoopBegin,
+        &Exec::Switch,
+        &Exec::Case,
+        &Exec::Default,
     };
 
     namespace Exec{
@@ -102,11 +112,6 @@ namespace EWE{
             auto* push = reinterpret_cast<GlobalPushConstant const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
 
             vkCmdPushConstants(ctx.cmdBuf, ctx.boundLayout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant), push);
-        }
-
-        void SetDynamicState(ExecContext& ctx){
-            printf("this needs to be split out\n");
-            assert(false);
         }
 
         void BeginRender(ExecContext& ctx){
@@ -141,6 +146,20 @@ namespace EWE{
             assert(false && "this needs to be handled");
         }
 
+        
+        void ViewportScissor(ExecContext& ctx){
+            auto* data = reinterpret_cast<ViewportScissorParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            vkCmdSetViewport(ctx.cmdBuf, 0, 1, &data->viewport);
+            vkCmdSetScissor(ctx.cmdBuf, 0, 1, &data->scissor);
+        }
+        void ViewportScissorWithCount(ExecContext& ctx){
+            auto* data = reinterpret_cast<ViewportScissorWithCountParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            assert(data->currentViewportCount < ViewportScissorWithCountParamPack::ArbitraryViewportCountLimit);
+            assert(data->currentScissorCount < ViewportScissorWithCountParamPack::ArbitraryScissorCountLimit);
+            vkCmdSetViewport(ctx.cmdBuf, 0, data->currentViewportCount, data->viewports);
+            vkCmdSetScissor(ctx.cmdBuf, 0, data->currentScissorCount, data->scissors);
+        }
+
         void BeginLabel(ExecContext& ctx){
             auto* data = reinterpret_cast<LabelParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
             
@@ -152,11 +171,11 @@ namespace EWE{
             labelUtil.color[3] = 1.f;
             labelUtil.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             labelUtil.pNext = nullptr;
-            vkCmdBeginDebugUtilsLabelEXT(ctx.cmdBuf, &labelUtil);
+            ctx.device.BeginLabel(ctx.cmdBuf, &labelUtil);
         }
 
         void EndLabel(ExecContext& ctx){
-            vkCmdEndDebugUtilsLabelEXT(ctx.cmdBuf);
+            ctx.device.EndLabel(ctx.cmdBuf);
         }
 
 
@@ -169,7 +188,7 @@ namespace EWE{
                         ctx.iterator++;
                         return;
                     }
-                    dispatchTable[ctx.instructions[ctx.iterator].type](ctx);
+                    dispatchTable[static_cast<std::size_t>(ctx.instructions[ctx.iterator].type)](ctx);
                 }
                 EWE_UNREACHABLE;
             }
@@ -195,14 +214,14 @@ namespace EWE{
 
     void CommandExecutor::Execute(CommandBuffer& cmdBuf) const noexcept {
         std::size_t iterator = 0;
-        Exec::ExecContext ctx{instructions, iterator, cmdBuf, paramPool};
+        Exec::ExecContext ctx{logicalDevice, instructions, iterator, cmdBuf, paramPool};
 
         while(iterator < instructions.size()){
             //validate before creating the executor
             //assert(instructions[iterator].type != CommandInstruction::Type::EndIf && "unscoped endif");
             //assert(instructions[iterator].type != CommandInstruction::Type::LoopEnd && "unscoped loop end");
             //assert(instructions[iterator].type != CommandInstruction::Type::SwitchEnd && "unscoped switch end");
-            dispatchTable[instructions[iterator].type](ctx);
+            dispatchTable[static_cast<std::size_t>(instructions[iterator].type)](ctx);
         }
     }
 } //namespace EWE

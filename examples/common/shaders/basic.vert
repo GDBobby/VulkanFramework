@@ -1,17 +1,18 @@
 #version 450
 
-layout (location = 0) in vec2 position;
-layout (location = 1) in vec3 color;
+#include "GlobalPushConstant.glsl"
+
+layout(buffer_reference, scalar) readonly buffer Vertex {
+    vec2 position;
+    vec3 color;
+};
 
 layout(location = 0) out vec3 outColor;
 
-layout(push_constant) uniform Push {
-  vec4 scaleOffset;
-} push;
-
 void main(){
 
-    gl_Position = vec4(push.scaleOffset.xy * position + push.scaleOffset.zw, 0.0, 1.0);
+    Vertex vertex = Vertex(push.device_addresses[0]);
+    gl_Position = vec4(vertex.position, 0.0, 1.0);
   
-    outColor = color;
+    outColor = vertex.color;
 }

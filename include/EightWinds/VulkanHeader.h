@@ -8,10 +8,15 @@
 #include <concepts>
 
 #ifdef _WIN32
+//is this for vma?
 #define WIN32_LEAN_AND_MEAN
 #endif
 
 #include "vma/include/vk_mem_alloc.h"
+
+//i dont want anything in here besides global VULKAN related functions,
+//typeids, like PipelineID,
+//and vk result assertion (EWE_VK)
 
 namespace EWE{
 

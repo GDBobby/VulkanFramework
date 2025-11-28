@@ -7,12 +7,19 @@
 #include "EightWinds/Pipeline/Layout.h"
 #include "EightWinds/Pipeline/PipelineBase.h"
 #include "EightWinds/Pipeline/Graphics.h"
+#include "EightWinds/Shader.h"
 
 #include "EightWinds/Backend/DeviceSpecialization/Extensions.h"
 #include "EightWinds/Backend/DeviceSpecialization/DeviceSpecialization.h"
 #include "EightWinds/Backend/DeviceSpecialization/FeatureProperty.h"
 
-#include "EightWinds/Shader.h"
+
+#include "EightWinds/Command/Record.h"
+#include "EightWinds/Command/Execute.h"
+#include "EightWinds/RenderGraph/GPUTask.h"
+#include "EightWinds/GlobalPushConstant.h"
+
+#include "EightWinds/Image.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -41,6 +48,7 @@ constexpr EWE::ConstEvalStr dynState3Ext{ VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENS
 constexpr EWE::ConstEvalStr meshShaderExt{ VK_EXT_MESH_SHADER_EXTENSION_NAME };
 constexpr EWE::ConstEvalStr descriptorIndexingExt{ VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME };
 constexpr EWE::ConstEvalStr bufferAddressExt{ VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME };
+constexpr EWE::ConstEvalStr deviceFaultExt{ VK_EXT_DEVICE_FAULT_EXTENSION_NAME };
 
 
 using Example_ExtensionManager = EWE::ExtensionManager<application_wide_vk_version,
@@ -48,7 +56,8 @@ using Example_ExtensionManager = EWE::ExtensionManager<application_wide_vk_versi
     EWE::ExtensionEntry<dynState3Ext, true, 0>,
     EWE::ExtensionEntry<meshShaderExt, false, 100000>,
     EWE::ExtensionEntry<descriptorIndexingExt, true, 0>,
-    EWE::ExtensionEntry<bufferAddressExt, true, 0>
+    EWE::ExtensionEntry<bufferAddressExt, true, 0>,
+    EWE::ExtensionEntry<deviceFaultExt, false, 100000>
 >;
 
 
@@ -212,6 +221,9 @@ int main() {
     printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
     EWE::Framework framework(logicalDevice);
     framework.properties = specDev.GetProperty<VkPhysicalDeviceProperties2>().properties;
+    //framework.graphicsLibraryEnabled = specDev.GetExtensionIndex(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
+    framework.deviceFaultEnabled = specDev.extension_support[specDev.GetExtensionIndex(VK_EXT_DEVICE_FAULT_EXTENSION_NAME)];
+    framework.meshShadersEnabled = specDev.extension_support[specDev.GetExtensionIndex(VK_EXT_MESH_SHADER_EXTENSION_NAME)];
 
     auto* triangle_vert = framework.shaderFactory.GetShader("examples/common/shaders/basic.vert.spv");
     auto* triangle_frag = framework.shaderFactory.GetShader("examples/common/shaders/basic.frag.spv");
@@ -269,13 +281,174 @@ int main() {
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = 0;
 
+    VkImage colorAttachmentImage;
+    VkImage depthAttachmentImage;
+
+    VkImageCreateInfo imgCreateInfo{};
+    imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imgCreateInfo.pNext = nullptr;
+    imgCreateInfo.arrayLayers = 1;
+    imgCreateInfo.extent = { window.screenDimensions.width, window.screenDimensions.height, 0 };
+    imgCreateInfo.flags = 0;
+    imgCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imgCreateInfo.mipLevels = 1;
+    imgCreateInfo.queueFamilyIndexCount = 1;
+    imgCreateInfo.pQueueFamilyIndices = &renderQueue->family.index;
+    imgCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    imgCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imgCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    vkCreateImage(logicalDevice.device, &imgCreateInfo, nullptr, &colorAttachmentImage);
+    imgCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    imgCreateInfo.format = VK_FORMAT_R16_UNORM;
+    vkCreateImage(logicalDevice.device, &imgCreateInfo, nullptr, &depthAttachmentImage);
+
+    VkImageViewCreateInfo imgViewCreateInfo{};
+    imgViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    imgViewCreateInfo.pNext = nullptr;
+    imgViewCreateInfo.flags = 0;
+    imgViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    imgViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imgViewCreateInfo.subresourceRange.baseMipLevel = 0;
+    imgViewCreateInfo.subresourceRange.levelCount = 1;
+    imgViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+    imgViewCreateInfo.subresourceRange.layerCount = 1;
+
+    VkImageView colorAttView;
+    VkImageView depthAttView;
+    imgViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imgViewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+    imgViewCreateInfo.image = colorAttachmentImage;
+    vkCreateImageView(logicalDevice.device, &imgViewCreateInfo, nullptr, &colorAttView);
+
+    imgViewCreateInfo.format = VK_FORMAT_R16_UNORM;
+    imgViewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R};
+    imgViewCreateInfo.image = depthAttachmentImage;
+    vkCreateImageView(logicalDevice.device, &imgViewCreateInfo, nullptr, &depthAttView);
+
     //this will also get filled out by the rendergraph
     VkRenderingInfo renderingInfo{};
-    
+
+    EWE::CommandRecord renderRecord{};
+    auto* def_beginRender = renderRecord.BeginRender();
+    auto* def_pipe = renderRecord.BindPipeline();
+    auto* def_vp_scissor = renderRecord.SetViewportScissor();
+    //auto* def_desc = cmdRecord.BindDescriptor();
+    auto* def_push = renderRecord.Push();
+    auto* def_draw = renderRecord.Draw();
+    renderRecord.EndRender();
+    EWE::GPUTask gpuTask = renderRecord.Compile(logicalDevice);
+    def_beginRender->data->colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    def_beginRender->data->colorAttachmentInfo.pNext = nullptr;
+    def_beginRender->data->colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    def_beginRender->data->colorAttachmentInfo.imageView = colorAttView;
+    def_beginRender->data->colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    def_beginRender->data->colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[0] = 0.f;
+    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[1] = 0.f;
+    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[2] = 0.f;
+    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[3] = 0.f;
+    def_beginRender->data->colorAttachmentInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    def_beginRender->data->colorAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
+    def_beginRender->data->colorAttachmentInfo.resolveMode = VK_RESOLVE_MODE_NONE;
+
+    def_beginRender->data->depthAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    def_beginRender->data->depthAttachmentInfo.pNext = nullptr;
+    def_beginRender->data->depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+    def_beginRender->data->depthAttachmentInfo.imageView = depthAttView;
+    def_beginRender->data->depthAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    def_beginRender->data->depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    def_beginRender->data->depthAttachmentInfo.clearValue.depthStencil.depth = 0.f;
+    def_beginRender->data->depthAttachmentInfo.clearValue.depthStencil.stencil = 0; //idk what to set this to tbh
+    def_beginRender->data->depthAttachmentInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    def_beginRender->data->depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
+    def_beginRender->data->depthAttachmentInfo.resolveMode = VK_RESOLVE_MODE_NONE;
+
+    def_beginRender->data->renderingInfo.colorAttachmentCount = 1;
+    def_beginRender->data->renderingInfo.flags = 0;
+    def_beginRender->data->renderingInfo.layerCount = 1;
+    def_beginRender->data->renderingInfo.pColorAttachments = &def_beginRender->data->colorAttachmentInfo;
+    def_beginRender->data->renderingInfo.pDepthAttachment = &def_beginRender->data->depthAttachmentInfo;
+    def_beginRender->data->renderingInfo.renderArea = window.screenDimensions;
+    def_beginRender->data->renderingInfo.viewMask = 0;
+
+    *def_pipe->data = reinterpret_cast<EWE::Pipeline*>(&triangle_pipeline);
+    def_vp_scissor->data->scissor = window.screenDimensions;
+    def_vp_scissor->data->viewport.x = 0;
+    def_vp_scissor->data->viewport.y = window.screenDimensions.height;
+    def_vp_scissor->data->viewport.width = window.screenDimensions.width;
+    def_vp_scissor->data->viewport.height = -window.screenDimensions.height;
+    def_vp_scissor->data->viewport.minDepth = 0.1f;
+    def_vp_scissor->data->viewport.maxDepth = 10000.f;
+
+    VmaAllocationCreateInfo vmaAllocInfo{};
+    vmaAllocInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
+        VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    vmaAllocInfo.memoryTypeBits = 0;
+    vmaAllocInfo.pool = VK_NULL_HANDLE;
+    vmaAllocInfo.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    vmaAllocInfo.requiredFlags = 0;
+    vmaAllocInfo.priority = 1.f;
+    vmaAllocInfo.pUserData = nullptr;
+
+    struct TriangleVertex {
+        float pos[2]; //xy
+        float color[3]; //rgb
+    };
+    EWE::Buffer vertex_buffer{framework, sizeof(TriangleVertex) * 3, 1, vmaAllocInfo, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT};
+    TriangleVertex* mappedData = reinterpret_cast<TriangleVertex*>(vertex_buffer.Map());
+
+    mappedData[0].pos[0] = -0.5f;
+    mappedData[0].pos[1] = -0.5f;
+
+    mappedData[1].pos[0] = 0.f;
+    mappedData[1].pos[1] = 0.5f;
+
+    mappedData[2].pos[0] = 0.5f;
+    mappedData[2].pos[1] = 0.5f;
+
+    mappedData[0].color[0] = 1.f;
+    mappedData[0].color[0] = 0.f;
+    mappedData[0].color[0] = 0.f;
+
+    mappedData[1].color[1] = 0.f;
+    mappedData[1].color[1] = 1.f;
+    mappedData[1].color[1] = 0.f;
+
+    mappedData[2].color[1] = 0.f;
+    mappedData[2].color[1] = 0.f;
+    mappedData[2].color[1] = 1.f;
+
+    vertex_buffer.Flush();
+    vertex_buffer.Unmap();
+
+    def_push->data->Reset();
+    def_push->data->buffer_addr[0] = vertex_buffer.deviceAddress;
+
+    def_draw->data->firstInstance = 0;
+    def_draw->data->firstVertex = 0;
+    def_draw->data->instanceCount = 1;
+    def_draw->data->vertexCount = 3;
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.pNext = nullptr;
+    submitInfo.pSignalSemaphores = nullptr;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.waitSemaphoreCount = 0;
+    submitInfo.pWaitSemaphores = nullptr;
+    submitInfo.pWaitDstStageMask = nullptr;
     while (true) {
         EWE::CommandBuffer& currentCmdBuf = commandBuffers[currentFrame];
         EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
-        vkCmdBeginRendering(currentCmdBuf.cmdBuf, &renderingInfo);
+        gpuTask.Execute(currentCmdBuf);
+
+        EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
+        submitInfo.pCommandBuffers = &currentCmdBuf.cmdBuf;
+        EWE::EWE_VK(vkQueueSubmit, *renderQueue, 1, &submitInfo, VK_NULL_HANDLE);
     }
 
 

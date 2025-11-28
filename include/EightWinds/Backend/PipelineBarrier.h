@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/CommandBuffer.h"
+#include "EightWinds/Command/CommandBuffer.h"
 
 #include <vector>
 

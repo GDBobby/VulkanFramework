@@ -2,7 +2,7 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Shader.h"
-#include "EightWinds/Backend/Descriptors/SetLayout.h"
+#include "EightWinds/Backend/Descriptor/SetLayout.h"
 #include "EightWinds/Framework.h"
 
 #include "EightWinds/Data/KeyValueContainer.h"
@@ -36,7 +36,7 @@ namespace EWE {
 		//i dont like the array much, i might do a KeyValuePair or something
 		std::array<Shader*, Shader::Stage::COUNT> shaders;
 
-		Descriptor::LayoutPack descriptorSets;
+		Backend::Descriptor::LayoutPack descriptorSets;
 		std::vector<VkPushConstantRange> pushConstantRanges{};
 		PipelineType pipelineType;
 		VkPipelineBindPoint bindPoint; //

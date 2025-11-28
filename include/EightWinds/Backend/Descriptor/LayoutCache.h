@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/Backend/Descriptors/Binding.h"
+#include "EightWinds/Backend/Descriptor/Binding.h"
 
 #include <unordered_map>
 
@@ -11,23 +11,8 @@ namespace EWE{
         namespace Descriptor{
             //the count isnt hashed
             //i think that means it gets put in the same bucket?
-            struct BindingsEqual {
-                bool operator()(Bindings const& lhs, Bindings const& rhs) const {
-                    if (lhs.vkBindings.size() != rhs.vkBindings.size()) {
-                        return false;
-                    }
-                    for (size_t i = 0; i < lhs.vkBindings.size(); ++i) {
-                        const bool binding = lhs.vkBindings[i].binding != rhs.vkBindings[i].binding;
-                        const bool descType = lhs.vkBindings[i].descriptorType != rhs.vkBindings[i].descriptorType;
-                        const bool descCount = lhs.vkBindings[i].descriptorCount != rhs.vkBindings[i].descriptorCount;
-                        if(!binding || !descType || !descCount){
-                            return false;
-                        }
-                    }
-                    return true;
-                }
-            };
-
+            //the writes arent hashed either, they'll be put in the same bucket as well
+            //which could potentially be a issue
             
             constexpr uint8_t DescriptorTypeCode(VkDescriptorType type) {
                 switch(type){
@@ -82,7 +67,7 @@ namespace EWE{
                 //if the hashing speed becomes an issue, check that^
                 //this is designed to be interchangeable behind the scenes, so that it can be improved/changed/whatever without reworking an engine
             private:
-                std::unordered_map<Bindings, VkDescriptorSetLayout, BindingsHash, BindingsEqual> cache;
+                std::unordered_map<Bindings, VkDescriptorSetLayout, BindingsHash> cache;
 
             };
         } //namespace Descriptor

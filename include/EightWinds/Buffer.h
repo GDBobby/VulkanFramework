@@ -21,7 +21,7 @@ namespace EWE{
     struct Buffer{
         Framework& framework;
 
-        [[nodiscard]] explicit Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags2KHR usageFlags);
+        [[nodiscard]] explicit Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags);
         ~Buffer();
 
         VkDescriptorBufferInfo buffer_info;
@@ -32,7 +32,7 @@ namespace EWE{
         //write the 
         VkDeviceSize minOffsetAlignment = 1;
 
-        VkBufferUsageFlags2KHR usageFlags;
+        VkBufferUsageFlags usageFlags;
 
         VmaMemoryUsage memoryUsage;
         VmaAllocation vmaAlloc{};
@@ -41,32 +41,19 @@ namespace EWE{
 
         VkDeviceAddress deviceAddress;
 
+        void* Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+        void Unmap() noexcept;
+        void Flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+        void FlushMin(VkDeviceSize offset);
+        void FlushIndex(uint32_t index);
 
-        [[nodiscard]] static constexpr VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags2KHR usageFlags, VkPhysicalDeviceLimits const& limits) {
-            VkDeviceSize minOffsetAlignment = 1;
-            
-            if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_INDEX_BUFFER_BIT) 
-            || BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_VERTEX_BUFFER_BIT))
-            {
-                minOffsetAlignment = 1;
-            }
-            else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT)) {
-                minOffsetAlignment = limits.minUniformBufferOffsetAlignment;
-            }
-            else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT)) {
-                minOffsetAlignment = limits.minStorageBufferOffsetAlignment;
-            }
-            else if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_2_UNIFORM_TEXEL_BUFFER_BIT)){
-                //does texel care if its uniform or storage?
-                //do i push it into the above?
-                minOffsetAlignment = limits.minTexelBufferOffsetAlignment;
-            }
+        VkDescriptorBufferInfo DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) const;
+        VkDescriptorBufferInfo* DescriptorInfo(VkDeviceSize size, VkDeviceSize offset);
 
-            if (minOffsetAlignment > 0) {
-                //printf("get alignment size : %zu \n", (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1));
-                return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
-            }
-            return instanceSize;
-        }
+        [[nodiscard]] static VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits); 
+    
+#if DEBUG_NAMING
+        void SetName(std::string_view name) const;
+#endif
     };
 }

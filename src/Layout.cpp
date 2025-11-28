@@ -26,9 +26,9 @@ namespace EWE {
 	}
 
 
-	Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, Shader::Stage::COUNT> const& shaders) {
+	Backend::Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, Shader::Stage::COUNT> const& shaders) {
 		assert(shaders.size() > 0);
-		Descriptor::LayoutPack ret{};
+		Backend::Descriptor::LayoutPack ret{};
 
 		uint8_t highestSize = 0;
 		for (auto& shader : shaders) {
@@ -55,9 +55,13 @@ namespace EWE {
 						auto& retBindings = retSet.bindings;
 						auto& shaderBindings = set.bindings;
 
-						for (auto& binding : shaderBindings) {
+						for(uint64_t shader_index = 0; shader_index < shaderBindings.vkBindings.size(); shader_index++) {
+							auto& binding = shaderBindings.vkBindings[shader_index];
+
 							bool foundBindingMatch = false;
-							for (auto& retBinding : retBindings) {
+							for(uint64_t ret_index = 0; ret_index < retBindings.vkBindings.size(); ret_index++){
+								auto& retBinding = retBindings.vkBindings[ret_index];
+
 								if (binding.binding == retBinding.binding) {
 									assert(retBinding.descriptorType == binding.descriptorType);
 									retBinding.stageFlags |= binding.stageFlags;
@@ -65,7 +69,12 @@ namespace EWE {
 								}
 							}
 							if (!foundBindingMatch) {
-								retBindings.push_back(binding);
+								//merge writes as well
+								retBindings.vkBindings.push_back(binding);
+								retBindings.writes.push_back(shaderBindings.writes[shader_index]);
+							}
+							else{
+								retBindings.writes[shader_index] = retBindings.writes[shader_index] | shaderBindings.writes[shader_index];
 							}
 						}
 						break;
@@ -77,18 +86,18 @@ namespace EWE {
 					auto const& constRefBindings = set.bindings;
 
 					//ret->setLayouts.push_back(set.key, Construct<Descriptor::SetLayout>(constRefBindings));
-                    ret.sets.push_back(Descriptor::Set{.index = set.index, .bindings = constRefBindings});
+                    ret.sets.push_back(Backend::Descriptor::Set{.index = set.index, .bindings = constRefBindings});
 				}
 			}
 		}		
 		std::sort(ret.sets.begin(), ret.sets.end(),
-			[](const Descriptor::Set& a, const Descriptor::Set& b) {
+			[](const Backend::Descriptor::Set& a, const Backend::Descriptor::Set& b) {
 				return a.index < b.index;
 			}
 		);
 
 		for (auto& dsl : ret.sets) {
-			assert(dsl.bindings.size() > 0);
+			assert(dsl.bindings.vkBindings.size() > 0);
             //this needs to be promoted to a full dsl
 			//dsl.value->BuildVkDSL();
 			//std::string debug_name = std::string(fileLocation.data()) + std::string(" - dsl#") + std::to_string(dsl.first);

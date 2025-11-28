@@ -45,9 +45,6 @@ namespace EWE{
         void BeginSingleTime() noexcept;
         //submit single time? im removing synchub for sure
 
-        void BeginLabel(const char* name, float red, float green, float blue) noexcept;
-        void EndLabel() noexcept;
-
         static bool InitLabelFunctions() noexcept;
     };
 }

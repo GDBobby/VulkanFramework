@@ -27,9 +27,9 @@ namespace EWE{
         //i could house transforms in that, potentially some other mat4s
 
 
-        void Bind(uint8_t slot, Buffer buffer) noexcept {
+        void Bind(uint8_t slot, Buffer const& buffer) noexcept {
             assert(slot < buffer_count);
-            buffer_addr[slot] = buffer.GetBDA();
+            buffer_addr[slot] = buffer.deviceAddress;
         }
 
         void Reset() noexcept {

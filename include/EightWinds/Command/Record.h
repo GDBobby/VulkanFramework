@@ -14,6 +14,18 @@ namespace EWE{
     struct Pipeline;
     struct PipelineBarrier;
     struct CommandBuffer;
+    struct GlobalPushConstant;
+    struct RenderInfo;
+    struct LogicalDevice;
+
+    template<typename T>
+    struct DeferredReference{
+        T* data;
+
+        DeferredReference(void* offset)
+        : data{reinterpret_cast<T*>(offset)}
+        {}
+    };
 
     struct CommandRecord{
         CommandRecord() = default;
@@ -22,60 +34,54 @@ namespace EWE{
         CommandRecord(CommandRecord&&) = delete;
         CommandRecord& operator=(CommandRecord&&) = delete;
 
-        //if it was compiled, i want an error when another command is added
-        //unless i want duplicate command lists, that only have minor differentiations
+        //if i want compile time optimization, i need to change how the data handles are done
+        //i dont think DeferredReference is goign to play nicely with constexpr, and
+        //vectors dont work with constexpr either, which is how the param_pool is currently setup.
+        //the parampool could probably be a span tho
+        GPUTask Compile(LogicalDevice& device) noexcept;
+
+        //i dont know how to handle command lists that are going to be duplicated
         bool wasCompiled = false;
 
 #if 1 //COMMAND_RECORD_NAMING
         std::string name;
 #endif
-    /*
-        pool of params is 1 option
-        that would be std::vector<uint8_t> or something
-
-        other options - lambdas, use reference capture (keep lifetime in mind)
-        lambdas are going to be extensively more expensive, but drastically easier (idk)
-    */
-
         //this isnt going to help me setup bindless at all.
         //currently, it would need to be setup externally, and dependencies would need to be tracked externally.
         
         std::vector<CommandInstruction> records{};
-        //i think i need GPUTask::Execute to just write directly to the param pool, so I don't need to worry about references/pointers
-        //thats things like vertex count
-        //param pool is going into GPUTask
-        //std::vector<uint8_t> paramPool;
 
-        GPUTask Compile() noexcept;
+        std::vector<void*> deferred_references{};
 
-        //the push constant size needs the pipeline id.
-        //optimization would need push constant size known at compile time (or optimization time, if theyre separate)
-        //potentially, write optimized instructions to a file and read it back later
-        void BindPipeline(Pipeline*);
+        //i dont know if i need the Pipeline data for compile time optimization
+        DeferredReference<Pipeline*>* BindPipeline();
 
         //i think i want a descirptor set that contains the details for buffers and images contained
         //im not sure how to do this yet
         //with some further inspection, i want to exclusively use device buffer address
-        void BindDescriptor();
+        //DeferredReference<VkDescriptorSet>* BindDescriptor();
 
-        void Push();
+        //i need some expanded or manual method to keep track of when buffers are written to in shaders
+
+        DeferredReference<GlobalPushConstant>* Push();
 
         //this shouldnt be used directly
-        void BeginRender();
+        DeferredReference<RenderInfo>* BeginRender();
         void EndRender();
 
         //this needs to be expanded
         //potentially dont even allow this to be called explicitly?
-        void Barrier();
+        DeferredReference<PipelineBarrier>* Barrier();
 
-        void BeginLabel() noexcept;
+        DeferredReference<LabelParamPack>* BeginLabel() noexcept;
         void EndLabel() noexcept;
 
-        void SetDynamicState(VkDynamicState dynState);
+        DeferredReference<VertexDrawParamPack>* Draw();
+        DeferredReference<IndexDrawParamPack>* DrawIndexed();
+        DeferredReference<DispatchParamPack>* Dispatch();
 
-        void Draw();
-        void DrawIndexed();
-        void Dispatch();
+        DeferredReference<ViewportScissorParamPack>* SetViewportScissor();
+        DeferredReference<ViewportScissorWithCountParamPack>* SetViewportScissorWithCount();
     };
 
 }//namespace EWE

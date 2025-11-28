@@ -1,5 +1,7 @@
 #include "EightWinds/Buffer.h"
 
+#include <cassert>
+
 namespace EWE{
 
     Buffer::~Buffer(){
@@ -8,7 +10,7 @@ namespace EWE{
         }
     }
 
-    Buffer::Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags2 usageFlags)
+    Buffer::Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags)
         : framework{framework}, 
         usageFlags{ usageFlags } 
         {
@@ -35,4 +37,74 @@ namespace EWE{
         bdaInfo.buffer = buffer_info.buffer;
         deviceAddress = vkGetBufferDeviceAddress(framework.logicalDevice.device, &bdaInfo);
     }
-}
+
+    void* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {
+        EWE_VK(vmaMapMemory, framework.logicalDevice.vmaAllocator, vmaAlloc, &mapped);
+    }
+
+    void Buffer::Unmap() noexcept {
+        assert(mapped);
+        vmaUnmapMemory(framework.logicalDevice.vmaAllocator, vmaAlloc);
+        mapped = nullptr;
+    }
+    
+    void Buffer::Flush(VkDeviceSize size, VkDeviceSize offset) {
+        EWE_VK(vmaFlushAllocation, framework.logicalDevice.vmaAllocator, vmaAlloc, offset, size);
+    }
+    void Buffer::FlushMin(VkDeviceSize offset){
+        VkDeviceSize trueOffset = offset - (offset % minOffsetAlignment);
+        if(offset != trueOffset){
+            //warning maybe?
+        }
+        EWE_VK(vmaFlushAllocation, framework.logicalDevice.vmaAllocator, vmaAlloc, trueOffset, minOffsetAlignment);
+    }
+    void Buffer::FlushIndex(uint32_t index) { 
+        Flush(alignmentSize, index * alignmentSize); 
+    }
+
+    VkDeviceSize Buffer::CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits) {
+        VkDeviceSize minOffsetAlignment = 1;
+        
+        if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_INDEX_BUFFER_BIT) 
+        || BitwiseContains(usageFlags, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT))
+        {
+            minOffsetAlignment = 1;
+        }
+        else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)) {
+            minOffsetAlignment = limits.minUniformBufferOffsetAlignment;
+        }
+        else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)) {
+            minOffsetAlignment = limits.minStorageBufferOffsetAlignment;
+        }
+        else if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)){
+            //does texel care if its uniform or storage?
+            //do i push it into the above?
+            minOffsetAlignment = limits.minTexelBufferOffsetAlignment;
+        }
+
+        if (minOffsetAlignment > 0) {
+            //printf("get alignment size : %zu \n", (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1));
+            return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
+        }
+        return instanceSize;
+    }
+        VkDescriptorBufferInfo Buffer::DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) const {
+        VkDescriptorBufferInfo ret = buffer_info;
+        ret.offset = offset;
+        ret.range = size;
+        return ret;
+    }
+
+    VkDescriptorBufferInfo* Buffer::DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) {
+        buffer_info.offset = offset;
+        buffer_info.range = size;
+        return &buffer_info;
+    }
+
+#if DEBUG_NAMING
+    void Buffer::SetName(std::string_view name) const{
+        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name.data());
+        vmaSetAllocationName(framework.logicalDevice.vmaAllocator, vmaAlloc, name.data());
+    }
+#endif
+} //namespace EWE

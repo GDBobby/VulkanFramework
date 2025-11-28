@@ -7,7 +7,7 @@
 #include "EightWinds/Backend/Semaphore.h"
 #include "EightWinds/Backend/Fence.h"
 
-#include "EightWinds/CommandBuffer.h"
+#include "EightWinds/Command/CommandBuffer.h"
 
 #include <array>
 #include <span>

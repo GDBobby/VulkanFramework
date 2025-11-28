@@ -105,7 +105,7 @@ namespace EWE{
             fences.push_back(fence.vkFence);
         }
         //timeout is not an accepted result here
-        EWE_VK(vkWaitForFences, logicalDevice.device, fences.size(), fences.data(), VK_TRUE, UINT64_MAX);
+        EWE_VK(vkWaitForFences, logicalDevice.device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX);
 
         EWE_VK(vkCreateSwapchainKHR, logicalDevice.device, &swapCreateInfo, nullptr, &activeSwapchain);
 
