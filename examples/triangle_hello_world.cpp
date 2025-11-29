@@ -335,7 +335,7 @@ int main() {
     auto* def_pipe = renderRecord.BindPipeline();
     auto* def_vp_scissor = renderRecord.SetViewportScissor();
     //auto* def_desc = cmdRecord.BindDescriptor();
-    auto* def_push = renderRecord.Push();
+    uint32_t pushIndex = renderRecord.Push();
     auto* def_draw = renderRecord.Draw();
     renderRecord.EndRender();
     EWE::GPUTask gpuTask = renderRecord.Compile(logicalDevice);
@@ -424,8 +424,7 @@ int main() {
     vertex_buffer.Flush();
     vertex_buffer.Unmap();
 
-    def_push->data->Reset();
-    def_push->data->buffer_addr[0] = vertex_buffer.deviceAddress;
+    gpuTask.UseBuffer(&vertex_buffer, pushIndex, 0, false);
 
     def_draw->data->firstInstance = 0;
     def_draw->data->firstVertex = 0;

@@ -95,15 +95,21 @@ namespace EWE{
 #endif
     
     GPUTask CommandRecord::Compile(LogicalDevice& logicalDevice) noexcept {
+        assert(!hasBeenCompiled);
         uint64_t full_data_size = records.back().paramOffset + CommandInstruction::GetParamSize(records.back().type);
 
         GPUTask ret{logicalDevice};
         ret.commandExecutor.instructions = records;
         ret.commandExecutor.paramPool.resize(full_data_size);
+        std::size_t param_pool_address = reinterpret_cast<std::size_t>(ret.commandExecutor.paramPool.data());
         for(auto& def_ref : deferred_references){
             OffsetHelper* offHelp = reinterpret_cast<OffsetHelper*>(def_ref);
-            offHelp->data += reinterpret_cast<uint64_t>(ret.commandExecutor.paramPool.data());
+            offHelp->data += param_pool_address;
             //we convert the initial offset to a real pointer into the paramPool
+        }
+        for(auto& push_off : push_offsets){
+            std::size_t temp_addr = reinterpret_cast<std::size_t>(push_off);
+            ret.pushTrackers.emplace_back(reinterpret_cast<GlobalPushConstant*>(temp_addr + param_pool_address));
         }
 
         //all validations will be here
@@ -112,6 +118,7 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
         assert(ValidateInstructions(records));
 #endif
+        hasBeenCompiled = true;
 
         return ret;
     }
@@ -141,12 +148,11 @@ namespace EWE{
     //the plan is to only have the single descriptor set, for all bindless textures
     //void BindDescriptor(VkDescriptorSet set);
     
-    DeferredReference<GlobalPushConstant>* CommandRecord::Push(){
+    uint32_t CommandRecord::Push(){
         //assert a pipeline is binded
         BindCommand(records, CommandInstruction::Type::PushConstant);
-        auto deferred_ref = new DeferredReference<GlobalPushConstant>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
-        return deferred_ref;
+        push_offsets.push_back(reinterpret_cast<GlobalPushConstant*>(GetCurrentOffset(records.back())));
+        return pushIndex++;
     }
 
     DeferredReference<RenderInfo>* CommandRecord::BeginRender(){

@@ -40,18 +40,19 @@ namespace EWE{
         //the parampool could probably be a span tho
         GPUTask Compile(LogicalDevice& device) noexcept;
 
-        //i dont know how to handle command lists that are going to be duplicated
-        bool wasCompiled = false;
+        //i dont know how to handle command lists that are going to be duplicated, or only slightly modified
+        //so im going to disable it
+        bool hasBeenCompiled = false;
 
 #if 1 //COMMAND_RECORD_NAMING
         std::string name;
 #endif
-        //this isnt going to help me setup bindless at all.
-        //currently, it would need to be setup externally, and dependencies would need to be tracked externally.
-        
+
         std::vector<CommandInstruction> records{};
 
+        uint32_t pushIndex = 0;
         std::vector<void*> deferred_references{};
+        std::vector<GlobalPushConstant*> push_offsets{};
 
         //i dont know if i need the Pipeline data for compile time optimization
         DeferredReference<Pipeline*>* BindPipeline();
@@ -63,7 +64,7 @@ namespace EWE{
 
         //i need some expanded or manual method to keep track of when buffers are written to in shaders
 
-        DeferredReference<GlobalPushConstant>* Push();
+        uint32_t Push();
 
         //this shouldnt be used directly
         DeferredReference<RenderInfo>* BeginRender();

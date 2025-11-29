@@ -161,6 +161,7 @@ namespace EWE{
         }
 
         void BeginLabel(ExecContext& ctx){
+#if DEBUG_NAMING
             auto* data = reinterpret_cast<LabelParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
             
             VkDebugUtilsLabelEXT labelUtil{};
@@ -172,10 +173,13 @@ namespace EWE{
             labelUtil.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             labelUtil.pNext = nullptr;
             ctx.device.BeginLabel(ctx.cmdBuf, &labelUtil);
+#endif
         }
 
         void EndLabel(ExecContext& ctx){
+#if DEBUG_NAMING
             ctx.device.EndLabel(ctx.cmdBuf);
+#endif
         }
 
 

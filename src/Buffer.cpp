@@ -1,5 +1,6 @@
 #include "EightWinds/Buffer.h"
 
+#include "vma/include/vk_mem_alloc.h"
 #include <cassert>
 
 namespace EWE{
@@ -40,6 +41,7 @@ namespace EWE{
 
     void* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {
         EWE_VK(vmaMapMemory, framework.logicalDevice.vmaAllocator, vmaAlloc, &mapped);
+        return mapped;
     }
 
     void Buffer::Unmap() noexcept {
