@@ -4,7 +4,6 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Framework.h"
 
-#include "vma/include/vk_mem_alloc.h"
 
 
 

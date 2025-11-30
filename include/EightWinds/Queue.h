@@ -14,6 +14,8 @@ namespace EWE{
 
         [[nodiscard]] explicit Queue(VkDevice logicalDeviceExplicit, QueueFamily const& family, float priority);
 
+        void Submit(uint32_t submitCount, VkSubmitInfo* submitInfos, VkFence fence) const;
+
         //TODO
 		//void BeginLabel(const char* name, float red, float green, float blue);
 		//void EndLabel();

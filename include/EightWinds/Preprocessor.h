@@ -7,7 +7,11 @@
 #define EWE_DEBUG_BOOL false
 #endif
 
+#define EWE_USING_EXCEPTIONS true
+
 #if EWE_DEBUG_BOOL
+    #include <cassert> //sucks to include this in the header but whatever
+
     #ifdef _MSC_VER
         #define EWE_UNREACHABLE assert(false)
     #elif defined(__GNUC__) || defined(__clang__)

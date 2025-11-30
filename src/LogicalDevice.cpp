@@ -4,10 +4,13 @@ namespace EWE{
     
     LogicalDevice::LogicalDevice(
         PhysicalDevice&& physicalDevice,
-        VkDeviceCreateInfo& deviceCreateInfo
+        VkDeviceCreateInfo& deviceCreateInfo,
+        uint32_t api_version,
+        VmaAllocatorCreateFlags allocatorFlags
     ) noexcept
     : instance{physicalDevice.instance},
-        physicalDevice{std::forward<PhysicalDevice>(physicalDevice)}
+        physicalDevice{std::forward<PhysicalDevice>(physicalDevice)},
+        api_version{api_version}
     {
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         //pnext is set before coming into this function
@@ -92,6 +95,17 @@ namespace EWE{
         EndLabel = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT");
         printf("setup object naming\n");
 #endif
+
+
+        VmaAllocatorCreateInfo allocatorCreateInfo{};
+        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+        allocatorCreateInfo.vulkanApiVersion = api_version;
+        allocatorCreateInfo.physicalDevice = physicalDevice.device;
+        allocatorCreateInfo.device = device;
+        allocatorCreateInfo.instance = instance.instance;
+        allocatorCreateInfo.pVulkanFunctions = nullptr;
+        VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
+        EWE_VK_RESULT(result);
     }
 
     //a separate function will allow for customizaiton of queues

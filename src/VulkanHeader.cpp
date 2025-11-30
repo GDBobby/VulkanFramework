@@ -4,35 +4,55 @@
 
 namespace EWE{
     //i think im going to change this to print out some history of the render graph
+    //that would mean castign a type erased pointer (void*), along with a enum val (VK_OBJECT_TYPE similar)
+    //then including basically EVERYTHING in a cpp file
+    //then interpreting the type, and printing a debug log
 
-    #if CALL_TRACING
-    void EWE_VK_RESULT(VkResult vkResult) {
-    #if DEBUGGING_DEVICE_LOST                                                                                        
-        if (vkResult == VK_ERROR_DEVICE_LOST) { EWE::VKDEBUG::OnDeviceLost(); }
-        else
-    #endif
-        if (vkResult != VK_SUCCESS) {
+    
+#if EWE_USING_EXCEPTIONS
+
+#if CALL_TRACING
+        EWEException::EWEException(uint8_t skip, uint8_t max_depth, VkResult result, std::string_view msg) noexcept
+            :
+            std::runtime_error("EWE except"), 
+            result{result},
+            text{msg},
+            stacktrace{std::stacktrace::current(skip, max_depth)}
+        {}
+        EWEException::EWEException(uint8_t skip, uint8_t max_depth, std::string_view msg) noexcept
+            : EWEException(skip, max_depth, VK_RESULT_MAX_ENUM, msg)
+        {}
+        EWEException::EWEException(uint8_t skip, uint8_t max_depth, VkResult result) noexcept
+            : EWEException(skip, max_depth, result, "")
+        {}
         
-            printf("need to set up stack tracing here\n");
-    #if COMMAND_BUFFER_TRACING
-            for (uint8_t i = 0; i < EWE::vkObject->renderCommands.size(); i++) {
-                while (EWE::vkObject->renderCommands[i].usageTracking.size() > 0) {
-                    for (auto& usage : EWE::vkObject->renderCommands[i].usageTracking.front()) {
-                        logFile << "cb(" << +i  << ")(" << EWE::vkObject->renderCommands[i].usageTracking.size() << ") : " << usage.funcName << '\n';
-                    }
-                    EWE::vkObject->renderCommands[i].usageTracking.pop();
-                }
-            }
-    #endif
-            assert(vkResult == VK_SUCCESS && "VK_ERROR");
-        }
-    }
-    #else
-    void EWE_VK_RESULT(VkResult vkResult) {
-#if DEBUGGING_DEVICE_LOST                                                                                        
-        if (vkResult == VK_ERROR_DEVICE_LOST) { EWE::VKDEBUG::OnDeviceLost(); }
 #endif
-        assert(vkResult == VK_SUCCESS);
-    }
-    #endif
+
+        EWEException::EWEException(VkResult result, std::string_view msg) noexcept : 
+#if CALL_TRACING
+            EWEException(1, 16, result, msg)
+#else
+            std::runtime_error("EWE except"),
+            result{result}, msg{msg}
+#endif
+        {}
+
+        EWEException::EWEException(std::string_view msg) noexcept : 
+#if CALL_TRACING
+            EWEException(1, 16, VK_RESULT_MAX_ENUM, msg)
+#else
+            EWEException(VK_RESULT_MAX_ENUM, msg)
+#endif
+        {}
+
+        EWEException::EWEException(VkResult result) noexcept : 
+#if CALL_TRACING
+            EWEException(1, 16, result, msg)
+#else
+            EWEException(result, "")
+#endif
+        {}
+
+
+#endif
 }

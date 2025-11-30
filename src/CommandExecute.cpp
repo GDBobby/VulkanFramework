@@ -23,10 +23,10 @@ namespace EWE{
             LogicalDevice& device;
 
             std::vector<CommandInstruction> const& instructions;
-            std::size_t& iterator;
             CommandBuffer& cmdBuf;
             std::vector<uint8_t> const& paramPool;
 
+            std::size_t iterator = 0;
             //i dont really know what i want to do with the lower data
             //i can do assertions, which will be nice for preventing bugs
             //i could do static analysis for deeper bugs, or potentially even optimization
@@ -90,8 +90,9 @@ namespace EWE{
 
     namespace Exec{
         //define command functions here
-        void BindPipeline(ExecContext& ctx){
-            Pipeline const* pipeline = reinterpret_cast<Pipeline const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+        void BindPipeline(ExecContext& ctx) {
+            const std::size_t addressCast = *reinterpret_cast<std::size_t const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            Pipeline const* pipeline = reinterpret_cast<Pipeline const*>(addressCast);
             assert(pipeline != nullptr);
             ctx.boundLayout = pipeline->pipeLayout->vkLayout;
             ctx.currentBindPoint = pipeline->pipeLayout->bindPoint;
@@ -189,12 +190,16 @@ namespace EWE{
             if(*condition){
                 while(ctx.iterator < ctx.instructions.size()){
                     if(ctx.instructions[ctx.iterator].type == CommandInstruction::Type::EndIf){
-                        ctx.iterator++;
                         return;
                     }
                     dispatchTable[static_cast<std::size_t>(ctx.instructions[ctx.iterator].type)](ctx);
+                    ctx.iterator++;
                 }
                 EWE_UNREACHABLE;
+            }
+            else {
+                //passes over the if, so that the endif will be stepped over on return
+                ctx.iterator++;
             }
         }
 
@@ -217,15 +222,18 @@ namespace EWE{
     } //namespace Exec
 
     void CommandExecutor::Execute(CommandBuffer& cmdBuf) const noexcept {
-        std::size_t iterator = 0;
-        Exec::ExecContext ctx{logicalDevice, instructions, iterator, cmdBuf, paramPool};
+        Exec::ExecContext ctx{logicalDevice, instructions, cmdBuf, paramPool};
 
-        while(iterator < instructions.size()){
+        while(ctx.iterator < instructions.size()){
             //validate before creating the executor
             //assert(instructions[iterator].type != CommandInstruction::Type::EndIf && "unscoped endif");
             //assert(instructions[iterator].type != CommandInstruction::Type::LoopEnd && "unscoped loop end");
             //assert(instructions[iterator].type != CommandInstruction::Type::SwitchEnd && "unscoped switch end");
-            dispatchTable[static_cast<std::size_t>(instructions[iterator].type)](ctx);
+            
+            //the cast doesnt matter at all, but it makes it easier to step thru in the debugger
+            Exec::CommandFunction* cmdFunc = dispatchTable[static_cast<std::size_t>(instructions[ctx.iterator].type)];
+            cmdFunc(ctx);
+            ctx.iterator++;
         }
     }
 } //namespace EWE

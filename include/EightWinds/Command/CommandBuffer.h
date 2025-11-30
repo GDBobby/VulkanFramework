@@ -40,8 +40,11 @@ namespace EWE{
         bool operator==(CommandBuffer const& other) const noexcept { return cmdBuf == other.cmdBuf;}
         //CommandBuffer& operator=(VkCommandBuffer cmdBuf) noexcept;
 
-        void Reset() noexcept;
-        void Begin() noexcept;
+        void Reset();
+        void Begin(VkCommandBufferBeginInfo const& beginInfo);
+        void End();
+        //reads the queue in the command pool this was created from
+        void SubmitAlone(VkFence fence); 
         void BeginSingleTime() noexcept;
         //submit single time? im removing synchub for sure
 

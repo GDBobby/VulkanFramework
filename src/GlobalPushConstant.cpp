@@ -1,4 +1,6 @@
-#include "EightWinds/VulkanHeader.h"
+#include "EightWinds/GlobalPushConstant.h"
+
+#include <cassert>
 
 namespace EWE{
 

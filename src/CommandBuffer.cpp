@@ -31,19 +31,23 @@ namespace EWE{
         return *this;
     }
 */
-    void CommandBuffer::Reset() noexcept {
+
+    void CommandBuffer::Reset() {
         assert(commandPool.flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT && inUse);
         EWE_VK(vkResetCommandBuffer, cmdBuf, resetFlags);
-        inUse = false;
+        assert(!inUse);
+        //inUse = false;
 
         assert(labelDepth == 0);
     }
 
-    void CommandBuffer::Begin() noexcept {
+    void CommandBuffer::End() {
+        inUse = false;
+        EWE_VK(vkEndCommandBuffer, cmdBuf);
+    }
+
+    void CommandBuffer::Begin(VkCommandBufferBeginInfo const& beginInfo) {
         inUse = true;
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.pNext = nullptr;
 #if COMMAND_BUFFER_TRACING
         if (usageTracking.size() > 2) {
             usageTracking.pop();

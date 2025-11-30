@@ -19,6 +19,8 @@ namespace EWE{
         PhysicalDevice physicalDevice;
         VmaAllocator vmaAllocator;
 
+        const uint32_t api_version;
+
         //i think ill let the engine handle filtering the queues
         //i don't think there's a reason to use multiple queues in a single family currently.
         std::vector<Queue> queues; 
@@ -29,7 +31,9 @@ namespace EWE{
 
         [[nodiscard]] explicit LogicalDevice(
             PhysicalDevice&& physicalDevice,
-            VkDeviceCreateInfo& deviceCreateInfo
+            VkDeviceCreateInfo& deviceCreateInfo,
+            uint32_t api_version,
+            VmaAllocatorCreateFlags allocatorFlags
         ) noexcept;
 
         //uint64_t GetBufferMinimumAlignment(VkBufferUsageFlags2 usageFlags) const;

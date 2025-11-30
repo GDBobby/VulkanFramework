@@ -26,18 +26,22 @@ namespace EWE{
 
         ShaderFactory shaderFactory;
         PipelineSystem pipelineSystem;
-        //CommandBufferFactory cbFac;//handles command buffer pools underneath it
+        //handles command buffer pools underneath it
+        //CommandBufferFactory cbFac;
         Backend::Descriptor::LayoutCache dslCache;
-        //DescriptorFactory descFact;//this fact will need a ref to dslcache
         
         //this is going to be a copy. i need it internally for buffer alignment.
         VkPhysicalDeviceProperties properties; 
 
-        //i could also use a few extensions internally
-        //im considering using hooks (x86 assembly, code injection type hooks) to inline the branches for these extensions
         bool graphicsLibraryEnabled = false;
         bool meshShadersEnabled = false;
         bool deviceFaultEnabled = false;
+
+#if EWE_USING_EXCEPTIONS
+
+        //it will be re-thrown
+        void HandleVulkanException(EWEException& renderExcept);
+#endif
     };
 
 }

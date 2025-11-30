@@ -27,6 +27,17 @@
 #include <filesystem>
 #include <chrono>
 
+void PrintAllExtensions(VkPhysicalDevice physicalDevice) {
+    uint32_t extCount = 0;
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
+    std::vector<VkExtensionProperties> extProps(extCount);
+    vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, extProps.data());
+    printf("available extensions --\n");
+    for (auto& prop : extProps) {
+        printf("\t%s\n", prop.extensionName);
+    }
+}
+
 
 //https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_device_address_binding_report.html
 //vk_ext_device_fault
@@ -57,7 +68,7 @@ using Example_ExtensionManager = EWE::ExtensionManager<application_wide_vk_versi
     EWE::ExtensionEntry<meshShaderExt, false, 100000>,
     EWE::ExtensionEntry<descriptorIndexingExt, true, 0>,
     EWE::ExtensionEntry<bufferAddressExt, true, 0>,
-    EWE::ExtensionEntry<deviceFaultExt, false, 100000>
+    EWE::ExtensionEntry<deviceFaultExt, true, 0>
 >;
 
 
@@ -66,7 +77,8 @@ constexpr uint32_t rounded_down_vulkan_version = EWE::RoundDownVkVersion(applica
 using Example_FeatureManager = EWE::FeatureManager<rounded_down_vulkan_version,
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
     VkPhysicalDeviceMeshShaderFeaturesEXT,
-    VkPhysicalDeviceDescriptorIndexingFeatures
+    VkPhysicalDeviceDescriptorIndexingFeatures,
+    VkPhysicalDeviceFaultFeaturesEXT
 >;
 
 using Example_PropertyManager = EWE::PropertyManager<rounded_down_vulkan_version,
@@ -173,6 +185,10 @@ int main() {
     indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
     indexingFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
 
+    auto& devFaultFeatures = specDev.GetFeature< VkPhysicalDeviceFaultFeaturesEXT>();
+    devFaultFeatures.deviceFault = VK_TRUE;
+    devFaultFeatures.deviceFaultVendorBinary = VK_TRUE;
+
     uint32_t deviceCount;
     EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, nullptr);
     std::vector<VkPhysicalDevice> all_detected_physical_devices(deviceCount);
@@ -190,13 +206,41 @@ int main() {
     }
 
     EWE::PhysicalDevice physicalDevice{ instance, evaluatedDevices[0].device, window.surface };
+    PrintAllExtensions(physicalDevice.device);
+
+    /*
+    quick notes, on the pnext chain
+    i was waiting to see how it evolved a bit, and here's my current understanding
+    if the extension is enabled, then I add feature struct to VkDeviceCreateInfo::pnext
+    every feature so far has the following line
+    
+    If the application wishes to use a VkDevice with any features described by VkPhysicalDeviceMeshShaderFeaturesEXT, it must add an instance of the structure, with the desired feature members set to VK_TRUE, to the pNext chain of VkDeviceCreateInfo when creating the VkDevice.
+
+    once that is done, vkGetPhysicalDeviceFeatures2 can be polled to check whats available in the driver/hardware
+    i dont really know how to build a robust requirement chain here, maybe use device scoring
+    BUT, features are DEPENDENT on extensions, but not always the other way around
+    
+    currently, i think i could make an extension struct, consteval
+    give it a name and a type for feature, or void if no feature
+    i dont think theres any features that arent dependent on an extension
+    */
+
+
+    //this needs to be added to the pnext chain
+    VkPhysicalDeviceFaultFeaturesEXT deviceFaultFeaturesPNEXT{};
+    deviceFaultFeaturesPNEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT;
+    deviceFaultFeaturesPNEXT.pNext = nullptr;
+    deviceFaultFeaturesPNEXT.deviceFault = VK_TRUE;
+    deviceFaultFeaturesPNEXT.deviceFaultVendorBinary = VK_TRUE;
 
     EWE::LogicalDevice logicalDevice = specDev.ConstructDevice(
         evaluatedDevices[0],
         //i want physicaldevice to be moved, but i might just construct it inside the logicaldevice
         //the main thing is i just dont want to repopulate the queues
         std::forward<EWE::PhysicalDevice>(physicalDevice),
-        nullptr
+        reinterpret_cast<VkBaseInStructure*>(&deviceFaultFeaturesPNEXT),
+        application_wide_vk_version,
+        VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT
     );
 
     EWE::Queue* renderQueue = nullptr;
@@ -231,10 +275,6 @@ int main() {
 
     EWE::PipeLayout triangle_layout(framework, std::initializer_list<EWE::Shader*>{ triangle_vert, triangle_frag });
 
-    //create a renderpass here
-    //EWE::PipelineConfigInfo configInfo;
-    std::vector<VkDynamicState> dynamicStates{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-
     VkPipelineRenderingCreateInfo renderingCreateInfo{};
     renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     renderingCreateInfo.pNext = nullptr;
@@ -259,8 +299,6 @@ int main() {
     commandBuffers.emplace_back(renderCmdPool, cmdBufVector[0]);
     commandBuffers.emplace_back(renderCmdPool, cmdBufVector[1]);
 
-    uint8_t currentFrame = 0;
-    auto timeBegin = std::chrono::high_resolution_clock::now();
 
 
     //from here, create the render graph
@@ -274,15 +312,9 @@ int main() {
     std::vector<VkDynamicState> dynamicState{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
     EWE::GraphicsPipeline triangle_pipeline{ logicalDevice, 0, &triangle_layout, passConfig, objectConfig, dynamicState };
 
-    uint8_t frameIndex = 0;
-    VkCommandBufferBeginInfo cmdBeginInfo{};
-    cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cmdBeginInfo.pNext = nullptr;
-    cmdBeginInfo.pInheritanceInfo = nullptr;
-    cmdBeginInfo.flags = 0;
 
-    VkImage colorAttachmentImage;
-    VkImage depthAttachmentImage;
+    EWE::PerFlight<VkImage> colorAttachmentImages;
+    EWE::PerFlight<VkImage> depthAttachmentImages;
 
     VkImageCreateInfo imgCreateInfo{};
     imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -299,10 +331,14 @@ int main() {
     imgCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     imgCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    vkCreateImage(logicalDevice.device, &imgCreateInfo, nullptr, &colorAttachmentImage);
+    for (auto& cai : colorAttachmentImages) {
+        EWE::EWE_VK(vkCreateImage, logicalDevice.device, &imgCreateInfo, nullptr, &cai);
+    }
     imgCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     imgCreateInfo.format = VK_FORMAT_R16_UNORM;
-    vkCreateImage(logicalDevice.device, &imgCreateInfo, nullptr, &depthAttachmentImage);
+    for (auto& dai : depthAttachmentImages) {
+        EWE::EWE_VK(vkCreateImage, logicalDevice.device, &imgCreateInfo, nullptr, &dai);
+    }
 
     VkImageViewCreateInfo imgViewCreateInfo{};
     imgViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -315,17 +351,21 @@ int main() {
     imgViewCreateInfo.subresourceRange.baseArrayLayer = 0;
     imgViewCreateInfo.subresourceRange.layerCount = 1;
 
-    VkImageView colorAttView;
-    VkImageView depthAttView;
+    EWE::PerFlight<VkImageView> colorAttViews;
+    EWE::PerFlight<VkImageView> depthAttViews;
     imgViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
     imgViewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-    imgViewCreateInfo.image = colorAttachmentImage;
-    vkCreateImageView(logicalDevice.device, &imgViewCreateInfo, nullptr, &colorAttView);
+    for (uint8_t i = 0; i < EWE::max_frames_in_flight; i++) {
+        imgViewCreateInfo.image = colorAttachmentImages[i];
+        EWE::EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &colorAttViews[i]);
+    }
 
     imgViewCreateInfo.format = VK_FORMAT_R16_UNORM;
     imgViewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R};
-    imgViewCreateInfo.image = depthAttachmentImage;
-    vkCreateImageView(logicalDevice.device, &imgViewCreateInfo, nullptr, &depthAttView);
+    for (uint8_t i = 0; i < EWE::max_frames_in_flight; i++) {
+        imgViewCreateInfo.image = depthAttachmentImages[i];
+        EWE::EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &depthAttViews[i]);
+    }
 
     //this will also get filled out by the rendergraph
     VkRenderingInfo renderingInfo{};
@@ -342,7 +382,6 @@ int main() {
     def_beginRender->data->colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     def_beginRender->data->colorAttachmentInfo.pNext = nullptr;
     def_beginRender->data->colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    def_beginRender->data->colorAttachmentInfo.imageView = colorAttView;
     def_beginRender->data->colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     def_beginRender->data->colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[0] = 0.f;
@@ -356,7 +395,6 @@ int main() {
     def_beginRender->data->depthAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     def_beginRender->data->depthAttachmentInfo.pNext = nullptr;
     def_beginRender->data->depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    def_beginRender->data->depthAttachmentInfo.imageView = depthAttView;
     def_beginRender->data->depthAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     def_beginRender->data->depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     def_beginRender->data->depthAttachmentInfo.clearValue.depthStencil.depth = 0.f;
@@ -383,8 +421,7 @@ int main() {
     def_vp_scissor->data->viewport.maxDepth = 10000.f;
 
     VmaAllocationCreateInfo vmaAllocInfo{};
-    vmaAllocInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-        VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
     vmaAllocInfo.usage = VMA_MEMORY_USAGE_AUTO;
     vmaAllocInfo.memoryTypeBits = 0;
     vmaAllocInfo.pool = VK_NULL_HANDLE;
@@ -440,14 +477,34 @@ int main() {
     submitInfo.waitSemaphoreCount = 0;
     submitInfo.pWaitSemaphores = nullptr;
     submitInfo.pWaitDstStageMask = nullptr;
-    while (true) {
-        EWE::CommandBuffer& currentCmdBuf = commandBuffers[currentFrame];
-        EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
-        gpuTask.Execute(currentCmdBuf);
 
-        EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
-        submitInfo.pCommandBuffers = &currentCmdBuf.cmdBuf;
-        EWE::EWE_VK(vkQueueSubmit, *renderQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    //auto timeBegin = std::chrono::high_resolution_clock::now();
+    uint8_t frameIndex = 0;
+    VkCommandBufferBeginInfo cmdBeginInfo{};
+    cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBeginInfo.pNext = nullptr;
+    cmdBeginInfo.pInheritanceInfo = nullptr;
+    cmdBeginInfo.flags = 0;
+    try {
+        while (true) {
+            def_beginRender->data->colorAttachmentInfo.imageView = colorAttViews[frameIndex];
+            def_beginRender->data->depthAttachmentInfo.imageView = depthAttViews[frameIndex];
+
+            EWE::CommandBuffer& currentCmdBuf = commandBuffers[frameIndex];
+            //EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
+            currentCmdBuf.Begin(cmdBeginInfo);
+            gpuTask.Execute(currentCmdBuf);
+
+            //EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
+            currentCmdBuf.End();
+            submitInfo.pCommandBuffers = &currentCmdBuf.cmdBuf;
+            //EWE::EWE_VK(vkQueueSubmit, *renderQueue, 1, &submitInfo, VK_NULL_HANDLE);
+            renderQueue->Submit(1, &submitInfo, VK_NULL_HANDLE);
+            frameIndex = (frameIndex + 1) % EWE::max_frames_in_flight;
+        }
+    }
+    catch (EWE::EWEException& except) {
+        framework.HandleVulkanException(except);
     }
 
 

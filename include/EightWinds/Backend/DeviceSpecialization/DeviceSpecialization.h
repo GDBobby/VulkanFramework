@@ -171,7 +171,13 @@ namespace EWE{
             return ret;
         }
 
-        [[nodiscard]] LogicalDevice ConstructDevice(DeviceEvaluation& deviceEval, PhysicalDevice&& physicalDevice, VkBaseInStructure* pNextChain){
+        [[nodiscard]] LogicalDevice ConstructDevice(
+            DeviceEvaluation& deviceEval, 
+            PhysicalDevice&& physicalDevice, 
+            VkBaseInStructure* pNextChain,
+            uint32_t api_version,
+            VmaAllocatorCreateFlags vmaAllocatorFlags
+        ){
 
 
             features.Populate(physicalDevice.device);
@@ -204,7 +210,7 @@ namespace EWE{
             deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(active_extensions.size());
             deviceCreateInfo.ppEnabledExtensionNames = active_extensions.data();
 
-            return LogicalDevice(std::forward<PhysicalDevice>(physicalDevice), deviceCreateInfo);
+            return LogicalDevice(std::forward<PhysicalDevice>(physicalDevice), deviceCreateInfo, api_version, vmaAllocatorFlags);
         }
 
     };
