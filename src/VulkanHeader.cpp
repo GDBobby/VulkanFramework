@@ -32,7 +32,7 @@ namespace EWE{
 #if CALL_TRACING
             EWEException(1, 16, result, msg)
 #else
-            std::runtime_error("EWE except"),
+            std::runtime_error(std::to_string(result)),
             result{result}, msg{msg}
 #endif
         {}

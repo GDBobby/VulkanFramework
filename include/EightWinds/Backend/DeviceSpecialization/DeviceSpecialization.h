@@ -23,6 +23,10 @@ namespace EWE{
 
     struct DeviceEvaluation {
         VkPhysicalDevice device = VK_NULL_HANDLE;
+#if EWE_DEBUG_BOOL
+        std::string name;
+        uint32_t api_version;
+#endif
         uint64_t score = 0;
         bool passedRequirements = true;
         std::vector<bool> supported_extensions{};
@@ -125,11 +129,17 @@ namespace EWE{
 
             //i doubt it's possible to connect than than 255 devices
             for (auto& dev : physicalDevices) {
+
                 features.Populate(dev);
                 properties.Populate(dev);
 
+
                 auto& devEval = ret.emplace_back();
                 devEval.device = dev;
+#if EWE_DEBUG_BOOL
+                devEval.name = GetProperty<VkPhysicalDeviceProperties2>().properties.deviceName;
+                devEval.api_version = GetProperty<VkPhysicalDeviceProperties2>().properties.apiVersion;
+#endif
 
                 auto featureScore = features.Score(dev);
                 devEval.passedRequirements = devEval.passedRequirements && featureScore.metRequirements;
@@ -184,7 +194,7 @@ namespace EWE{
             properties.Populate(physicalDevice.device);
             //check extensions
             
-            VkDeviceCreateInfo deviceCreateInfo;
+            VkDeviceCreateInfo deviceCreateInfo{};
             deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
             deviceCreateInfo.pNext = pNextChain;
             
@@ -201,7 +211,7 @@ namespace EWE{
             //deviceCreateInfo.queueCreateInfoCount
             //^handled inside the LogicalDevice constructor
 
-            std::vector<const char*> active_extensions;
+            std::vector<const char*> active_extensions{};
             for (uint16_t i = 0; i < extension_support.size(); i++) {
                 if (extension_support[i]) {
                     active_extensions.push_back(ExtensionMan::names[i].data());

@@ -202,7 +202,33 @@ int main() {
 
     if (!evaluatedDevices[0].passedRequirements) {
         printf("highest score device failed requirements, exiting\n");
+        printf("device count - %zu\n", evaluatedDevices.size());
+#if EWE_DEBUG_BOOL
+        for(uint8_t i = 0; i < evaluatedDevices.size(); i++) {
+            auto& evDev = evaluatedDevices[i];
+            printf("results[%d] - %s --- %d - %zu\n", i, evDev.name.c_str(), evDev.passedRequirements, evDev.score);
+            const uint32_t variant_version = evDev.api_version >> 29;
+            const uint32_t major_version = (evDev.api_version - (variant_version << 29)) >> 22;
+            const uint32_t minor_version = (evDev.api_version - (variant_version << 29) - (major_version << 22)) >> 12;
+            const uint32_t patch_version = (evDev.api_version - (variant_version << 29) - (major_version << 22) - (minor_version << 12));
+
+            printf("api version - %d.%d.%d.%d\n", variant_version, major_version, minor_version, patch_version);
+
+            for(auto& fp : evDev.failureReport){
+                printf("\t\tfp - %s\n", fp.c_str());
+            }
+        }
+#endif
         return -1;
+    }
+    else{
+        auto& evDev = evaluatedDevices[0];
+        const uint32_t variant_version = evDev.api_version >> 29;
+        const uint32_t major_version = (evDev.api_version - (variant_version << 29)) >> 22;
+        const uint32_t minor_version = (evDev.api_version - (variant_version << 29) - (major_version << 22)) >> 12;
+        const uint32_t patch_version = (evDev.api_version - (variant_version << 29) - (major_version << 22) - (minor_version << 12));
+
+        printf("api version - %d.%d.%d.%d\n", variant_version, major_version, minor_version, patch_version);
     }
 
     EWE::PhysicalDevice physicalDevice{ instance, evaluatedDevices[0].device, window.surface };
@@ -271,7 +297,6 @@ int main() {
 
     auto* triangle_vert = framework.shaderFactory.GetShader("examples/common/shaders/basic.vert.spv");
     auto* triangle_frag = framework.shaderFactory.GetShader("examples/common/shaders/basic.frag.spv");
-
 
     EWE::PipeLayout triangle_layout(framework, std::initializer_list<EWE::Shader*>{ triangle_vert, triangle_frag });
 
