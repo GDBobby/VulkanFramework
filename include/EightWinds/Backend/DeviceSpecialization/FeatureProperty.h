@@ -204,6 +204,37 @@ namespace EWE {
     template<uint32_t Vk_Version, typename... FeatureParamPack>
     struct FeatureManager {
 
+        template <typename T>
+        static void SetFeature_RequestedToAvailable(T& lhs, T const& rhs) noexcept {
+            // skip sType and pNext (the first two pointers)
+            constexpr std::size_t header_size = sizeof(VkBaseInStructure);
+            const std::size_t lhs_addr = reinterpret_cast<std::size_t>(&lhs) + header_size;
+            const std::size_t rhs_addr = reinterpret_cast<std::size_t>(&rhs) + header_size;
+            VkBool32* lhs_bool = reinterpret_cast<VkBool32*>(lhs_addr);
+            VkBool32 const* rhs_bool = reinterpret_cast<VkBool32 const*>(rhs_addr);
+
+            const std::size_t count = (sizeof(T) - header_size) / sizeof(VkBool32);
+
+            for (size_t i = 0; i < count; i++) {
+                lhs_bool[i] = lhs_bool[i] && rhs_bool[i];
+            }
+        }
+        template <typename... Ts>
+        static void SetAllFeatures_RequestedToAvailable(std::tuple<Ts...>& lhs, std::tuple<Ts...>& rhs) {
+            std::apply(
+                [&](auto&... elemsA) {
+                    std::apply(
+                        [&](auto&... elemsB) {
+                            // Expands pairwise comparison
+                            ((SetFeature_RequestedToAvailable(elemsA, elemsB)), ...);
+                        },
+                        rhs
+                    );
+                },
+                lhs
+            );
+        }
+
         VkPhysicalDeviceFeatures2 base;
         //v1.1 includes features11, v1.2 for features12 and so on
         using VersionFeaturePack = typename VulkanVersionTypes<RoundDownVkVersion(Vk_Version)>::FeatureTypes;
@@ -220,13 +251,37 @@ namespace EWE {
         template<typename T>
         static constexpr bool Contains_Type = (std::same_as<T, VkPhysicalDeviceFeatures2> || FeatureContainer::template Contains_Type<T>);
 
-        void Populate(VkPhysicalDevice physicalDevice) {
+        void Populate_Helper(VkPhysicalDevice physicalDevice) {
+            base.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            base.pNext = features.BuildPNextChain();
+            
+            vkGetPhysicalDeviceFeatures2(physicalDevice, &base);
+        }
+            
+        FeatureManager Populate(VkPhysicalDevice physicalDevice) {
             base.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
             
-            if (base.pNext == nullptr) {
-                base.pNext = features.BuildPNextChain();
-            }
-            vkGetPhysicalDeviceFeatures2(physicalDevice, &base);
+            FeatureManager ret_requested = *this;
+            FeatureManager ret_available{};
+            ret_available.base.pNext = ret_available.features.BuildPNextChain();
+            ret_available.Populate_Helper(physicalDevice);
+            
+            SetFeature_RequestedToAvailable(ret_requested.base, ret_available.base);
+
+            SetAllFeatures_RequestedToAvailable(ret_requested.features.data, ret_available.features.data);
+            return ret_requested;
+        }
+        void PopulateInPlace(VkPhysicalDevice physicalDevice) {
+            base.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            base.pNext = features.BuildPNextChain();
+            
+            FeatureManager ret_available{};
+            ret_available.base.pNext = ret_available.features.BuildPNextChain();
+            ret_available.Populate_Helper(physicalDevice);
+            
+            SetFeature_RequestedToAvailable(base, ret_available.base);
+
+            SetAllFeatures_RequestedToAvailable(features.data, ret_available.features.data);
         }
 
         [[nodiscard]] DeviceScore Score(VkPhysicalDevice physicalDevice) {

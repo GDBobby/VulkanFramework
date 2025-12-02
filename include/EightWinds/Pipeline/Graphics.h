@@ -7,6 +7,8 @@
 #include "EightWinds/Shader.h"
 #include "EightWinds/Pipeline/PipelineBase.h"
 
+#include <span>
+
 
 /*
 #define PIPELINE_DERIVATIVES 0 //pipeline derivatives are not currently recommended by hardware vendors
@@ -46,6 +48,8 @@ namespace EWE {
 		bool alphaToCoverageEnable;
 		bool alphaToOneEnable;
 		std::vector<VkDynamicState> dynamicState{};
+
+		std::vector<VkFormat> colorAttachmentFormats{};
 		
 		//VkPipelineViewportStateCreateInfo viewportInfo{}; //condensed to just vp/scissor count
 		

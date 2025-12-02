@@ -39,7 +39,14 @@ namespace EWE {
 		depthStencilInfo.maxDepthBounds = 1.0f;  // Optional
 
 		//no valid defaults, this needs real data
-		//VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
+		pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+		pipelineRenderingCreateInfo.pNext = nullptr;
+		colorAttachmentFormats.clear();
+		colorAttachmentFormats.push_back(VK_FORMAT_R8G8B8A8_UNORM);
+		pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentFormats.size());
+		pipelineRenderingCreateInfo.pColorAttachmentFormats = colorAttachmentFormats.data();
+		pipelineRenderingCreateInfo.depthAttachmentFormat = VK_FORMAT_D16_UNORM;
+		pipelineRenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 	}
 
 	void PipelineObjectConfig::SetDefaults() noexcept {
@@ -53,7 +60,8 @@ namespace EWE {
 		depthBias.clamp = 0.f;
 		depthBias.slopeFactor = 0.f;
 
-		topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		primitiveRestart = VK_FALSE;
 
 		blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		blendAttachment.blendEnable = VK_FALSE;
@@ -350,11 +358,20 @@ namespace EWE {
         inputAssCreateInfo.pNext = nullptr;
         inputAssCreateInfo.flags = 0; //reserved
         inputAssCreateInfo.topology = objectConfig.topology;
-        inputAssCreateInfo.primitiveRestartEnable = objectConfig.primitiveRestart;
+        inputAssCreateInfo.primitiveRestartEnable = objectConfig.primitiveRestart ? VK_TRUE : VK_FALSE;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssCreateInfo;
 
         pipelineCreateInfo.pTessellationState = nullptr;
-        pipelineCreateInfo.pViewportState = nullptr;
+
+		VkPipelineViewportStateCreateInfo viewportStateCreateInfo{};
+		viewportStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+		viewportStateCreateInfo.pNext = nullptr;
+		viewportStateCreateInfo.scissorCount = 1;
+		viewportStateCreateInfo.viewportCount = 1;
+		viewportStateCreateInfo.pScissors = nullptr;
+		viewportStateCreateInfo.pViewports = nullptr;
+		viewportStateCreateInfo.flags = 0;
+		pipelineCreateInfo.pViewportState = &viewportStateCreateInfo;
 
         //const  VkPipelineRasterizationStateCreateInfo *  pRasterizationState;
         VkPipelineRasterizationStateCreateInfo rasterStateCreateInfo{};
@@ -405,13 +422,8 @@ namespace EWE {
         blendCreateInfo.logicOpEnable = false;//maybe, idk
         blendCreateInfo.logicOp = VK_LOGIC_OP_MAX_ENUM;
 
-        if(objectConfig.blendAttachment.blendEnable){
-            blendCreateInfo.attachmentCount = 1;
-            blendCreateInfo.pAttachments = &objectConfig.blendAttachment;
-        }
-        else{
-            blendCreateInfo.attachmentCount = 0;
-        }
+		blendCreateInfo.attachmentCount = passConfig.colorAttachmentFormats.size();
+		blendCreateInfo.pAttachments = &objectConfig.blendAttachment;
         memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);
 
         pipelineCreateInfo.pColorBlendState = &blendCreateInfo;

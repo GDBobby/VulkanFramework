@@ -54,21 +54,21 @@ constexpr uint64_t max_uint64_t = UINT64_MAX;
     //it's a uint64, so be liberal with points
 
 //this really sucks, i need a better way around it
-constexpr EWE::ConstEvalStr swapchainExt{VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+constexpr EWE::ConstEvalStr swapchainExt{ VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+//https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_extended_dynamic_state3.html
 constexpr EWE::ConstEvalStr dynState3Ext{ VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME };
 constexpr EWE::ConstEvalStr meshShaderExt{ VK_EXT_MESH_SHADER_EXTENSION_NAME };
-constexpr EWE::ConstEvalStr descriptorIndexingExt{ VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME };
-constexpr EWE::ConstEvalStr bufferAddressExt{ VK_EXT_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME };
 constexpr EWE::ConstEvalStr deviceFaultExt{ VK_EXT_DEVICE_FAULT_EXTENSION_NAME };
+//this requires the instance extension VK_EXT_debug_utils. i don't know how to make that association cleanly
+constexpr EWE::ConstEvalStr dabReportExt{ VK_EXT_DEVICE_ADDRESS_BINDING_REPORT_EXTENSION_NAME }; 
 
 
 using Example_ExtensionManager = EWE::ExtensionManager<application_wide_vk_version,
     EWE::ExtensionEntry<swapchainExt, true, 0>,
     EWE::ExtensionEntry<dynState3Ext, true, 0>,
     EWE::ExtensionEntry<meshShaderExt, false, 100000>,
-    EWE::ExtensionEntry<descriptorIndexingExt, true, 0>,
-    EWE::ExtensionEntry<bufferAddressExt, true, 0>,
-    EWE::ExtensionEntry<deviceFaultExt, true, 0>
+    EWE::ExtensionEntry<deviceFaultExt, true, 0>,
+    EWE::ExtensionEntry<dabReportExt, true, 0>
 >;
 
 
@@ -77,13 +77,13 @@ constexpr uint32_t rounded_down_vulkan_version = EWE::RoundDownVkVersion(applica
 using Example_FeatureManager = EWE::FeatureManager<rounded_down_vulkan_version,
     VkPhysicalDeviceExtendedDynamicState3FeaturesEXT,
     VkPhysicalDeviceMeshShaderFeaturesEXT,
-    VkPhysicalDeviceDescriptorIndexingFeatures,
-    VkPhysicalDeviceFaultFeaturesEXT
+    VkPhysicalDeviceFaultFeaturesEXT,
+    VkPhysicalDeviceAddressBindingReportFeaturesEXT
 >;
 
 using Example_PropertyManager = EWE::PropertyManager<rounded_down_vulkan_version,
-    VkPhysicalDeviceMeshShaderPropertiesEXT,
-    VkPhysicalDeviceDescriptorIndexingProperties
+    VkPhysicalDeviceMeshShaderPropertiesEXT
+    //descriptor indexing properties in vulkan12properties?
 
 >;
 
@@ -146,6 +146,8 @@ int main() {
     for (uint32_t i = 0; i < glfwExtensionCount; ++i) {
         requiredExtensions.push_back(glfwExtensions[i]);
     }
+    requiredExtensions.push_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+    
 
     std::unordered_map<std::string, bool> optionalExtensions{};
 
@@ -174,29 +176,28 @@ int main() {
 
     auto& features2 = specDev.GetFeature<VkPhysicalDeviceFeatures2>();
     features2.features.samplerAnisotropy = VK_TRUE;
-    features2.features.geometryShader = VK_TRUE;
+    //features2.features.geometryShader = VK_TRUE;
     features2.features.wideLines = VK_TRUE;
-    //features2.features.tessellationShader = VK_TRUE;
+    features2.features.shaderInt64 = VK_TRUE;
+    
+    auto& features12 = specDev.GetFeature<VkPhysicalDeviceVulkan12Features>();
+    features12.scalarBlockLayout = VK_TRUE;
+    features12.bufferDeviceAddress = VK_TRUE;
+    features12.descriptorBindingPartiallyBound = VK_TRUE;
+    features12.runtimeDescriptorArray = VK_TRUE;
+    features12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    features12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    features12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
 
-    auto& indexingFeatures = specDev.GetFeature<VkPhysicalDeviceDescriptorIndexingFeatures>();
-    indexingFeatures.runtimeDescriptorArray = VK_TRUE;
-    indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-    indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
-    indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-    indexingFeatures.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+    auto& features13 = specDev.GetFeature<VkPhysicalDeviceVulkan13Features>();
+    features13.dynamicRendering = VK_TRUE;
 
-    auto& devFaultFeatures = specDev.GetFeature< VkPhysicalDeviceFaultFeaturesEXT>();
+    auto& devFaultFeatures = specDev.GetFeature<VkPhysicalDeviceFaultFeaturesEXT>();
     devFaultFeatures.deviceFault = VK_TRUE;
     devFaultFeatures.deviceFaultVendorBinary = VK_TRUE;
 
-    uint32_t deviceCount;
-    EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, nullptr);
-    std::vector<VkPhysicalDevice> all_detected_physical_devices(deviceCount);
-    if (deviceCount == 0) {
-        printf("0 devices found, exiting\n");
-        return -1;
-    }
-    EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, all_detected_physical_devices.data());
+    auto& dabReportFeatures = specDev.GetFeature<VkPhysicalDeviceAddressBindingReportFeaturesEXT>();
+    dabReportFeatures.reportAddressBinding = VK_TRUE;
 
     auto evaluatedDevices = specDev.ScorePhysicalDevices(instance.instance);
 
@@ -232,7 +233,7 @@ int main() {
     }
 
     EWE::PhysicalDevice physicalDevice{ instance, evaluatedDevices[0].device, window.surface };
-    PrintAllExtensions(physicalDevice.device);
+    //PrintAllExtensions(physicalDevice.device);
 
     /*
     quick notes, on the pnext chain
@@ -251,20 +252,24 @@ int main() {
     i dont think theres any features that arent dependent on an extension
     */
 
-
-    //this needs to be added to the pnext chain
-    VkPhysicalDeviceFaultFeaturesEXT deviceFaultFeaturesPNEXT{};
-    deviceFaultFeaturesPNEXT.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT;
-    deviceFaultFeaturesPNEXT.pNext = nullptr;
-    deviceFaultFeaturesPNEXT.deviceFault = VK_TRUE;
-    deviceFaultFeaturesPNEXT.deviceFaultVendorBinary = VK_TRUE;
+    //the stypes and pnexts were populated when scoring the devices
+    VkBaseInStructure* pNextChain = reinterpret_cast<VkBaseInStructure*>(&specDev.features.base);
+    //i shouldnt need to rebuild this, something is wrong
+    auto& feat12 = specDev.GetFeature<VkPhysicalDeviceVulkan12Features>();
+    auto addr = reinterpret_cast<std::size_t>(&feat12);
+    printf("base addr - %zx\n", &specDev.features.base);
+    uint16_t whichAddr = 0;
+    auto addr_print_func = [&whichAddr](auto& feat) {
+        printf("addr[%u] - %zx\n", whichAddr++, &feat);
+    };
+    specDev.features.features.ForEach(addr_print_func);
 
     EWE::LogicalDevice logicalDevice = specDev.ConstructDevice(
         evaluatedDevices[0],
         //i want physicaldevice to be moved, but i might just construct it inside the logicaldevice
         //the main thing is i just dont want to repopulate the queues
         std::forward<EWE::PhysicalDevice>(physicalDevice),
-        reinterpret_cast<VkBaseInStructure*>(&deviceFaultFeaturesPNEXT),
+        pNextChain,
         application_wide_vk_version,
         VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT
     );
@@ -324,7 +329,9 @@ int main() {
     commandBuffers.emplace_back(renderCmdPool, cmdBufVector[0]);
     commandBuffers.emplace_back(renderCmdPool, cmdBufVector[1]);
 
-
+    //if either of these formats are changed, passConfig needs to be changed as well. these just happen to match the defaults
+    VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    VkFormat depthFormat = VK_FORMAT_D16_UNORM;
 
     //from here, create the render graph
 
@@ -338,31 +345,46 @@ int main() {
     EWE::GraphicsPipeline triangle_pipeline{ logicalDevice, 0, &triangle_layout, passConfig, objectConfig, dynamicState };
 
 
-    EWE::PerFlight<VkImage> colorAttachmentImages;
-    EWE::PerFlight<VkImage> depthAttachmentImages;
+    EWE::PerFlight<EWE::Image> colorAttachmentImages{logicalDevice};
+    EWE::PerFlight<EWE::Image> depthAttachmentImages{logicalDevice};
 
-    VkImageCreateInfo imgCreateInfo{};
-    imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imgCreateInfo.pNext = nullptr;
-    imgCreateInfo.arrayLayers = 1;
-    imgCreateInfo.extent = { window.screenDimensions.width, window.screenDimensions.height, 0 };
-    imgCreateInfo.flags = 0;
-    imgCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-    imgCreateInfo.mipLevels = 1;
-    imgCreateInfo.queueFamilyIndexCount = 1;
-    imgCreateInfo.pQueueFamilyIndices = &renderQueue->family.index;
-    imgCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    imgCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-    imgCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-    for (auto& cai : colorAttachmentImages) {
-        EWE::EWE_VK(vkCreateImage, logicalDevice.device, &imgCreateInfo, nullptr, &cai);
+    //most of the pnext seem useless. some other useful stuff, 
+    /*
+    VkOpaqueCaptureDescriptorDataCreateInfoEXT,
+    VkExternalMemoryImageCreateInfo
+    VkImageFormatListCreateInfo,
+    */
+    for (uint8_t i = 0; i < 2; i++) {
+        colorAttachmentImages[i].arrayLayers = 1;
+            depthAttachmentImages[i].arrayLayers = 1;
+        colorAttachmentImages[i].extent = { window.screenDimensions.width, window.screenDimensions.height, 1 };
+            depthAttachmentImages[i].extent = { window.screenDimensions.width, window.screenDimensions.height, 1 };
+        colorAttachmentImages[i].mipLevels = 1;
+            depthAttachmentImages[i].mipLevels = 1;
+        colorAttachmentImages[i].owningQueue = renderQueue;
+            depthAttachmentImages[i].owningQueue = renderQueue;
+        colorAttachmentImages[i].samples = VK_SAMPLE_COUNT_1_BIT;
+            depthAttachmentImages[i].samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachmentImages[i].tiling = VK_IMAGE_TILING_OPTIMAL;
+            depthAttachmentImages[i].tiling = VK_IMAGE_TILING_OPTIMAL;
+        colorAttachmentImages[i].type = VK_IMAGE_TYPE_2D;
+            depthAttachmentImages[i].type = VK_IMAGE_TYPE_2D;
     }
-    imgCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    imgCreateInfo.format = VK_FORMAT_R16_UNORM;
+
+    VmaAllocationCreateInfo vmaAllocCreateInfo{};
+    vmaAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    //if(imageCreateInfo.width * height > some amount){
+    vmaAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT | VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+    //}
+    for (auto& cai : colorAttachmentImages) {
+        cai.format = VK_FORMAT_R8G8B8A8_UNORM;
+        cai.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        cai.Create(vmaAllocCreateInfo);
+    }
     for (auto& dai : depthAttachmentImages) {
-        EWE::EWE_VK(vkCreateImage, logicalDevice.device, &imgCreateInfo, nullptr, &dai);
+        dai.format = VK_FORMAT_D16_UNORM;
+        dai.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        dai.Create(vmaAllocCreateInfo);
     }
 
     VkImageViewCreateInfo imgViewCreateInfo{};
@@ -378,17 +400,18 @@ int main() {
 
     EWE::PerFlight<VkImageView> colorAttViews;
     EWE::PerFlight<VkImageView> depthAttViews;
-    imgViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imgViewCreateInfo.format = colorFormat;
     imgViewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
     for (uint8_t i = 0; i < EWE::max_frames_in_flight; i++) {
-        imgViewCreateInfo.image = colorAttachmentImages[i];
+        imgViewCreateInfo.image = colorAttachmentImages[i].image;
         EWE::EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &colorAttViews[i]);
     }
 
-    imgViewCreateInfo.format = VK_FORMAT_R16_UNORM;
+    imgViewCreateInfo.format = depthFormat;
     imgViewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R};
+    imgViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     for (uint8_t i = 0; i < EWE::max_frames_in_flight; i++) {
-        imgViewCreateInfo.image = depthAttachmentImages[i];
+        imgViewCreateInfo.image = depthAttachmentImages[i].image;
         EWE::EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &depthAttViews[i]);
     }
 
@@ -404,6 +427,7 @@ int main() {
     auto* def_draw = renderRecord.Draw();
     renderRecord.EndRender();
     EWE::GPUTask gpuTask = renderRecord.Compile(logicalDevice);
+
     def_beginRender->data->colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     def_beginRender->data->colorAttachmentInfo.pNext = nullptr;
     def_beginRender->data->colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -428,6 +452,8 @@ int main() {
     def_beginRender->data->depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
     def_beginRender->data->depthAttachmentInfo.resolveMode = VK_RESOLVE_MODE_NONE;
 
+    def_beginRender->data->renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    def_beginRender->data->renderingInfo.pNext = nullptr;
     def_beginRender->data->renderingInfo.colorAttachmentCount = 1;
     def_beginRender->data->renderingInfo.flags = 0;
     def_beginRender->data->renderingInfo.layerCount = 1;
@@ -438,12 +464,12 @@ int main() {
 
     *def_pipe->data = reinterpret_cast<EWE::Pipeline*>(&triangle_pipeline);
     def_vp_scissor->data->scissor = window.screenDimensions;
-    def_vp_scissor->data->viewport.x = 0;
-    def_vp_scissor->data->viewport.y = window.screenDimensions.height;
-    def_vp_scissor->data->viewport.width = window.screenDimensions.width;
-    def_vp_scissor->data->viewport.height = -window.screenDimensions.height;
-    def_vp_scissor->data->viewport.minDepth = 0.1f;
-    def_vp_scissor->data->viewport.maxDepth = 10000.f;
+    def_vp_scissor->data->viewport.x = 0.f;
+    def_vp_scissor->data->viewport.y = static_cast<float>(window.screenDimensions.height);
+    def_vp_scissor->data->viewport.width = static_cast<float>(window.screenDimensions.width);
+    def_vp_scissor->data->viewport.height = -static_cast<float>(window.screenDimensions.height);
+    def_vp_scissor->data->viewport.minDepth = 0.0f;
+    def_vp_scissor->data->viewport.maxDepth = 1.f;
 
     VmaAllocationCreateInfo vmaAllocInfo{};
     vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -459,7 +485,7 @@ int main() {
         float pos[2]; //xy
         float color[3]; //rgb
     };
-    EWE::Buffer vertex_buffer{framework, sizeof(TriangleVertex) * 3, 1, vmaAllocInfo, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT};
+    EWE::Buffer vertex_buffer{framework, sizeof(TriangleVertex) * 3, 1, vmaAllocInfo, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT };
     TriangleVertex* mappedData = reinterpret_cast<TriangleVertex*>(vertex_buffer.Map());
 
     mappedData[0].pos[0] = -0.5f;
@@ -472,16 +498,16 @@ int main() {
     mappedData[2].pos[1] = 0.5f;
 
     mappedData[0].color[0] = 1.f;
-    mappedData[0].color[0] = 0.f;
-    mappedData[0].color[0] = 0.f;
+    mappedData[0].color[1] = 0.f;
+    mappedData[0].color[2] = 0.f;
 
-    mappedData[1].color[1] = 0.f;
+    mappedData[1].color[0] = 0.f;
     mappedData[1].color[1] = 1.f;
-    mappedData[1].color[1] = 0.f;
+    mappedData[1].color[2] = 0.f;
 
+    mappedData[2].color[0] = 0.f;
     mappedData[2].color[1] = 0.f;
-    mappedData[2].color[1] = 0.f;
-    mappedData[2].color[1] = 1.f;
+    mappedData[2].color[2] = 1.f;
 
     vertex_buffer.Flush();
     vertex_buffer.Unmap();
@@ -504,12 +530,12 @@ int main() {
     submitInfo.pWaitDstStageMask = nullptr;
 
     //auto timeBegin = std::chrono::high_resolution_clock::now();
-    uint8_t frameIndex = 0;
     VkCommandBufferBeginInfo cmdBeginInfo{};
     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cmdBeginInfo.pNext = nullptr;
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = 0;
+    uint8_t frameIndex = 1;
     try {
         while (true) {
             def_beginRender->data->colorAttachmentInfo.imageView = colorAttViews[frameIndex];

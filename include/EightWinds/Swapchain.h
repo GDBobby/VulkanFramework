@@ -41,7 +41,8 @@ namespace EWE{
         uint32_t imageIndex;
 
         std::vector<VkImage> images;
-        std::vector<VkImageView> imageViews;
+        //views is only if youre rendering directly to the imageviews
+        //std::vector<VkImageView> imageViews;
 
         VkImageLayout currentLayout;
         

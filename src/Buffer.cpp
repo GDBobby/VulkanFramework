@@ -26,11 +26,14 @@ namespace EWE{
         bufferSize = alignmentSize * instanceCount;
         
         VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.pNext = nullptr;
         bufferInfo.size = bufferSize;
         bufferInfo.usage = usageFlags;
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        assert(bufferSize > 0);
 
-        vmaCreateBuffer(framework.logicalDevice.vmaAllocator, &bufferInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
+        EWE_VK(vmaCreateBuffer, framework.logicalDevice.vmaAllocator, &bufferInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
         
         VkBufferDeviceAddressInfo bdaInfo{};
         bdaInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -41,6 +44,7 @@ namespace EWE{
 
     void* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {
         EWE_VK(vmaMapMemory, framework.logicalDevice.vmaAllocator, vmaAlloc, &mapped);
+        assert(mapped != nullptr);
         return mapped;
     }
 

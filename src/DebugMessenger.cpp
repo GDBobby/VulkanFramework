@@ -1,11 +1,11 @@
 #include "EightWinds/Backend/DebugMessenger.h"
 
+#include "EightWinds/Instance.h"
+
 #include <cstring>
 #include <cassert>
 
-#define enableValidationLayers EWE_DEBUG_BOOL
-
-#if enableValidationLayers
+#if Enable_Validation_Layers
 namespace EWE {
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -62,13 +62,12 @@ namespace EWE {
     void CreateDebugUtilsMessengerEXT(
         VkInstance instance,
         const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-        const VkAllocationCallbacks* pAllocator,
         VkDebugUtilsMessengerEXT* pDebugMessenger
     ) {
         auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
 
         if (func != nullptr) {
-            EWE_VK(func, instance, pCreateInfo, pAllocator, pDebugMessenger);
+            EWE_VK(func, instance, pCreateInfo, nullptr, pDebugMessenger);
         }
         else {
             EWE_VK_RESULT(VK_ERROR_EXTENSION_NOT_PRESENT);
@@ -85,7 +84,7 @@ namespace EWE {
         }
     }
 
-    VkDebugUtilsMessengerCreateInfoEXT GetPopulatedDebugMessengerCreateInfo() {
+    VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::GetPopulatedDebugMessengerCreateInfo() {
         VkDebugUtilsMessengerCreateInfoEXT debugUtilCreateInfo{};
         debugUtilCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         debugUtilCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -98,7 +97,7 @@ namespace EWE {
         return debugUtilCreateInfo;
     }
 
-    bool CheckValidationLayerSupport() {
+    bool DebugMessenger::CheckValidationLayerSupport() {
         uint32_t layerCount;
         EWE_VK(vkEnumerateInstanceLayerProperties, &layerCount, nullptr);
 
@@ -118,11 +117,13 @@ namespace EWE {
         return layerFound;
     }
 
-    DebugMessenger::DebugMessenger(Instance& instance) : instance{instance} {
-        if (!enableValidationLayers) { return; }
+    DebugMessenger::DebugMessenger(Instance& instance) 
+        : instance{instance} 
+    {
+        if (!Enable_Validation_Layers) { return; }
+        //pass in the createinfo maybe??
         VkDebugUtilsMessengerCreateInfoEXT debugUtilCreateInfo = GetPopulatedDebugMessengerCreateInfo();
-        //CreateDebugUtilsMessengerEXT(instance, &debugUtilCreateInfo, nullptr, &debugMessenger);
-        vkCreateDebugUtilsMessengerEXT(instance.instance, &debugUtilCreateInfo, nullptr, &messenger);
+        CreateDebugUtilsMessengerEXT(instance.instance, &debugUtilCreateInfo, &messenger);
     }
 }
 #endif

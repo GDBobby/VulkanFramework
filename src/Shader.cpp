@@ -209,6 +209,7 @@ namespace EWE {
 		}
 		//else {
 		pushRange.offset = 0;
+		pushRange.stageFlags = VK_SHADER_STAGE_ALL;
 		//}
 	}
 
@@ -289,7 +290,7 @@ namespace EWE {
 		}
 		auto resources = compiler.get_shader_resources();
 		InterpretPushConstants(compiler, resources.push_constant_buffers, pushRange);
-		pushRange.stageFlags = shaderStageCreateInfo.stage;
+		//pushRange.stageFlags = shaderStageCreateInfo.stage;
 		//InterpretInputAttributes(compiler, vertexInputAttributes);
 
 		shaderStageCreateInfo.pName = "main";

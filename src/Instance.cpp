@@ -9,7 +9,6 @@
 
 namespace EWE{ 
 
-
     bool CheckInstanceExtensions(std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
         uint32_t extensionCount = 0;
         EWE_VK(vkEnumerateInstanceExtensionProperties, nullptr, &extensionCount, nullptr);
@@ -45,9 +44,8 @@ namespace EWE{
         return true;
     }
 
-    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) 
-        : api_version{api_version}
-    {
+    VkInstance CreateInstance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
+
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pNext = nullptr;
@@ -56,11 +54,11 @@ namespace EWE{
         appInfo.pEngineName = "Eight Winds Engine";
         appInfo.engineVersion = VK_MAKE_API_VERSION(0, 2, 0, 0);
         appInfo.apiVersion = api_version;
-        
+
         VkInstanceCreateInfo instanceCreateInfo = {};
         instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instanceCreateInfo.pApplicationInfo = &appInfo;
-        
+
         std::vector<const char*> all_extensions{};
         all_extensions.reserve(requiredExtensions.size() + optionalExtensions.size());
         std::copy(
@@ -68,13 +66,13 @@ namespace EWE{
             requiredExtensions.end(),
             std::back_inserter(all_extensions)
         );
-        if(!CheckInstanceExtensions(requiredExtensions, optionalExtensions)){
+        if (!CheckInstanceExtensions(requiredExtensions, optionalExtensions)) {
             //throw exception probably
             //im not really sure if I want to use exceptions or not
             throw std::runtime_error("failed to get required extensions for instance");
         }
-        for(auto& opt : optionalExtensions){
-            if(opt.second){
+        for (auto& opt : optionalExtensions) {
+            if (opt.second) {
                 all_extensions.push_back(opt.first.c_str());
             }
         }
@@ -82,13 +80,13 @@ namespace EWE{
         instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(all_extensions.size());
         instanceCreateInfo.ppEnabledExtensionNames = all_extensions.data();
 
-#if enableValidationLayers
-        if (!CheckValidationLayerSupport()) {
+#if Enable_Validation_Layers
+        if (!DebugMessenger::CheckValidationLayerSupport()) {
             printf("validation layers not available \n");
             assert(false && "validation layers requested, but not available!");
         }
-        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = GetPopulatedDebugMessengerCreateInfo();
-        const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
+        VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = DebugMessenger::GetPopulatedDebugMessengerCreateInfo();
+        const char* validationLayers[] = { "VK_LAYER_KHRONOS_validation" };
 
         instanceCreateInfo.enabledLayerCount = 1;
         instanceCreateInfo.ppEnabledLayerNames = validationLayers;
@@ -97,6 +95,15 @@ namespace EWE{
         instanceCreateInfo.enabledLayerCount = 0;
         instanceCreateInfo.pNext = nullptr;
 #endif
+        VkInstance instance;
         EWE_VK(vkCreateInstance, &instanceCreateInfo, nullptr, &instance);
+        return instance;
+    }
+
+    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) 
+        : api_version{api_version},
+        instance{CreateInstance(api_version, requiredExtensions, optionalExtensions)},
+        debugMessenger{*this}
+    {
     }
 }

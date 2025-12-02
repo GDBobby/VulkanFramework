@@ -9,12 +9,6 @@ namespace EWE{
         : commandPool{commandPool},
         cmdBuf{cmdBuf}
     {
-        VkCommandBufferBeginInfo cmdBufBeginInfo{};
-        cmdBufBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmdBufBeginInfo.pNext = nullptr;
-        cmdBufBeginInfo.pInheritanceInfo = nullptr;//this is some subpass type, i need to research this
-        //cmdBufBeginInfo.flags = flags //<--- this needs to be handled
-        EWE_VK(vkBeginCommandBuffer, cmdBuf, &cmdBufBeginInfo);
     }
     CommandBuffer::~CommandBuffer(){
         //vkEndCommandBuffer(cmdBuf); //i dont like this. it also needs to be submitted

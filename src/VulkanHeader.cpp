@@ -1,5 +1,6 @@
 #include "EightWinds/VulkanHeader.h"
 
+#include <string>
 #include <cassert>
 
 namespace EWE{

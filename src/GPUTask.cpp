@@ -53,6 +53,7 @@ namespace EWE{
         //third, if it still hasnt been found, create and add it
         desired_slot = new Resource<Buffer>(buffer, writes, 1);
         usedBuffers.push_back(desired_slot);
+        pushTrackers[pushIndex].pushAddress->buffer_addr[slot] = buffer->deviceAddress;
     }
     void GPUTask::UseImage(ImageInfo* imgInfo, uint32_t pushIndex, uint8_t slot, bool writes) noexcept{
         assert(slot < (GlobalPushConstant::texture_count + GlobalPushConstant::buffer_count));
@@ -90,6 +91,7 @@ namespace EWE{
         //third, if it still hasnt been found, create and add it
         desired_slot = new Resource<ImageInfo>(imgInfo, writes, 1);
         usedImages.push_back(desired_slot);
+        //pushTrackers[pushIndex].pushAddress->texture_indices[slot] = imgInfo->textureIndex;
     }
     /*
     void GPUTask::BeginRender(CommandBuffer& cmdBuf) const noexcept{

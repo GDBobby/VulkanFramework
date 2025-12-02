@@ -19,6 +19,7 @@ namespace EWE{
 
     struct Buffer{
         Framework& framework;
+        Queue* owningQueue;
 
         [[nodiscard]] explicit Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags);
         ~Buffer();

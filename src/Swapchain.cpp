@@ -14,7 +14,8 @@ namespace EWE{
         activeSwapchain{VK_NULL_HANDLE},
         drawSemaphores{logicalDevice, false},
         presentSemaphores{logicalDevice, false},
-        drawnFences{logicalDevice}
+        drawnFences{logicalDevice},
+        swapCreateInfo{}
     {
         swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapCreateInfo.pNext = nullptr;
@@ -90,14 +91,20 @@ namespace EWE{
         surfaceInfo2.pNext = nullptr;
         //fullscreen ext would be put in the pnext
         surfaceInfo2.surface = window.surface;
-        VkSurfaceCapabilities2KHR surfaceCapabilities2;
+        VkSurfaceCapabilities2KHR surfaceCapabilities2{};
+        surfaceCapabilities2.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
+        surfaceCapabilities2.pNext = nullptr;
         vkGetPhysicalDeviceSurfaceCapabilities2KHR(logicalDevice.physicalDevice.device, &surfaceInfo2, &surfaceCapabilities2);
 
+
+        swapCreateInfo.flags = 0;
         swapCreateInfo.compositeAlpha = Swapchain::GetCompositeAlpha(surfaceCapabilities2.surfaceCapabilities);
         swapCreateInfo.imageExtent = Swapchain::GetImageExtent(surfaceCapabilities2.surfaceCapabilities, framebufferExtent);
 
         swapCreateInfo.minImageCount = Swapchain::GetImageCount(surfaceCapabilities2.surfaceCapabilities);
         swapCreateInfo.oldSwapchain = activeSwapchain;
+        swapCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapCreateInfo.preTransform = surfaceCapabilities2.surfaceCapabilities.currentTransform;
 
         //wait for each fence
         std::vector<VkFence> fences{};
@@ -110,12 +117,13 @@ namespace EWE{
         EWE_VK(vkCreateSwapchainKHR, logicalDevice.device, &swapCreateInfo, nullptr, &activeSwapchain);
 
         uint32_t swapImageCount = 0;
-        vkGetSwapchainImagesKHR(logicalDevice.device, activeSwapchain, &swapImageCount, nullptr);
+        EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, nullptr);
         images.resize(swapImageCount);
-        vkGetSwapchainImagesKHR(logicalDevice.device, activeSwapchain, &swapImageCount, images.data());
+        EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, images.data());
         
         printf("delete the old views\n");
 
+        /*
         imageViews.clear();
         imageViews.resize(swapImageCount);
         assert(swapImageCount < 255);
@@ -139,7 +147,7 @@ namespace EWE{
             imgViewCreateInfo.image = images[i];
             EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &imageViews[i]);
         }
-
+        */
 
         imageIndex = 0;
         currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;

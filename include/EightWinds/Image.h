@@ -10,15 +10,21 @@ namespace EWE{
     //the framework isnt going to provide a method to load images
     //it can be done externally via stb or the like
 
+    struct StagingBuffer;
+
     struct Image{
         LogicalDevice& logicalDevice;
+        VkImage image;
+        [[nodiscard]] explicit Image(LogicalDevice& logicalDevice) noexcept;
+        operator VkImage() const {
+            return image;
+        }
+
         Queue* owningQueue;
 
         std::string name; //directory, this is the hash key for an unordered_set
-        uint32_t width;
-        uint32_t height;
+        VkExtent3D extent;
 
-        uint32_t depth;
         uint32_t arrayLayers;
         uint32_t mipLevels;
 
@@ -26,12 +32,19 @@ namespace EWE{
 
         VkImageLayout layout;
 
-        VkImage image;
-
 		VmaAllocation memory;
 
         VkImageCreateFlags createFlags;//this will specify if it's a cube or not. bunch of other flags, like 2d array. not sure what's necessary
+        VkImageUsageFlags usage;
+        VkImageType type;
+        VkSampleCountFlagBits samples;
+        VkImageTiling tiling;
         //Queue owningQueue; //necessary? need to see the rendergraph first
+
+        bool Create(VmaAllocationCreateInfo const& allocCreateInfo);
+
+        //this will handle the transfer behind the scenes
+        bool Create(VmaAllocationCreateInfo const& allocCreateInfo, StagingBuffer* pixeldata);
     };
 
     

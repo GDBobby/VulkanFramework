@@ -127,12 +127,9 @@ namespace EWE{
             int16_t chosenDevice = -1;
             uint64_t highest_score = 0;
 
-            //i doubt it's possible to connect than than 255 devices
             for (auto& dev : physicalDevices) {
-
-                features.Populate(dev);
+                auto filtered_features = features.Populate(dev);
                 properties.Populate(dev);
-
 
                 auto& devEval = ret.emplace_back();
                 devEval.device = dev;
@@ -141,7 +138,7 @@ namespace EWE{
                 devEval.api_version = GetProperty<VkPhysicalDeviceProperties2>().properties.apiVersion;
 #endif
 
-                auto featureScore = features.Score(dev);
+                auto featureScore = filtered_features.Score(dev);
                 devEval.passedRequirements = devEval.passedRequirements && featureScore.metRequirements;
                 devEval.score += featureScore.score;
                 auto propertyScore = properties.Score(dev);
@@ -190,7 +187,10 @@ namespace EWE{
         ){
 
 
-            features.Populate(physicalDevice.device);
+            features.PopulateInPlace(physicalDevice.device);
+            
+            //auto featureCopyForScoring = features;
+            //featureCopyForScoring.Populate(physicalDevice.device);
             properties.Populate(physicalDevice.device);
             //check extensions
             

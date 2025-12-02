@@ -96,12 +96,12 @@ namespace EWE{
     
     GPUTask CommandRecord::Compile(LogicalDevice& logicalDevice) noexcept {
         assert(!hasBeenCompiled);
-        uint64_t full_data_size = records.back().paramOffset + CommandInstruction::GetParamSize(records.back().type);
+        const uint64_t full_data_size = records.back().paramOffset + CommandInstruction::GetParamSize(records.back().type);
 
         GPUTask ret{logicalDevice};
         ret.commandExecutor.instructions = records;
         ret.commandExecutor.paramPool.resize(full_data_size);
-        std::size_t param_pool_address = reinterpret_cast<std::size_t>(ret.commandExecutor.paramPool.data());
+        const std::size_t param_pool_address = reinterpret_cast<std::size_t>(ret.commandExecutor.paramPool.data());
         for(auto& def_ref : deferred_references){
             OffsetHelper* offHelp = reinterpret_cast<OffsetHelper*>(def_ref);
             offHelp->data += param_pool_address;

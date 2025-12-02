@@ -1,5 +1,6 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
+#include "EightWinds/Backend/DebugMessenger.h"
 
 #include <vector>
 #include <string>
@@ -14,6 +15,10 @@ namespace EWE{
 
         VkInstance instance;
         const uint32_t api_version;
+
+#if Enable_Validation_Layers
+        DebugMessenger debugMessenger;
+#endif
 
         operator VkInstance() const {return instance;}
 

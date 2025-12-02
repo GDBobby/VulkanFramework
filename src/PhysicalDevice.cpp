@@ -9,6 +9,10 @@ namespace EWE{
         uint32_t famPropCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties2(device, &famPropCount, nullptr);
         std::vector<VkQueueFamilyProperties2> vkFamilies(famPropCount);
+        for (auto& vkfam : vkFamilies) {
+            vkfam.sType = VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2;
+            vkfam.pNext = nullptr;
+        }
         vkGetPhysicalDeviceQueueFamilyProperties2(device, &famPropCount, vkFamilies.data());
 
         std::vector<QueueFamily> queueFamilies{};

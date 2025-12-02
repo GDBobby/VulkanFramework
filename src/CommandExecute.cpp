@@ -31,7 +31,7 @@ namespace EWE{
             //i can do assertions, which will be nice for preventing bugs
             //i could do static analysis for deeper bugs, or potentially even optimization
             //im not sure if its necessary, i might just leave it til i need it
-            Pipeline* boundPipeline = nullptr;
+            Pipeline const* boundPipeline = nullptr;
             VkPipelineLayout boundLayout = VK_NULL_HANDLE;
             VkPipelineBindPoint currentBindPoint = VK_PIPELINE_BIND_POINT_MAX_ENUM;
 
@@ -96,6 +96,7 @@ namespace EWE{
             assert(pipeline != nullptr);
             ctx.boundLayout = pipeline->pipeLayout->vkLayout;
             ctx.currentBindPoint = pipeline->pipeLayout->bindPoint;
+            ctx.boundPipeline = pipeline;
 
             vkCmdBindPipeline(ctx.cmdBuf, pipeline->pipeLayout->bindPoint, pipeline->vkPipe);
         }
@@ -111,12 +112,10 @@ namespace EWE{
 
         void Push(ExecContext& ctx){
             auto* push = reinterpret_cast<GlobalPushConstant const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-
             vkCmdPushConstants(ctx.cmdBuf, ctx.boundLayout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant), push);
         }
 
         void BeginRender(ExecContext& ctx){
-
             auto* data = reinterpret_cast<RenderInfo const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
             vkCmdBeginRendering(ctx.cmdBuf, &data->renderingInfo);
         }
@@ -126,19 +125,16 @@ namespace EWE{
 
         void Draw(ExecContext& ctx){
             auto* data = reinterpret_cast<VertexDrawParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            
             vkCmdDraw(ctx.cmdBuf, data->vertexCount, data->instanceCount, data->firstVertex, data->firstInstance);
         }
 
         void DrawIndexed(ExecContext& ctx){
             auto* data = reinterpret_cast<IndexDrawParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            
             vkCmdDrawIndexed(ctx.cmdBuf, data->indexCount, data->instanceCount, data->firstIndex, data->vertexOffset, data->firstInstance);
         }
 
         void Dispatch(ExecContext& ctx){
             auto* data = reinterpret_cast<uint32_t const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            
             //maybe add an if statement here, check if all groups are above 0?
             vkCmdDispatch(ctx.cmdBuf, data[0], data[1], data[2]);
         }

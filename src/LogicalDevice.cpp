@@ -32,8 +32,9 @@ namespace EWE{
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.queueCount = 1;
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.pNext = nullptr;// this is just for protected bit, and i think it requires vkdevicequeuecreateinfo2 or something
+        queueCreateInfo.queueCount = 1;
 
         for(uint8_t i = 0; i < physicalDevice.queueFamilies.size(); i++){
             queueCreateInfo.queueFamilyIndex = physicalDevice.queueFamilies[i].index;
@@ -82,6 +83,13 @@ namespace EWE{
 
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+#if 0 //temp debugging
+        VkBaseInStructure const* pNextChain = reinterpret_cast<VkBaseInStructure const*>(deviceCreateInfo.pNext);
+        while (pNextChain != nullptr) {
+            printf("sType : %d\n", pNextChain->sType);
+            pNextChain = pNextChain->pNext;
+        }
+#endif
 
         EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
 
@@ -98,7 +106,7 @@ namespace EWE{
 
 
         VmaAllocatorCreateInfo allocatorCreateInfo{};
-        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
         allocatorCreateInfo.vulkanApiVersion = api_version;
         allocatorCreateInfo.physicalDevice = physicalDevice.device;
         allocatorCreateInfo.device = device;
