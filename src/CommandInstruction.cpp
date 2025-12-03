@@ -15,6 +15,8 @@ namespace EWE{
             case Type::Draw: return sizeof(VertexDrawParamPack);
             case Type::DrawIndexed: return sizeof(IndexDrawParamPack);
             case Type::Dispatch: return sizeof(DispatchParamPack);
+            case Type::Blit: return sizeof(BlitParamPack);
+            case Type::Present: return sizeof(VkPresentInfoKHR*);
             case Type::PipelineBarrier: return 0;
             case Type::DS_ViewportScissor: return sizeof(ViewportScissorParamPack);
             case Type::DS_ViewportScissorWithCount: return sizeof(ViewportScissorWithCountParamPack);

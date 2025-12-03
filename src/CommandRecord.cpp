@@ -20,10 +20,6 @@ namespace EWE{
         return reinterpret_cast<void*>(offset);
     }
 
-    struct OffsetHelper{
-        std::size_t data;
-    };
-
 #if EWE_DEBUG_BOOL
     bool ValidateInstructions(std::vector<CommandInstruction> const& records){
         int64_t current_if_depth = 0;
@@ -94,17 +90,16 @@ namespace EWE{
     }
 #endif
     
-    GPUTask CommandRecord::Compile(LogicalDevice& logicalDevice) noexcept {
+    GPUTask CommandRecord::Compile(LogicalDevice& logicalDevice, Queue& queue) noexcept {
         assert(!hasBeenCompiled);
         const uint64_t full_data_size = records.back().paramOffset + CommandInstruction::GetParamSize(records.back().type);
 
-        GPUTask ret{logicalDevice};
+        GPUTask ret{logicalDevice, queue};
         ret.commandExecutor.instructions = records;
         ret.commandExecutor.paramPool.resize(full_data_size);
         const std::size_t param_pool_address = reinterpret_cast<std::size_t>(ret.commandExecutor.paramPool.data());
         for(auto& def_ref : deferred_references){
-            OffsetHelper* offHelp = reinterpret_cast<OffsetHelper*>(def_ref);
-            offHelp->data += param_pool_address;
+            def_ref->data += param_pool_address;
             //we convert the initial offset to a real pointer into the paramPool
         }
         for(auto& push_off : push_offsets){
@@ -127,21 +122,21 @@ namespace EWE{
     DeferredReference<ViewportScissorParamPack>* CommandRecord::SetViewportScissor(){
         BindCommand(records, CommandInstruction::Type::DS_ViewportScissor);
         auto deferred_ref = new DeferredReference<ViewportScissorParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
 
     }
     DeferredReference<ViewportScissorWithCountParamPack>* CommandRecord::SetViewportScissorWithCount(){
         BindCommand(records, CommandInstruction::Type::DS_ViewportScissorWithCount);
         auto deferred_ref = new DeferredReference<ViewportScissorWithCountParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
 
-    DeferredReference<Pipeline*>* CommandRecord::BindPipeline(){
+    DeferredReference<PipelineParamPack>* CommandRecord::BindPipeline(){
         BindCommand(records, CommandInstruction::Type::BindPipeline);
-        auto deferred_ref = new DeferredReference<Pipeline*>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        auto deferred_ref = new DeferredReference<PipelineParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
 
@@ -159,7 +154,7 @@ namespace EWE{
         //i can probably reduce the size of this, i dont know if it's necessary or not
         BindCommand(records, CommandInstruction::Type::BeginRender);
         auto deferred_ref = new DeferredReference<RenderInfo>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
     void CommandRecord::EndRender(){
@@ -170,14 +165,14 @@ namespace EWE{
         printf("this needs to be fixed\n");
         //BindCommand(records, CommandType::PipelineBarrier, sizeof(PipelineBarrier));
         auto deferred_ref = new DeferredReference<PipelineBarrier>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
 
     DeferredReference<LabelParamPack>* CommandRecord::BeginLabel() noexcept{
         BindCommand(records, CommandInstruction::Type::BeginLabel);
         auto deferred_ref = new DeferredReference<LabelParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
     void CommandRecord::EndLabel() noexcept{
@@ -187,19 +182,32 @@ namespace EWE{
     DeferredReference<VertexDrawParamPack>* CommandRecord::Draw(){
         BindCommand(records, CommandInstruction::Type::Draw);
         auto deferred_ref = new DeferredReference<VertexDrawParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
     DeferredReference<IndexDrawParamPack>* CommandRecord::DrawIndexed(){
         BindCommand(records, CommandInstruction::Type::DrawIndexed);
         auto deferred_ref = new DeferredReference<IndexDrawParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
     DeferredReference<DispatchParamPack>* CommandRecord::Dispatch(){
         BindCommand(records, CommandInstruction::Type::Dispatch);
         auto deferred_ref = new DeferredReference<DispatchParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(deferred_ref);
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
+
+    DeferredReference<BlitParamPack>* CommandRecord::Blit() {
+        BindCommand(records, CommandInstruction::Type::Blit);
+        auto deferred_ref = new DeferredReference<BlitParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
+    DeferredReference<VkPresentInfoKHR*>* CommandRecord::Present() {
+        BindCommand(records, CommandInstruction::Type::Present);
+        auto deferred_ref = new DeferredReference<VkPresentInfoKHR*>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
 } //namespace EWE

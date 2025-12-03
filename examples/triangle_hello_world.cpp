@@ -83,8 +83,6 @@ using Example_FeatureManager = EWE::FeatureManager<rounded_down_vulkan_version,
 
 using Example_PropertyManager = EWE::PropertyManager<rounded_down_vulkan_version,
     VkPhysicalDeviceMeshShaderPropertiesEXT
-    //descriptor indexing properties in vulkan12properties?
-
 >;
 
 using DeviceSpec = EWE::DeviceSpecializer<
@@ -125,8 +123,6 @@ struct SwapChainSupportDetails {
 };
 
 int main() {
-
-    VK_HEADER_VERSION_COMPLETE;
 
     std::vector<const char*> requiredExtensions{
 #ifdef _DEBUG
@@ -426,7 +422,7 @@ int main() {
     uint32_t pushIndex = renderRecord.Push();
     auto* def_draw = renderRecord.Draw();
     renderRecord.EndRender();
-    EWE::GPUTask gpuTask = renderRecord.Compile(logicalDevice);
+    EWE::GPUTask renderTask = renderRecord.Compile(logicalDevice, *renderQueue);
 
     def_beginRender->data->colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
     def_beginRender->data->colorAttachmentInfo.pNext = nullptr;
@@ -462,7 +458,10 @@ int main() {
     def_beginRender->data->renderingInfo.renderArea = window.screenDimensions;
     def_beginRender->data->renderingInfo.viewMask = 0;
 
-    *def_pipe->data = reinterpret_cast<EWE::Pipeline*>(&triangle_pipeline);
+    def_pipe->data->bindPoint = triangle_pipeline.pipeLayout->bindPoint;
+    def_pipe->data->layout = triangle_pipeline.pipeLayout->vkLayout;
+    def_pipe->data->pipe = triangle_pipeline.vkPipe;
+
     def_vp_scissor->data->scissor = window.screenDimensions;
     def_vp_scissor->data->viewport.x = 0.f;
     def_vp_scissor->data->viewport.y = static_cast<float>(window.screenDimensions.height);
@@ -512,12 +511,38 @@ int main() {
     vertex_buffer.Flush();
     vertex_buffer.Unmap();
 
-    gpuTask.UseBuffer(&vertex_buffer, pushIndex, 0, false);
+    EWE::ResourceUsageData resourceUsageData{
+        .stage = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+        .accessMask = VK_ACCESS_2_DESCRIPTOR_BUFFER_READ_BIT_EXT
+    };
+
+    renderTask.PushBuffer(&vertex_buffer, pushIndex, 0, resourceUsageData);
 
     def_draw->data->firstInstance = 0;
     def_draw->data->firstVertex = 0;
     def_draw->data->instanceCount = 1;
     def_draw->data->vertexCount = 3;
+
+    EWE::CommandRecord presentRecord{};
+    auto* deferredBlit = presentRecord.Blit();
+    auto* deferredPresent = presentRecord.Present();
+
+    //i think the rendergraph creates and defines the present task
+    uint32_t swapchainImageIndex = 0;
+    EWE::GPUTask presentTask = presentRecord.Compile(logicalDevice, *renderQueue);
+    //*def_pipe->data = reinterpret_cast<EWE::Pipeline*>(&triangle_pipeline);
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.pNext = nullptr;
+    VkResult presentResult = VK_SUCCESS;
+    presentInfo.pResults = &presentResult;
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = &swapchain.activeSwapchain;
+    presentInfo.pImageIndices = &swapchainImageIndex;
+    presentInfo.waitSemaphoreCount = 1;
+    //presentInfo.pWaitSemaphores = swapchain.presentSemaphores;
+    //^ add this in the per-frame loop
+    *deferredPresent->data = &presentInfo;
 
     VkSubmitInfo submitInfo{};
     submitInfo.commandBufferCount = 1;
@@ -529,7 +554,9 @@ int main() {
     submitInfo.pWaitSemaphores = nullptr;
     submitInfo.pWaitDstStageMask = nullptr;
 
-    //auto timeBegin = std::chrono::high_resolution_clock::now();
+    //VkImageBlit imageBlit{};
+    //imageBlit.srcSubresource
+
     VkCommandBufferBeginInfo cmdBeginInfo{};
     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cmdBeginInfo.pNext = nullptr;
@@ -537,14 +564,16 @@ int main() {
     cmdBeginInfo.flags = 0;
     uint8_t frameIndex = 1;
     try {
+        auto timeBegin = std::chrono::high_resolution_clock::now();
         while (true) {
+            //i need to figure out how to identify an attachment, and draw synchronization from it, or even use it later
             def_beginRender->data->colorAttachmentInfo.imageView = colorAttViews[frameIndex];
             def_beginRender->data->depthAttachmentInfo.imageView = depthAttViews[frameIndex];
 
             EWE::CommandBuffer& currentCmdBuf = commandBuffers[frameIndex];
             //EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
             currentCmdBuf.Begin(cmdBeginInfo);
-            gpuTask.Execute(currentCmdBuf);
+            renderTask.Execute(currentCmdBuf);
 
             //EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
             currentCmdBuf.End();

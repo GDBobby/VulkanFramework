@@ -27,6 +27,10 @@ namespace EWE{
         {}
     };
 
+    struct DeferredReferenceHelper {
+        std::size_t data;
+    };
+
     struct CommandRecord{
         CommandRecord() = default;
         CommandRecord(CommandRecord const&) = delete;
@@ -38,7 +42,7 @@ namespace EWE{
         //i dont think DeferredReference is goign to play nicely with constexpr, and
         //vectors dont work with constexpr either, which is how the param_pool is currently setup.
         //the parampool could probably be a span tho
-        GPUTask Compile(LogicalDevice& device) noexcept;
+        GPUTask Compile(LogicalDevice& device, Queue& queue) noexcept;
 
         //i dont know how to handle command lists that are going to be duplicated, or only slightly modified
         //so im going to disable it
@@ -51,11 +55,11 @@ namespace EWE{
         std::vector<CommandInstruction> records{};
 
         uint32_t pushIndex = 0;
-        std::vector<void*> deferred_references{};
+        std::vector<DeferredReferenceHelper*> deferred_references{};
         std::vector<GlobalPushConstant*> push_offsets{};
 
         //i dont know if i need the Pipeline data for compile time optimization
-        DeferredReference<Pipeline*>* BindPipeline();
+        DeferredReference<PipelineParamPack>* BindPipeline();
 
         //i think i want a descirptor set that contains the details for buffers and images contained
         //im not sure how to do this yet
@@ -80,6 +84,9 @@ namespace EWE{
         DeferredReference<VertexDrawParamPack>* Draw();
         DeferredReference<IndexDrawParamPack>* DrawIndexed();
         DeferredReference<DispatchParamPack>* Dispatch();
+
+        DeferredReference<BlitParamPack>* Blit();
+        DeferredReference<VkPresentInfoKHR*>* Present();
 
         DeferredReference<ViewportScissorParamPack>* SetViewportScissor();
         DeferredReference<ViewportScissorWithCountParamPack>* SetViewportScissorWithCount();

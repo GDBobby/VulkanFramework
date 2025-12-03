@@ -94,3 +94,9 @@ ive kinda just been staring at the command containers just trying to figure out 
 the last few days. i think having a global push constant structure, and making it required to be uniform across
 all pipelines will make the compilation of the command record much simpler. i think that will make it possible for
 compile time optimization 
+
+## 12/2
+instead of doing each command explicitly, i need the object to "just draw". some background process should
+handle the explicit expansion of each draw command. the pass has it's config, and each object has it's own config
+that will combine to create the pipelines and such. i think that will be a render graph builder. idk. the more i think
+about it the more vague it becomes.

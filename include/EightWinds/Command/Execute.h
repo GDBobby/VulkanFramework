@@ -10,6 +10,11 @@
 namespace EWE{
 
     struct CommandBuffer;
+
+    struct DependencyHeader {
+        uint16_t buffer_count;
+        uint16_t image_count;
+    };
     
     struct CommandExecutor{
         LogicalDevice& logicalDevice;
@@ -17,6 +22,7 @@ namespace EWE{
         [[nodiscard]] explicit CommandExecutor(LogicalDevice& logicalDevice) noexcept;
         //i can use templates to make the parampool type aware
         std::vector<uint8_t> paramPool;
+        std::vector<uint8_t> barrierPool;
         std::vector<CommandInstruction> instructions{};
 
         void Execute(CommandBuffer& cmdBuf) const noexcept;

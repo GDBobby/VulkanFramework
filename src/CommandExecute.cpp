@@ -25,15 +25,16 @@ namespace EWE{
             std::vector<CommandInstruction> const& instructions;
             CommandBuffer& cmdBuf;
             std::vector<uint8_t> const& paramPool;
+            std::vector<uint8_t> const& barrierPool;
+
+            PipelineParamPack boundPipeline{};
 
             std::size_t iterator = 0;
+            std::size_t current_barrier_offset = 0;
             //i dont really know what i want to do with the lower data
             //i can do assertions, which will be nice for preventing bugs
             //i could do static analysis for deeper bugs, or potentially even optimization
             //im not sure if its necessary, i might just leave it til i need it
-            Pipeline const* boundPipeline = nullptr;
-            VkPipelineLayout boundLayout = VK_NULL_HANDLE;
-            VkPipelineBindPoint currentBindPoint = VK_PIPELINE_BIND_POINT_MAX_ENUM;
 
             //GlobalPushConstant push;
         };
@@ -52,6 +53,8 @@ namespace EWE{
         void Draw(ExecContext& ctx);
         void DrawIndexed(ExecContext& ctx);
         void Dispatch(ExecContext& ctx);
+        void Blit(ExecContext& ctx);
+        void Present(ExecContext& ctx);
         void Barrier(ExecContext& ctx);
         void ViewportScissor(ExecContext& ctx);
         void ViewportScissorWithCount(ExecContext& ctx);
@@ -76,6 +79,8 @@ namespace EWE{
         &Exec::Draw,
         &Exec::DrawIndexed,
         &Exec::Dispatch,
+        &Exec::Blit,
+        &Exec::Present,
         &Exec::Barrier, 
         &Exec::ViewportScissor,
         &Exec::ViewportScissorWithCount,
@@ -92,13 +97,12 @@ namespace EWE{
         //define command functions here
         void BindPipeline(ExecContext& ctx) {
             const std::size_t addressCast = *reinterpret_cast<std::size_t const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            Pipeline const* pipeline = reinterpret_cast<Pipeline const*>(addressCast);
-            assert(pipeline != nullptr);
-            ctx.boundLayout = pipeline->pipeLayout->vkLayout;
-            ctx.currentBindPoint = pipeline->pipeLayout->bindPoint;
-            ctx.boundPipeline = pipeline;
+            PipelineParamPack const& pipePack = *reinterpret_cast<PipelineParamPack*>(addressCast);
+            assert(pipePack.pipe != VK_NULL_HANDLE);
+            assert(pipePack.layout != VK_NULL_HANDLE);
+            ctx.boundPipeline = pipePack;
 
-            vkCmdBindPipeline(ctx.cmdBuf, pipeline->pipeLayout->bindPoint, pipeline->vkPipe);
+            vkCmdBindPipeline(ctx.cmdBuf, pipePack.bindPoint, pipePack.pipe);
         }
 
         //i dont know if i bother putting this in the list
@@ -107,12 +111,12 @@ namespace EWE{
             VkDescriptorSet* desc = nullptr;
             printf("i don't know where to store this yet\n");
             assert(false);
-            vkCmdBindDescriptorSets(ctx.cmdBuf, ctx.currentBindPoint, ctx.boundPipeline->pipeLayout->vkLayout, 0, 1, desc, 0, nullptr);
+            vkCmdBindDescriptorSets(ctx.cmdBuf, ctx.boundPipeline.bindPoint, ctx.boundPipeline.layout, 0, 1, desc, 0, nullptr);
         }
 
         void Push(ExecContext& ctx){
             auto* push = reinterpret_cast<GlobalPushConstant const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            vkCmdPushConstants(ctx.cmdBuf, ctx.boundLayout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant), push);
+            vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant), push);
         }
 
         void BeginRender(ExecContext& ctx){
@@ -137,10 +141,24 @@ namespace EWE{
             auto* data = reinterpret_cast<uint32_t const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
             //maybe add an if statement here, check if all groups are above 0?
             vkCmdDispatch(ctx.cmdBuf, data[0], data[1], data[2]);
+            
+        }
+        void Blit(ExecContext& ctx) {
+            auto* data = reinterpret_cast<BlitParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            vkCmdBlitImage(ctx.cmdBuf, data->srcImage, data->srcLayout, data->dstImage, data->dstLayout, 1, &data->blitParams, data->filter);
+        }
+
+        void Present(ExecContext& ctx) {
+            VkPresentInfoKHR const* presentInfo = *reinterpret_cast<VkPresentInfoKHR* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            
+            VkResult result = vkQueuePresentKHR(ctx.cmdBuf.commandPool.queue.queue, presentInfo);
+            if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+                EWE_VK_RESULT(result);
+            }
         }
 
         void Barrier(ExecContext& ctx){
-            assert(false && "this needs to be handled");
+            assert(false && "this needs to be handled, maybe auto-generated only?");
         }
 
         
@@ -218,7 +236,14 @@ namespace EWE{
     } //namespace Exec
 
     void CommandExecutor::Execute(CommandBuffer& cmdBuf) const noexcept {
-        Exec::ExecContext ctx{logicalDevice, instructions, cmdBuf, paramPool};
+        Exec::ExecContext ctx{
+            .device = logicalDevice, 
+            .instructions = instructions, 
+            .cmdBuf = cmdBuf, 
+            .paramPool = paramPool
+            .barrierPool = barrierPool,
+            .boundPipeline{.pipe = VK_NULL_HANDLE, .layout = VK_NULL_HANDLE,.bindPoint = VK_PIPELINE_BIND_POINT_MAX_ENUM }
+        };
 
         while(ctx.iterator < instructions.size()){
             //validate before creating the executor
