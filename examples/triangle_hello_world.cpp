@@ -17,9 +17,12 @@
 #include "EightWinds/Command/Record.h"
 #include "EightWinds/Command/Execute.h"
 #include "EightWinds/RenderGraph/GPUTask.h"
+#include "EightWinds/RenderGraph/TaskBridge.h"
+
 #include "EightWinds/GlobalPushConstant.h"
 
 #include "EightWinds/Image.h"
+#include "EightWinds/ImageView.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -383,39 +386,15 @@ int main() {
         dai.Create(vmaAllocCreateInfo);
     }
 
-    VkImageViewCreateInfo imgViewCreateInfo{};
-    imgViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    imgViewCreateInfo.pNext = nullptr;
-    imgViewCreateInfo.flags = 0;
-    imgViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imgViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imgViewCreateInfo.subresourceRange.baseMipLevel = 0;
-    imgViewCreateInfo.subresourceRange.levelCount = 1;
-    imgViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    imgViewCreateInfo.subresourceRange.layerCount = 1;
+    EWE::PerFlight<EWE::ImageView> colorAttViews{ colorAttachmentImages};
+    EWE::PerFlight<EWE::ImageView> depthAttViews{ depthAttachmentImages};
 
-    EWE::PerFlight<VkImageView> colorAttViews;
-    EWE::PerFlight<VkImageView> depthAttViews;
-    imgViewCreateInfo.format = colorFormat;
-    imgViewCreateInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-    for (uint8_t i = 0; i < EWE::max_frames_in_flight; i++) {
-        imgViewCreateInfo.image = colorAttachmentImages[i].image;
-        EWE::EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &colorAttViews[i]);
-    }
-
-    imgViewCreateInfo.format = depthFormat;
-    imgViewCreateInfo.components = {VK_COMPONENT_SWIZZLE_R};
-    imgViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-    for (uint8_t i = 0; i < EWE::max_frames_in_flight; i++) {
-        imgViewCreateInfo.image = depthAttachmentImages[i].image;
-        EWE::EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &depthAttViews[i]);
-    }
 
     //this will also get filled out by the rendergraph
     VkRenderingInfo renderingInfo{};
 
     EWE::CommandRecord renderRecord{};
-    auto* def_beginRender = renderRecord.BeginRender();
+    renderRecord.BeginRender();
     auto* def_pipe = renderRecord.BindPipeline();
     auto* def_vp_scissor = renderRecord.SetViewportScissor();
     //auto* def_desc = cmdRecord.BindDescriptor();
@@ -424,39 +403,22 @@ int main() {
     renderRecord.EndRender();
     EWE::GPUTask renderTask = renderRecord.Compile(logicalDevice, *renderQueue);
 
-    def_beginRender->data->colorAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    def_beginRender->data->colorAttachmentInfo.pNext = nullptr;
-    def_beginRender->data->colorAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    def_beginRender->data->colorAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    def_beginRender->data->colorAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[0] = 0.f;
-    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[1] = 0.f;
-    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[2] = 0.f;
-    def_beginRender->data->colorAttachmentInfo.clearValue.color.float32[3] = 0.f;
-    def_beginRender->data->colorAttachmentInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    def_beginRender->data->colorAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
-    def_beginRender->data->colorAttachmentInfo.resolveMode = VK_RESOLVE_MODE_NONE;
+    auto& color_att = renderTask.renderTracker->compact.color_attachments.emplace_back();
+    color_att.imageView = &colorAttViews[0];
+    color_att.clearValue.color.float32[0] = 0.f;
+    color_att.clearValue.color.float32[1] = 0.f;
+    color_att.clearValue.color.float32[2] = 0.f;
+    color_att.clearValue.color.float32[3] = 0.f;
+    color_att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_att.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-    def_beginRender->data->depthAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    def_beginRender->data->depthAttachmentInfo.pNext = nullptr;
-    def_beginRender->data->depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-    def_beginRender->data->depthAttachmentInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    def_beginRender->data->depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    def_beginRender->data->depthAttachmentInfo.clearValue.depthStencil.depth = 0.f;
-    def_beginRender->data->depthAttachmentInfo.clearValue.depthStencil.stencil = 0; //idk what to set this to tbh
-    def_beginRender->data->depthAttachmentInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    def_beginRender->data->depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
-    def_beginRender->data->depthAttachmentInfo.resolveMode = VK_RESOLVE_MODE_NONE;
+    auto& depth_att = renderTask.renderTracker->compact.depth_attachment;
+    depth_att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth_att.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_att.clearValue.depthStencil.depth = 0.f;
+    depth_att.clearValue.depthStencil.stencil = 0; //idk what to set this to tbh
 
-    def_beginRender->data->renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-    def_beginRender->data->renderingInfo.pNext = nullptr;
-    def_beginRender->data->renderingInfo.colorAttachmentCount = 1;
-    def_beginRender->data->renderingInfo.flags = 0;
-    def_beginRender->data->renderingInfo.layerCount = 1;
-    def_beginRender->data->renderingInfo.pColorAttachments = &def_beginRender->data->colorAttachmentInfo;
-    def_beginRender->data->renderingInfo.pDepthAttachment = &def_beginRender->data->depthAttachmentInfo;
-    def_beginRender->data->renderingInfo.renderArea = window.screenDimensions;
-    def_beginRender->data->renderingInfo.viewMask = 0;
+    renderTask.SetRenderInfo();
 
     def_pipe->data->bindPoint = triangle_pipeline.pipeLayout->bindPoint;
     def_pipe->data->layout = triangle_pipeline.pipeLayout->vkLayout;
@@ -544,6 +506,7 @@ int main() {
     //^ add this in the per-frame loop
     *deferredPresent->data = &presentInfo;
 
+
     VkSubmitInfo submitInfo{};
     submitInfo.commandBufferCount = 1;
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -563,12 +526,59 @@ int main() {
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = 0;
     uint8_t frameIndex = 1;
+
+    deferredBlit->data->filter = VK_FILTER_LINEAR;
+    VkImageBlit& blitParams = deferredBlit->data->blitParams;
+    blitParams.srcOffsets[0].x = 0;
+    blitParams.srcOffsets[0].y = 0;
+    blitParams.srcOffsets[0].z = 0;
+
+    blitParams.dstOffsets[0].x = 0;
+    blitParams.dstOffsets[0].y = 0;
+    blitParams.dstOffsets[0].z = 0;
+
+    blitParams.srcOffsets[1].x = colorAttViews[0].image.extent.width;
+    blitParams.srcOffsets[1].y = colorAttViews[0].image.extent.height;
+    blitParams.srcOffsets[1].z = colorAttViews[0].image.extent.depth;
+
+    blitParams.dstOffsets[1].x = swapchain.swapCreateInfo.imageExtent.width;
+    blitParams.dstOffsets[1].y = swapchain.swapCreateInfo.imageExtent.height;
+    blitParams.dstOffsets[1].z = 1;
+
+    blitParams.srcSubresource.aspectMask = colorAttViews[0].subresource.aspectMask;
+    blitParams.srcSubresource.baseArrayLayer = 0;
+    blitParams.srcSubresource.layerCount = colorAttViews[0].subresource.layerCount;
+    blitParams.srcSubresource.mipLevel = 0;
+
+    blitParams.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    blitParams.dstSubresource.baseArrayLayer = 0;
+    blitParams.dstSubresource.layerCount = 1;
+    blitParams.dstSubresource.mipLevel = 0;
     try {
         auto timeBegin = std::chrono::high_resolution_clock::now();
+        VkDescriptorImageInfo descImg;
         while (true) {
+
+            if (swapchain.AcquireNextImage(frameIndex)) {
+
+            }
+            else {
+                //need to recreate swapchain, thats handled internally
+                //any other Swapchain::Recreate 'callbacks' will be put here
+                blitParams.dstOffsets[1].x = swapchain.swapCreateInfo.imageExtent.width;
+                blitParams.dstOffsets[1].y = swapchain.swapCreateInfo.imageExtent.height;
+                blitParams.dstOffsets[1].z = 1;
+            }
+            deferredBlit->data->dstImage = swapchain.images[swapchain.imageIndex];
+            deferredBlit->data->dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            deferredBlit->data->srcImage = colorAttachmentImages[frameIndex].image;
+            deferredBlit->data->srcLayout = colorAttachmentImages[frameIndex].layout;
+
             //i need to figure out how to identify an attachment, and draw synchronization from it, or even use it later
-            def_beginRender->data->colorAttachmentInfo.imageView = colorAttViews[frameIndex];
-            def_beginRender->data->depthAttachmentInfo.imageView = depthAttViews[frameIndex];
+            renderTask.renderTracker->vk_data.colorAttachmentInfo[0].imageView = colorAttViews[frameIndex];
+            renderTask.renderTracker->vk_data.depthAttachmentInfo.imageView = depthAttViews[frameIndex];
+
+            presentTask.DefineBlitUsage(0, &colorAttachmentImages[frameIndex], nullptr);
 
             EWE::CommandBuffer& currentCmdBuf = commandBuffers[frameIndex];
             //EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);

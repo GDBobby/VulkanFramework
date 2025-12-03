@@ -10,14 +10,14 @@ namespace EWE{
             case Type::BindPipeline: return sizeof(Pipeline*);
             case Type::BindDescriptor: return sizeof(VkDescriptorSet);
             case Type::PushConstant: return sizeof(GlobalPushConstant);
-            case Type::BeginRender: return sizeof(RenderInfo);
+            case Type::BeginRender: return sizeof(VkRenderingInfo*);
             case Type::EndRender: return 0;
             case Type::Draw: return sizeof(VertexDrawParamPack);
             case Type::DrawIndexed: return sizeof(IndexDrawParamPack);
             case Type::Dispatch: return sizeof(DispatchParamPack);
             case Type::Blit: return sizeof(BlitParamPack);
             case Type::Present: return sizeof(VkPresentInfoKHR*);
-            case Type::PipelineBarrier: return 0;
+            //case Type::PipelineBarrier: return 0;
             case Type::DS_ViewportScissor: return sizeof(ViewportScissorParamPack);
             case Type::DS_ViewportScissorWithCount: return sizeof(ViewportScissorWithCountParamPack);
             case Type::BeginLabel: return sizeof(LabelParamPack);

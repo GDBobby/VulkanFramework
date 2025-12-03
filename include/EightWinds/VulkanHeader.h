@@ -87,4 +87,31 @@ namespace EWE{
         //call a following function
     #endif
     }
+
+
+
+    constexpr bool GetAccessMaskWrite(VkAccessFlagBits2 accessMask) {
+        switch (accessMask) {
+            case VK_ACCESS_2_SHADER_WRITE_BIT:
+            case VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT:
+            case VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT:
+            case VK_ACCESS_2_TRANSFER_WRITE_BIT:
+            case VK_ACCESS_2_HOST_WRITE_BIT:
+            case VK_ACCESS_2_MEMORY_WRITE_BIT:
+            case VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT:
+            case VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR:
+            case VK_ACCESS_2_VIDEO_ENCODE_WRITE_BIT_KHR:
+            case VK_ACCESS_2_SHADER_TILE_ATTACHMENT_WRITE_BIT_QCOM:
+            case VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT:
+            case VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT:
+            case VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT:
+            case VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR:
+            case VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT:
+            case VK_ACCESS_2_OPTICAL_FLOW_WRITE_BIT_NV:
+            case VK_ACCESS_2_DATA_GRAPH_WRITE_BIT_ARM:
+                return true;
+            default:
+                return false;
+        }
+    }
 }

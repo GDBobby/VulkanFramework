@@ -1,5 +1,7 @@
 #include "EightWinds/Backend/RenderInfo.h"
 
+#include "EightWinds/ImageView.h"
+
 #include <cassert>
 
 /*
@@ -17,6 +19,81 @@ Each pNext member of any structure (including this one) in the pNext chain must 
 */
 
 namespace EWE{
+
+    VkRect2D RenderInfo2::CalculateRenderArea() {
+        VkRect2D ret{};
+        ret.offset.x = 0;
+        ret.offset.y = 0;
+        //if we're not enforcing uniform size, render area will be equal to the smallest size here
+        ret.extent.width = color_attachments[0].imageView->image.extent.width;
+        ret.extent.height = color_attachments[0].imageView->image.extent.height;
+#if EWE_DEBUG_BOOL
+        for (std::size_t i = 1; i < color_attachments.size(); i++) {
+            assert(color_attachments[i].imageView->image.extent.width == ret.extent.width);
+            assert(color_attachments[i].imageView->image.extent.height == ret.extent.height);
+        }
+
+        assert(depth_attachment.imageView->image.extent.width == ret.extent.width);
+        assert(depth_attachment.imageView->image.extent.height = ret.extent.height);
+#endif
+    }
+
+    void RenderInfo2::Expand(RenderInfo* out) const {
+        RenderInfo& ret = *out;
+        ret.renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+        ret.renderingInfo.pNext = nullptr;
+
+        for (auto const& att : color_attachments) {
+            auto& backAtt = ret.colorAttachmentInfo.emplace_back();
+            backAtt.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+            backAtt.pNext = nullptr;
+
+            backAtt.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            backAtt.resolveImageView = VK_NULL_HANDLE;
+            backAtt.resolveMode = VK_RESOLVE_MODE_FLAG_BITS_MAX_ENUM;
+
+            backAtt.clearValue = att.clearValue;
+            backAtt.loadOp = att.loadOp;
+            backAtt.storeOp = att.storeOp;
+
+            backAtt.imageView = att.imageView->view;
+            backAtt.imageLayout = att.imageView->image.layout;
+        }
+
+        ret.depthAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+        ret.depthAttachmentInfo.pNext = nullptr;
+
+        if (depth_attachment.imageView != nullptr) {
+            ret.depthAttachmentInfo.imageView = depth_attachment.imageView->view;
+            ret.depthAttachmentInfo.imageLayout = depth_attachment.imageView->image.layout;
+        }
+        else {
+            ret.depthAttachmentInfo.imageView = VK_NULL_HANDLE;
+        }
+
+        ret.depthAttachmentInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        ret.depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
+        ret.depthAttachmentInfo.resolveMode = VK_RESOLVE_MODE_FLAG_BITS_MAX_ENUM;
+
+        ret.depthAttachmentInfo.clearValue = depth_attachment.clearValue;
+        ret.depthAttachmentInfo.loadOp = depth_attachment.loadOp;
+        ret.depthAttachmentInfo.storeOp = depth_attachment.storeOp;
+
+
+        ret.renderingInfo.colorAttachmentCount = static_cast<uint32_t>(ret.colorAttachmentInfo.size());
+        ret.renderingInfo.flags = flags;
+        //layerCount is the number of layers rendered to in each attachment when viewMask is 0.
+        ret.renderingInfo.layerCount = 1;
+        ret.renderingInfo.pColorAttachments = ret.colorAttachmentInfo.data();
+        ret.renderingInfo.pDepthAttachment = &ret.depthAttachmentInfo;
+        ret.renderingInfo.renderArea = CalculateRenderArea();
+    }
+    RenderInfo RenderInfo2::Expand() const {
+
+        RenderInfo ret{};
+        Expand(&ret);
+        return ret;
+    }
 
     /*
     i don't really like how much this constructor assumes, and how difficult it's going to be to customize.

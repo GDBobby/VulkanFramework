@@ -25,12 +25,12 @@ namespace EWE{
             std::vector<CommandInstruction> const& instructions;
             CommandBuffer& cmdBuf;
             std::vector<uint8_t> const& paramPool;
-            std::vector<uint8_t> const& barrierPool;
+            //std::vector<uint8_t> const& barrierPool;
 
             PipelineParamPack boundPipeline{};
 
             std::size_t iterator = 0;
-            std::size_t current_barrier_offset = 0;
+            //std::size_t current_barrier_offset = 0;
             //i dont really know what i want to do with the lower data
             //i can do assertions, which will be nice for preventing bugs
             //i could do static analysis for deeper bugs, or potentially even optimization
@@ -55,7 +55,7 @@ namespace EWE{
         void Dispatch(ExecContext& ctx);
         void Blit(ExecContext& ctx);
         void Present(ExecContext& ctx);
-        void Barrier(ExecContext& ctx);
+        //void Barrier(ExecContext& ctx);
         void ViewportScissor(ExecContext& ctx);
         void ViewportScissorWithCount(ExecContext& ctx);
         void BeginLabel(ExecContext& ctx);
@@ -120,8 +120,8 @@ namespace EWE{
         }
 
         void BeginRender(ExecContext& ctx){
-            auto* data = reinterpret_cast<RenderInfo const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            vkCmdBeginRendering(ctx.cmdBuf, &data->renderingInfo);
+            auto* data = reinterpret_cast<VkRenderingInfo const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            vkCmdBeginRendering(ctx.cmdBuf, data);
         }
         void EndRender(ExecContext& ctx){
             vkCmdEndRendering(ctx.cmdBuf);
@@ -240,8 +240,8 @@ namespace EWE{
             .device = logicalDevice, 
             .instructions = instructions, 
             .cmdBuf = cmdBuf, 
-            .paramPool = paramPool
-            .barrierPool = barrierPool,
+            .paramPool = paramPool,
+            //.barrierPool = barrierPool,
             .boundPipeline{.pipe = VK_NULL_HANDLE, .layout = VK_NULL_HANDLE,.bindPoint = VK_PIPELINE_BIND_POINT_MAX_ENUM }
         };
 

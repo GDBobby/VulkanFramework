@@ -16,8 +16,6 @@
 namespace EWE{
     struct Buffer;
     struct Image;
-    struct GlobalPushConstant;
-
 
     struct ResourceUsageData {
         VkPipelineStageFlags2 stage;
@@ -41,9 +39,12 @@ namespace EWE{
         //with pushtracker directly, instead of going thru GPUTask
     };
     struct BlitTracker {
-        BlitParamPack* paramPackAddress;
         Resource<Image> srcImage;
         Resource<Image> dstImage;
+    };
+    struct RenderTracker {
+        RenderInfo vk_data;
+        RenderInfo2 compact;
     };
 
     //the id of this task is its address
@@ -73,15 +74,15 @@ namespace EWE{
         //i need another system wrapping GPUTask to handle how the command buffers are dealt with
         void Execute(CommandBuffer& cmdBuf);
 
+        //optional, a compute wouldnt use htis
+        RenderTracker* renderTracker = nullptr;
+
+        void SetRenderInfo();
+        
         //write directly to the push tracker. 
         //replace the old buffer if necessary
         std::vector<PushTracker> pushTrackers{};
         std::vector<BlitTracker> blitTrackers{};
-        //i think it would be better to use something like what std::hive is intended to do
-        //right now, i have to iterate over the entire vector to find the resource, but i could use an index
-        //if it was guaranteed to be stably iterated
-        //std::vector<Resource<Buffer>*> usedBuffers{};
-        //std::vector<Resource<Image>*> usedImages{};
 
         //i'd like writes to be statically reflected but i dont think thats possible right now
         //it should be somewhat easy to fix this in the future
@@ -95,14 +96,13 @@ namespace EWE{
         //ill also assert both (buffer and image) slots are valid in debug mode
         void PushImage(Image* image, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData) noexcept;
 
-        void DefineBlit(uint16_t blitIndex, Image* srcImage, Image* dstImage, VkImageBlit const& blitParams, VkFilter filter) noexcept;
+        //if its nullptr, it's guaranteed no barriers are necessary
+        void DefineBlitUsage(uint16_t blitIndex, Image* srcImage, Image* dstImage) noexcept;
 
-        
+        void SetRenderInfo(RenderInfo2 const& renderInfo);
         //ok, maybe we just dont allow internal sync
         //it got extremely complicated extremely quickly
         void GenerateInternalSync();
-
-        void GenerateTaskToTaskSync(GPUTask& otherTask);
 
 
         //im not committed to putting the command buffer here. 

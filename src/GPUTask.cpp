@@ -21,6 +21,9 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
         printf("need to destruct deferred pointers from CommandRecord, currently memory leak\n");
 #endif
+        if (renderTracker!= nullptr) {
+            delete renderTracker;
+        }
     }
     void GPUTask::Execute(CommandBuffer& cmdBuf) {
         assert(cmdBuf.commandPool.queue == queue);
@@ -70,39 +73,27 @@ namespace EWE{
     }
     */
     
-    void GPUTask::DefineBlit(uint16_t blitIndex, Image* srcImage, Image* dstImage, VkImageBlit const& blitParams, VkFilter filter) noexcept {
+    void GPUTask::DefineBlitUsage(uint16_t blitIndex, Image* srcImage, Image* dstImage) noexcept {
         assert(blitIndex < blitTrackers.size());
         auto& tracker = blitTrackers[blitIndex];
 
         //SHOULD i guarantee they're in transfer src/dst optimal?
-        tracker.srcImage.resource = srcImage;
-        tracker.srcImage.usage.accessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
-        tracker.srcImage.usage.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-
-        tracker.dstImage.resource = dstImage;
-        tracker.dstImage.usage.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-        tracker.dstImage.usage.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-
-        tracker.paramPackAddress->blitParams = blitParams;
-        tracker.paramPackAddress->filter = filter;
-
-        //ReplaceResource(tracker.srcImage, srcImage, false);
-        //ReplaceResource(tracker.dstImage, dstImage, true);
-        if (dstImage != nullptr) {
-            tracker.paramPackAddress->dstImage = dstImage->image;
-            tracker.paramPackAddress->dstLayout = dstImage->layout;
-        }
-        else {
-            tracker.paramPackAddress->dstImage = VK_NULL_HANDLE;
-            tracker.paramPackAddress->dstLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        }
         if (srcImage != nullptr) {
-            tracker.paramPackAddress->srcImage = srcImage->image;
-            tracker.paramPackAddress->srcLayout = srcImage->layout;
+            tracker.srcImage.resource = srcImage;
+            tracker.srcImage.usage.accessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
+            tracker.srcImage.usage.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
         }
         else {
-            tracker.paramPackAddress->srcImage = VK_NULL_HANDLE;
-            tracker.paramPackAddress->srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            tracker.srcImage.resource = nullptr;
+        }
+
+        if (dstImage != nullptr) {
+            tracker.dstImage.resource = dstImage;
+            tracker.dstImage.usage.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+            tracker.dstImage.usage.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+        }
+        else {
+            tracker.dstImage.resource = nullptr;
         }
     }
 
@@ -143,32 +134,29 @@ namespace EWE{
         }
     }
 
-    constexpr bool GetAccessMaskWrite(VkAccessFlagBits2 accessMask) {
-        switch (accessMask) {
-            case VK_ACCESS_2_SHADER_WRITE_BIT:
-            case VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT:
-            case VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT:
-            case VK_ACCESS_2_TRANSFER_WRITE_BIT:
-            case VK_ACCESS_2_HOST_WRITE_BIT:
-            case VK_ACCESS_2_MEMORY_WRITE_BIT:
-            case VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT:
-            case VK_ACCESS_2_VIDEO_DECODE_WRITE_BIT_KHR:
-            case VK_ACCESS_2_VIDEO_ENCODE_WRITE_BIT_KHR:
-            case VK_ACCESS_2_SHADER_TILE_ATTACHMENT_WRITE_BIT_QCOM:
-            case VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT:
-            case VK_ACCESS_2_TRANSFORM_FEEDBACK_COUNTER_WRITE_BIT_EXT:
-            case VK_ACCESS_2_COMMAND_PREPROCESS_WRITE_BIT_EXT:
-            case VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR:
-            case VK_ACCESS_2_MICROMAP_WRITE_BIT_EXT:
-            case VK_ACCESS_2_OPTICAL_FLOW_WRITE_BIT_NV:
-            case VK_ACCESS_2_DATA_GRAPH_WRITE_BIT_ARM:
-                return true;
-            default: 
-                return false;
+    void GPUTask::SetRenderInfo() {
+        assert(renderTracker != nullptr);
+        renderTracker->compact.Expand(&renderTracker->vk_data);
+
+#if EWE_DEBUG_BOOL
+
+        bool hasBeginRender = false;
+        for (auto& inst : commandExecutor.instructions) {
+            if (inst.type == CommandInstruction::Type::BeginRender) {
+                VkRenderingInfo** tempAddr = reinterpret_cast<VkRenderingInfo**>(commandExecutor.paramPool.data() + inst.paramOffset);
+                *tempAddr = &renderTracker->vk_data.renderingInfo;
+                inst.paramOffset;
+                hasBeginRender = true;
+                break;
+            }
         }
+        assert(hasBeginRender);
+#endif
     }
 
+    /*
     void GPUTask::GenerateInternalSync(){
+        assert(false && "disabled, pending removal??");
 
         //i could optimize this a tiny bit if its assumed push cosntants are 
         //never going to use the same resource twice
@@ -338,8 +326,8 @@ namespace EWE{
             commandExecutor.instructions.insert(
                 commandExecutor.instructions.begin() + buffer_package.instructionPoint[bar_index].second, 
                 CommandInstruction{
-                    .type = CommandInstruction::Type::PipelineBarrier, 
-                    .paramOffset = current_memory_addr - barrierPool.data()
+                    CommandInstruction::Type::PipelineBarrier, 
+                    current_memory_addr - barrierPool.data()
                 }
             );
             for(auto after = bar_index + 1; after < buffer_package.barriers.size(); after++){
@@ -365,8 +353,8 @@ namespace EWE{
             commandExecutor.instructions.insert(
                 commandExecutor.instructions.begin() + img_package.instructionPoint[bar_index].second, 
                 CommandInstruction{
-                    .type = CommandInstruction::Type::PipelineBarrier, 
-                    .paramOffset = current_memory_addr - barrierPool.data()
+                    CommandInstruction::Type::PipelineBarrier, 
+                    current_memory_addr - barrierPool.data()
                 }
             );
             for(auto after = bar_index + 1; after < img_package.barriers.size(); after++){
@@ -381,4 +369,5 @@ namespace EWE{
         }
         assert(current_memory_addr == (barrierPool.data() + total_barrier_pool_size));
     }
+    */
 } //namespace EWE

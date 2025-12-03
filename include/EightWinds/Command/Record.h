@@ -71,7 +71,7 @@ namespace EWE{
         uint32_t Push();
 
         //this shouldnt be used directly
-        DeferredReference<RenderInfo>* BeginRender();
+        void BeginRender();
         void EndRender();
 
         //this needs to be expanded

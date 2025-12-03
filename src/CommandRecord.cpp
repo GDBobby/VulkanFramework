@@ -106,6 +106,11 @@ namespace EWE{
             std::size_t temp_addr = reinterpret_cast<std::size_t>(push_off);
             ret.pushTrackers.emplace_back(reinterpret_cast<GlobalPushConstant*>(temp_addr + param_pool_address));
         }
+        for (auto const& inst : records) {
+            if (inst.type == CommandInstruction::Type::BeginRender) {
+                ret.renderTracker = new RenderTracker();
+            }
+        }
 
         //all validations will be here
         //theres some non-validation stuff here, like collapsing empty branches
@@ -150,12 +155,8 @@ namespace EWE{
         return pushIndex++;
     }
 
-    DeferredReference<RenderInfo>* CommandRecord::BeginRender(){
-        //i can probably reduce the size of this, i dont know if it's necessary or not
+    void CommandRecord::BeginRender(){
         BindCommand(records, CommandInstruction::Type::BeginRender);
-        auto deferred_ref = new DeferredReference<RenderInfo>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
-        return deferred_ref;
     }
     void CommandRecord::EndRender(){
         BindCommand(records, CommandInstruction::Type::EndRender);
