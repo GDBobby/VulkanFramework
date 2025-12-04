@@ -2,16 +2,18 @@
 
 namespace EWE{
 
+
+
     constexpr VkImageViewType ImageTypeToViewType(VkImageType imageType, uint32_t arrayCount) {
         //https://docs.vulkan.org/refpages/latest/refpages/source/VkImageViewCreateInfo.html
         //conversion chart here
         switch(imageType) {
-            case VK_IMAGE_TYPE_1D: 
+            case VK_IMAGE_TYPE_1D:
                 if(arrayCount > 1){
                     return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
                 }
                 return VK_IMAGE_VIEW_TYPE_1D;
-            case VK_IMAGE_VIEW_TYPE_2D:
+            case VK_IMAGE_TYPE_2D:
                 if(arrayCount == 6){
                     return VK_IMAGE_VIEW_TYPE_CUBE;
                 }
@@ -24,12 +26,40 @@ namespace EWE{
 
             default:
                 //cube array usage?
+                assert(false);
                 return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
         }
     }
 
 
-    static VkImageViewCreateInfo GetDefaultFullImageViewCreateInfo(Image& image) noexcept {
+    VkImageSubresourceRange ImageView::GetDefaultSubresource(Image& image) noexcept{
+
+        VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        switch (image.format) {
+            case VK_FORMAT_D16_UNORM:
+            case VK_FORMAT_D16_UNORM_S8_UINT:
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+            case VK_FORMAT_D32_SFLOAT:
+            case VK_FORMAT_D32_SFLOAT_S8_UINT:
+            case VK_FORMAT_X8_D24_UNORM_PACK32:
+                aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+                break;
+            default: 
+                break;
+        }
+        
+
+        VkImageSubresourceRange ret;
+        ret.aspectMask = aspectMask;
+        ret.baseArrayLayer = 0;
+        ret.baseMipLevel = 0;
+        ret.layerCount = image.arrayLayers;
+        ret.levelCount = image.mipLevels;
+
+        return ret;
+    }
+
+    VkImageViewCreateInfo ImageView::GetDefaultFullImageViewCreateInfo(Image& image) noexcept {
         VkImageViewCreateInfo viewCreateInfo{};
         viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewCreateInfo.pNext = nullptr;
@@ -54,21 +84,7 @@ namespace EWE{
                                         .a = VK_COMPONENT_SWIZZLE_IDENTITY
         };
 
-        VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        switch (viewCreateInfo.format) {
-            case VK_FORMAT_D16_UNORM:
-            case VK_FORMAT_D16_UNORM_S8_UINT:
-            case VK_FORMAT_D24_UNORM_S8_UINT:
-            case VK_FORMAT_D32_SFLOAT:
-            case VK_FORMAT_D32_SFLOAT_S8_UINT:
-            case VK_FORMAT_X8_D24_UNORM_PACK32:
-                aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        }
-        viewCreateInfo.subresourceRange.aspectMask = aspectMask;
-        viewCreateInfo.subresourceRange.baseArrayLayer = 0;
-        viewCreateInfo.subresourceRange.baseMipLevel = 0;
-        viewCreateInfo.subresourceRange.layerCount = image.arrayLayers;
-        viewCreateInfo.subresourceRange.levelCount = image.mipLevels;
+        viewCreateInfo.subresourceRange = GetDefaultSubresource(image);
 
         return viewCreateInfo;
     }
@@ -81,6 +97,15 @@ namespace EWE{
     }
     
     ImageView::ImageView(Image& image) noexcept
-        : ImageView(image, GetDefaultFullImageViewCreateInfo(image))
-    {}
+        : image{image}
+    {
+        const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
+        subresource = createInfo.subresourceRange;
+
+        EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
+    }
+
+    ImageView::~ImageView(){
+        vkDestroyImageView(image.logicalDevice.device, view, nullptr);
+    }
 }

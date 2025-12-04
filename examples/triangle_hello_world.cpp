@@ -128,7 +128,7 @@ struct SwapChainSupportDetails {
 int main() {
 
     std::vector<const char*> requiredExtensions{
-#ifdef _DEBUG
+#if EWE_DEBUG_BOOL
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 
 #endif
@@ -190,6 +190,7 @@ int main() {
 
     auto& features13 = specDev.GetFeature<VkPhysicalDeviceVulkan13Features>();
     features13.dynamicRendering = VK_TRUE;
+    features13.synchronization2 = VK_TRUE;
 
     auto& devFaultFeatures = specDev.GetFeature<VkPhysicalDeviceFaultFeaturesEXT>();
     devFaultFeatures.deviceFault = VK_TRUE;
@@ -290,8 +291,18 @@ int main() {
 
     printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
 
-    //need to fix htis
+    //need to fix htis. its something with my windows debugger
+#ifdef _WIN32
     std::filesystem::current_path("C:/Projects/VulkanFramework");
+#else
+    auto current_working_directory = std::filesystem::current_path();
+    auto parentStem = current_working_directory.parent_path().stem();
+    if(parentStem == "build"){
+        current_working_directory = current_working_directory.parent_path().parent_path();
+        printf("build redacted working dir - %s\n", current_working_directory.string().c_str());
+    }
+    std::filesystem::current_path(current_working_directory);
+#endif
     printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
     EWE::Framework framework(logicalDevice);
     framework.properties = specDev.GetProperty<VkPhysicalDeviceProperties2>().properties;
@@ -373,7 +384,7 @@ int main() {
     VmaAllocationCreateInfo vmaAllocCreateInfo{};
     vmaAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
     //if(imageCreateInfo.width * height > some amount){
-    vmaAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT | VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+    vmaAllocCreateInfo.flags = static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) | static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT);
     //}
     for (auto& cai : colorAttachmentImages) {
         cai.format = VK_FORMAT_R8G8B8A8_UNORM;
@@ -384,6 +395,107 @@ int main() {
         dai.format = VK_FORMAT_D16_UNORM;
         dai.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
         dai.Create(vmaAllocCreateInfo);
+    }
+
+    //before getting into the render, the layouts of the attachments need to be transitioned
+    {
+        EWE::CommandPool stc_cmdPool{logicalDevice, *renderQueue, true};
+        
+        VkCommandBufferAllocateInfo cmdBufAllocInfo{};
+        cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdBufAllocInfo.pNext = nullptr;
+        cmdBufAllocInfo.commandBufferCount = 1;
+        cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdBufAllocInfo.commandPool = stc_cmdPool.commandPool;
+        
+        VkCommandBuffer temp_stc_cmdBuf;
+        EWE::EWE_VK(vkAllocateCommandBuffers, logicalDevice.device, &cmdBufAllocInfo, &temp_stc_cmdBuf);
+        stc_cmdPool.allocatedBuffers++;
+        
+        EWE::CommandBuffer transition_stc(stc_cmdPool, temp_stc_cmdBuf);
+        VkCommandBufferBeginInfo beginSTCInfo{};
+        beginSTCInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginSTCInfo.pNext = nullptr;
+        beginSTCInfo.pInheritanceInfo = nullptr;
+        beginSTCInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        transition_stc.Begin(beginSTCInfo);
+
+        std::vector<VkImageMemoryBarrier2> transition_barriers(4);
+
+        uint64_t current_barrier_index = 0;
+
+        for(auto& cai : colorAttachmentImages){
+            transition_barriers[current_barrier_index].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+            transition_barriers[current_barrier_index].pNext = nullptr;
+            transition_barriers[current_barrier_index].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            transition_barriers[current_barrier_index].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            transition_barriers[current_barrier_index].srcAccessMask = VK_ACCESS_2_NONE;
+            transition_barriers[current_barrier_index].dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+            transition_barriers[current_barrier_index].image = cai.image;
+            transition_barriers[current_barrier_index].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            transition_barriers[current_barrier_index].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            transition_barriers[current_barrier_index].subresourceRange = EWE::ImageView::GetDefaultSubresource(cai);
+            transition_barriers[current_barrier_index].srcStageMask = VK_PIPELINE_STAGE_2_HOST_BIT;
+            transition_barriers[current_barrier_index].dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+            current_barrier_index++;
+        }
+        for(auto& dai : depthAttachmentImages){
+            transition_barriers[current_barrier_index].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+            transition_barriers[current_barrier_index].pNext = nullptr;
+            transition_barriers[current_barrier_index].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            transition_barriers[current_barrier_index].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            transition_barriers[current_barrier_index].srcAccessMask = VK_ACCESS_2_NONE;
+            transition_barriers[current_barrier_index].dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            transition_barriers[current_barrier_index].image = dai.image;
+            transition_barriers[current_barrier_index].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            transition_barriers[current_barrier_index].newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+            transition_barriers[current_barrier_index].subresourceRange = EWE::ImageView::GetDefaultSubresource(dai);
+            transition_barriers[current_barrier_index].srcStageMask = VK_PIPELINE_STAGE_2_HOST_BIT;
+            transition_barriers[current_barrier_index].dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+
+            current_barrier_index++;
+        }
+
+        VkDependencyInfo transition_dependency{};
+        transition_dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+        transition_dependency.pNext = nullptr;
+        transition_dependency.bufferMemoryBarrierCount = 0;
+        transition_dependency.memoryBarrierCount = 0;
+        transition_dependency.imageMemoryBarrierCount = static_cast<uint32_t>(transition_barriers.size());
+        transition_dependency.pImageMemoryBarriers = transition_barriers.data();
+
+        vkCmdPipelineBarrier2(transition_stc, &transition_dependency);
+
+        transition_stc.End();
+
+        VkFence stc_fence;
+
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.pNext = nullptr;
+        fenceCreateInfo.flags = 0;
+        EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &stc_fence);
+
+        VkSubmitInfo stc_submit_info{};
+        stc_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        stc_submit_info.pNext = nullptr;
+        stc_submit_info.commandBufferCount = 1;
+        stc_submit_info.pCommandBuffers = &temp_stc_cmdBuf;
+        stc_submit_info.signalSemaphoreCount = 0;
+        stc_submit_info.waitSemaphoreCount = 0;
+        stc_submit_info.pWaitDstStageMask = nullptr;
+
+        renderQueue->Submit(1, &stc_submit_info, stc_fence);
+
+        EWE::EWE_VK(vkWaitForFences, logicalDevice.device, 1, &stc_fence, VK_TRUE, 5 * static_cast<uint64_t>(1e9));
+        
+        for(auto& cai : colorAttachmentImages){
+            cai.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        }
+        for(auto& dai : depthAttachmentImages){
+            dai.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        }
     }
 
     EWE::PerFlight<EWE::ImageView> colorAttViews{ colorAttachmentImages};
@@ -555,12 +667,43 @@ int main() {
     blitParams.dstSubresource.layerCount = 1;
     blitParams.dstSubresource.mipLevel = 0;
     try {
+
         auto timeBegin = std::chrono::high_resolution_clock::now();
         VkDescriptorImageInfo descImg;
         while (true) {
+            const auto timeEnd = std::chrono::high_resolution_clock::now();
+            const auto timeDiff = timeEnd - timeBegin;
+            timeBegin = timeEnd;
 
             if (swapchain.AcquireNextImage(frameIndex)) {
+                deferredBlit->data->dstImage = swapchain.images[swapchain.imageIndex];
+                deferredBlit->data->dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                deferredBlit->data->srcImage = colorAttachmentImages[frameIndex].image;
+                deferredBlit->data->srcLayout = colorAttachmentImages[frameIndex].layout;
 
+                //i need to figure out how to identify an attachment, and draw synchronization from it, or even use it later
+                auto& colorRef = colorAttViews[frameIndex]; //vs code doesnt let me peek the value of the view from inside PerFlight
+                auto& depthRef = depthAttViews[frameIndex];
+                renderTask.renderTracker->vk_data.colorAttachmentInfo[0].imageView = colorAttViews[frameIndex].view;
+                renderTask.renderTracker->vk_data.depthAttachmentInfo.imageView = depthAttViews[frameIndex].view;
+
+                presentTask.DefineBlitUsage(0, &colorAttachmentImages[frameIndex], nullptr);
+
+                EWE::TaskBridge taskBridge(renderTask, presentTask);
+                taskBridge.RecreateBarriers();
+
+                EWE::CommandBuffer& currentCmdBuf = commandBuffers[frameIndex];
+                //EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
+                currentCmdBuf.Begin(cmdBeginInfo);
+                renderTask.Execute(currentCmdBuf);
+                taskBridge.Submit(currentCmdBuf);
+                presentTask.Execute(currentCmdBuf);
+
+                //EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
+                currentCmdBuf.End();
+                submitInfo.pCommandBuffers = &currentCmdBuf.cmdBuf;
+                //EWE::EWE_VK(vkQueueSubmit, *renderQueue, 1, &submitInfo, VK_NULL_HANDLE);
+                renderQueue->Submit(1, &submitInfo, VK_NULL_HANDLE);
             }
             else {
                 //need to recreate swapchain, thats handled internally
@@ -569,27 +712,6 @@ int main() {
                 blitParams.dstOffsets[1].y = swapchain.swapCreateInfo.imageExtent.height;
                 blitParams.dstOffsets[1].z = 1;
             }
-            deferredBlit->data->dstImage = swapchain.images[swapchain.imageIndex];
-            deferredBlit->data->dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            deferredBlit->data->srcImage = colorAttachmentImages[frameIndex].image;
-            deferredBlit->data->srcLayout = colorAttachmentImages[frameIndex].layout;
-
-            //i need to figure out how to identify an attachment, and draw synchronization from it, or even use it later
-            renderTask.renderTracker->vk_data.colorAttachmentInfo[0].imageView = colorAttViews[frameIndex];
-            renderTask.renderTracker->vk_data.depthAttachmentInfo.imageView = depthAttViews[frameIndex];
-
-            presentTask.DefineBlitUsage(0, &colorAttachmentImages[frameIndex], nullptr);
-
-            EWE::CommandBuffer& currentCmdBuf = commandBuffers[frameIndex];
-            //EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
-            currentCmdBuf.Begin(cmdBeginInfo);
-            renderTask.Execute(currentCmdBuf);
-
-            //EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
-            currentCmdBuf.End();
-            submitInfo.pCommandBuffers = &currentCmdBuf.cmdBuf;
-            //EWE::EWE_VK(vkQueueSubmit, *renderQueue, 1, &submitInfo, VK_NULL_HANDLE);
-            renderQueue->Submit(1, &submitInfo, VK_NULL_HANDLE);
             frameIndex = (frameIndex + 1) % EWE::max_frames_in_flight;
         }
     }

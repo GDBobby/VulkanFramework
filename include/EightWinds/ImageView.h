@@ -15,10 +15,13 @@ namespace EWE{
         //for any customization
         [[nodiscard]] explicit ImageView(Image& image, VkImageViewCreateInfo const& createInfo) noexcept;
 
+        ~ImageView();
+
         operator VkImageView() const {
             return view;
         }
 
+        static VkImageSubresourceRange GetDefaultSubresource(Image& image) noexcept;
         static VkImageViewCreateInfo GetDefaultFullImageViewCreateInfo(Image& image) noexcept;
     };
 }

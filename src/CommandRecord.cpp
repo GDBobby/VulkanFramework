@@ -106,9 +106,15 @@ namespace EWE{
             std::size_t temp_addr = reinterpret_cast<std::size_t>(push_off);
             ret.pushTrackers.emplace_back(reinterpret_cast<GlobalPushConstant*>(temp_addr + param_pool_address));
         }
+        uint64_t blitIndex = 0;
         for (auto const& inst : records) {
             if (inst.type == CommandInstruction::Type::BeginRender) {
                 ret.renderTracker = new RenderTracker();
+            }
+            if(inst.type == CommandInstruction::Type::Blit) {
+                auto& blitBack = ret.blitTrackers.emplace_back();
+                blitBack.dstImage.resource = nullptr;
+                blitBack.srcImage.resource = nullptr;
             }
         }
 

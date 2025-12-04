@@ -54,6 +54,7 @@ namespace EWE{
 
         std::vector<CommandInstruction> records{};
 
+        
         uint32_t pushIndex = 0;
         std::vector<DeferredReferenceHelper*> deferred_references{};
         std::vector<GlobalPushConstant*> push_offsets{};

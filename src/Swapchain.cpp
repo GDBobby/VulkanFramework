@@ -123,32 +123,6 @@ namespace EWE{
         
         printf("delete the old views\n");
 
-        /*
-        imageViews.clear();
-        imageViews.resize(swapImageCount);
-        assert(swapImageCount < 255);
-
-        VkImageViewCreateInfo imgViewCreateInfo{};
-        imgViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        imgViewCreateInfo.pNext = nullptr;
-        imgViewCreateInfo.flags = 0;
-        imgViewCreateInfo.format = swapCreateInfo.imageFormat;
-        imgViewCreateInfo.subresourceRange = VkImageSubresourceRange{
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .baseArrayLayer = 0,
-            .layerCount = 1
-        };
-        imgViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        //imgViewCreateInfo.components = defaulted i guess
-
-        for(uint8_t i = 0; i < swapImageCount; i++){
-            imgViewCreateInfo.image = images[i];
-            EWE_VK(vkCreateImageView, logicalDevice.device, &imgViewCreateInfo, nullptr, &imageViews[i]);
-        }
-        */
-
         imageIndex = 0;
         currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -203,6 +177,7 @@ namespace EWE{
             case VK_SUCCESS: break; //dont do anything
             case VK_SUBOPTIMAL_KHR: break; //dont do anythign? need to look into this
             case VK_ERROR_OUT_OF_DATE_KHR: RecreateSwapchain(); return false;
+            default: break;
         }
         EWE_VK_RESULT(acquireResult); //throws or asserts
 

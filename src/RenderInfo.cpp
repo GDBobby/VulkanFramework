@@ -20,7 +20,7 @@ Each pNext member of any structure (including this one) in the pNext chain must 
 
 namespace EWE{
 
-    VkRect2D RenderInfo2::CalculateRenderArea() {
+    VkRect2D RenderInfo2::CalculateRenderArea() const noexcept {
         VkRect2D ret{};
         ret.offset.x = 0;
         ret.offset.y = 0;
@@ -32,10 +32,12 @@ namespace EWE{
             assert(color_attachments[i].imageView->image.extent.width == ret.extent.width);
             assert(color_attachments[i].imageView->image.extent.height == ret.extent.height);
         }
-
-        assert(depth_attachment.imageView->image.extent.width == ret.extent.width);
-        assert(depth_attachment.imageView->image.extent.height = ret.extent.height);
+        if(depth_attachment.imageView != nullptr){
+            assert(depth_attachment.imageView->image.extent.width == ret.extent.width);
+            assert(depth_attachment.imageView->image.extent.height = ret.extent.height);
+        }
 #endif
+        return ret;
     }
 
     void RenderInfo2::Expand(RenderInfo* out) const {
@@ -50,7 +52,7 @@ namespace EWE{
 
             backAtt.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             backAtt.resolveImageView = VK_NULL_HANDLE;
-            backAtt.resolveMode = VK_RESOLVE_MODE_FLAG_BITS_MAX_ENUM;
+            backAtt.resolveMode = VK_RESOLVE_MODE_NONE;
 
             backAtt.clearValue = att.clearValue;
             backAtt.loadOp = att.loadOp;
@@ -73,7 +75,7 @@ namespace EWE{
 
         ret.depthAttachmentInfo.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         ret.depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
-        ret.depthAttachmentInfo.resolveMode = VK_RESOLVE_MODE_FLAG_BITS_MAX_ENUM;
+        ret.depthAttachmentInfo.resolveMode = VK_RESOLVE_MODE_NONE;
 
         ret.depthAttachmentInfo.clearValue = depth_attachment.clearValue;
         ret.depthAttachmentInfo.loadOp = depth_attachment.loadOp;

@@ -1,6 +1,7 @@
 #include "EightWinds/RenderGraph/TaskBridge.h"
 
 #include "EightWinds/ImageView.h"
+#include "EightWinds/Command/CommandBuffer.h"
 
 namespace EWE {
 
@@ -61,19 +62,15 @@ namespace EWE {
 				AddUniqueImage(&blit.srcImage);
 				AddUniqueImage(&blit.dstImage);
 			}
-			if (task.renderTracker != nullptr) {
-					//compact needs to be changed to use resources instead of raw image pointers?
-				for (auto& col_att : task.renderTracker->compact.color_attachments) {
-					assert(col_att.imageView != nullptr);
-					AddUniqueImage(&col_att.imageView->image);
-				}
-			}
 		}
 	};
 
-	void TaskBridge::CreateBarriers() {
+	void TaskBridge::RecreateBarriers() {
 		ResourceCollectionSmall lhsColl{ lhs };
 		ResourceCollectionSmall rhsColl{ rhs };
+
+		imageBarriers.clear();
+		bufferBarriers.clear();
 
 		{ //buffers
 			VkBufferMemoryBarrier2 buf_bar{};
@@ -129,14 +126,6 @@ namespace EWE {
 
 							img_bar.subresourceRange.layerCount = left->resource->arrayLayers;
 							img_bar.subresourceRange.levelCount = left->resource->mipLevels;
-							//theres probably more to the aspect mask
-							//if its depth AND stencil, the apsect must be both depth and stenci lbit
-							if (left->resource->usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-								img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-							}
-							else {
-								img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-							}
 
 							img_bar.srcStageMask = left->usage.stage;
 							img_bar.srcAccessMask = left->usage.accessMask;
@@ -154,5 +143,91 @@ namespace EWE {
 			}
 		}
 
+		{ //attachments	
+			std::vector<Resource<Image>> previousAttachments{};
+
+			VkImageMemoryBarrier2 img_bar{};
+			img_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			img_bar.pNext = nullptr;
+			img_bar.srcQueueFamilyIndex = lhs.queue.family.index;
+			img_bar.dstQueueFamilyIndex = rhs.queue.family.index;
+
+			img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			img_bar.subresourceRange.baseArrayLayer = 0;
+			img_bar.subresourceRange.baseMipLevel = 0;
+
+			if(lhs.renderTracker != nullptr) {
+				std::size_t totalAttachmentCount = lhs.renderTracker->compact.color_attachments.size();
+				const bool hasDepth = lhs.renderTracker->compact.depth_attachment.imageView != nullptr;
+				totalAttachmentCount += hasDepth;
+
+				previousAttachments.reserve(totalAttachmentCount);
+				for(auto& col_att : lhs.renderTracker->compact.color_attachments){
+					auto& backAtt = previousAttachments.emplace_back();
+					backAtt.resource = &col_att.imageView->image;
+					backAtt.usage.stage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+					backAtt.usage.accessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+				} 
+				{ //depth
+					auto& backAtt = previousAttachments.emplace_back();
+					if(hasDepth){ 
+						backAtt.resource = &lhs.renderTracker->compact.depth_attachment.imageView->image;
+						/*
+							VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT specifies the stage of the pipeline where early fragment tests 
+							(depth and stencil tests before fragment shading) are performed. This stage also includes render pass load 
+							operations for framebuffer attachments with a depth/stencil format.
+						*/
+						backAtt.usage.stage = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+						backAtt.usage.accessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+					} 
+				}
+			}
+
+			for(auto& left : previousAttachments){
+			//now we find matches
+				for (auto* right : rhsColl.images) {
+					if (left.resource == right->resource) {
+						bool leftWrites = GetAccessMaskWrite(left.usage.accessMask);
+						bool rightWrites = GetAccessMaskWrite(right->usage.accessMask);
+
+						if (leftWrites || rightWrites) {
+							img_bar.image = left.resource->image;
+
+							img_bar.subresourceRange.layerCount = left.resource->arrayLayers;
+							img_bar.subresourceRange.levelCount = left.resource->mipLevels;
+
+							img_bar.srcStageMask = left.usage.stage;
+							img_bar.srcAccessMask = left.usage.accessMask;
+							img_bar.oldLayout = left.resource->layout;
+
+							img_bar.dstStageMask = right->usage.stage;
+							img_bar.dstAccessMask = right->usage.accessMask;
+							img_bar.newLayout = right->resource->layout;
+							imageBarriers.push_back(img_bar);
+						}
+						//buffers are unique, so no point in checking the rest if we found a match
+						break;
+					}
+				}
+			}
+		}
+	}
+
+
+	void TaskBridge::Submit(CommandBuffer& cmdBuf){
+		assert(cmdBuf.commandPool.queue == rhs.queue);
+
+		dependencyInfo.memoryBarrierCount = 0;
+		dependencyInfo.imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size());
+		dependencyInfo.bufferMemoryBarrierCount = static_cast<uint32_t>(bufferBarriers.size());
+
+		dependencyInfo.pMemoryBarriers = nullptr;
+		dependencyInfo.pImageMemoryBarriers = imageBarriers.data();
+		dependencyInfo.pBufferMemoryBarriers = bufferBarriers.data();
+
+		const uint32_t totalSize = dependencyInfo.memoryBarrierCount + dependencyInfo.imageMemoryBarrierCount + dependencyInfo.bufferMemoryBarrierCount;
+		if(totalSize > 0){
+			vkCmdPipelineBarrier2(cmdBuf, &dependencyInfo);		
+		}
 	}
 }

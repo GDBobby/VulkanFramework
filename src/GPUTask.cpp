@@ -137,6 +137,7 @@ namespace EWE{
     void GPUTask::SetRenderInfo() {
         assert(renderTracker != nullptr);
         renderTracker->compact.Expand(&renderTracker->vk_data);
+        
 
 #if EWE_DEBUG_BOOL
 

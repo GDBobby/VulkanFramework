@@ -40,14 +40,15 @@ namespace EWE{
                 std::construct_at(&resources()[i], std::forward<Args>(args)...);
             }
         }
-        template <typename T>
-        requires std::constructible_from<Resource, T>
-        PerFlight(PerFlight<T>&& other) {
-            for (size_t i = 0; i < max_frames_in_flight; ++i) {
-                std::construct_at(&resources()[i], std::move(other.resources()[i]));
+
+        template<typename Other>
+        requires(std::is_constructible_v<Resource, Other&>)
+        explicit PerFlight(PerFlight<Other>& other) {
+
+            for (std::size_t i = 0; i < max_frames_in_flight; ++i) {
+                std::construct_at(&resources()[i], Resource(other.resources()[i]));
             }
         }
-
 
         template <std::invocable<size_t> Factory>
         requires std::constructible_from<Resource, std::invoke_result_t<Factory, size_t>>
@@ -71,4 +72,22 @@ namespace EWE{
         const Resource* cbegin() const noexcept { return resources(); }
         const Resource* cend()   const noexcept { return resources() + max_frames_in_flight; }
     };
+
+    /*
+    idk why im not doing this, maybe construction time?
+
+    template<typename Resource>
+    struct PerFlight {
+        static constexpr size_t max_frames_in_flight = 3;
+        Resource resources[max_frames_in_flight];
+
+        template<typename... Args>
+        explicit PerFlight(Args&&... args)
+            : resources{ std::forward<Args>(args)... }
+        {
+        }
+    };
+
+
+    */
 }

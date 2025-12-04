@@ -45,6 +45,6 @@ namespace EWE{
         //Expand(RenderInfo* out) fixes the pointers in place since it wont potentially be moved on return
         void Expand(RenderInfo* out) const;
         //all sizes must be uniform at the moment, i dont know if i ever want it different
-        VkRect2D CalculateRenderArea() const;
+        VkRect2D CalculateRenderArea() const noexcept;
     };
 } //namespace EWE

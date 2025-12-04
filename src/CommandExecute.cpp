@@ -81,7 +81,7 @@ namespace EWE{
         &Exec::Dispatch,
         &Exec::Blit,
         &Exec::Present,
-        &Exec::Barrier, 
+        //&Exec::Barrier, 
         &Exec::ViewportScissor,
         &Exec::ViewportScissorWithCount,
         &Exec::BeginLabel,
@@ -120,8 +120,8 @@ namespace EWE{
         }
 
         void BeginRender(ExecContext& ctx){
-            auto* data = reinterpret_cast<VkRenderingInfo const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            vkCmdBeginRendering(ctx.cmdBuf, data);
+            auto* data = reinterpret_cast<VkRenderingInfo* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            vkCmdBeginRendering(ctx.cmdBuf, *data);
         }
         void EndRender(ExecContext& ctx){
             vkCmdEndRendering(ctx.cmdBuf);
@@ -157,9 +157,9 @@ namespace EWE{
             }
         }
 
-        void Barrier(ExecContext& ctx){
-            assert(false && "this needs to be handled, maybe auto-generated only?");
-        }
+        //void Barrier(ExecContext& ctx){
+        //    assert(false && "this needs to be handled, maybe auto-generated only?");
+        //}
 
         
         void ViewportScissor(ExecContext& ctx){
