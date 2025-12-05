@@ -27,6 +27,12 @@ thats fine in smaller apps, but if i do pre-compute or post-compute, or whatever
 
 namespace EWE{
 
+    struct SwapImage {
+        VkImage image;
+        Semaphore present_semaphore;
+        Semaphore acquire_semaphore;
+    };
+
     struct Swapchain{
         LogicalDevice& logicalDevice;
         Window& window;
@@ -38,25 +44,21 @@ namespace EWE{
         VkSwapchainCreateInfoKHR swapCreateInfo;//i dont nromaly keep these, ill have to come back to this
         VkSwapchainKHR activeSwapchain;
 
-        uint32_t imageIndex;
-
-        std::vector<VkImage> images;
-        //views is only if youre rendering directly to the imageviews
-        //std::vector<VkImageView> imageViews;
+        uint32_t imageIndex = 0;
+        std::vector<SwapImage> swap_image_package;
 
         VkImageLayout currentLayout;
         
-        //most likely, sync will be controlled by the rendergraph, and absorbed from here
-        //but until i get that working, having them here will be helpful
-        //also, the WSI (windows system interface or something) doesnt work with timeline semaphore
-        PerFlight<Semaphore> drawSemaphores;
-        PerFlight<Semaphore> presentSemaphores;
-        PerFlight<Fence> drawnFences; 
+        //WSI (windows system interface or something) doesnt work with timeline semaphore
+        PerFlight<Fence> inFlightFences;
 
         bool CreateSwapchain();
         bool RecreateSwapchain();
         bool RecreateSwapchain(VkPresentModeKHR desiredPresentMode);
         bool AcquireNextImage(uint8_t frameIndex);
+        SwapImage& GetImagePackage() {
+            return swap_image_package[imageIndex];
+        }
 
         //im assuming htis gets absorbed by the render graph
         /*

@@ -31,18 +31,17 @@ namespace EWE{
         std::size_t data;
     };
 
+    //if i want compile time optimization, i need to change how the data handles are done
+    //i dont think DeferredReference is goign to play nicely with constexpr, and
+    //vectors dont work with constexpr either, which is how the param_pool is currently setup.
+    //the parampool could probably be a span tho
+
     struct CommandRecord{
         CommandRecord() = default;
         CommandRecord(CommandRecord const&) = delete;
         CommandRecord& operator=(CommandRecord const&) = delete;
         CommandRecord(CommandRecord&&) = delete;
         CommandRecord& operator=(CommandRecord&&) = delete;
-
-        //if i want compile time optimization, i need to change how the data handles are done
-        //i dont think DeferredReference is goign to play nicely with constexpr, and
-        //vectors dont work with constexpr either, which is how the param_pool is currently setup.
-        //the parampool could probably be a span tho
-        GPUTask Compile(LogicalDevice& device, Queue& queue) noexcept;
 
         //i dont know how to handle command lists that are going to be duplicated, or only slightly modified
         //so im going to disable it
@@ -91,6 +90,11 @@ namespace EWE{
 
         DeferredReference<ViewportScissorParamPack>* SetViewportScissor();
         DeferredReference<ViewportScissorWithCountParamPack>* SetViewportScissorWithCount();
+
+        void FixDeferred(const std::size_t pool_address) noexcept;
+#if EWE_DEBUG_BOOL
+        bool ValidateInstructions() const;
+#endif
     };
 
 }//namespace EWE

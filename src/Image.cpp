@@ -55,4 +55,11 @@ namespace EWE{
         assert(false && "not readyy yet");
         return false;
     }
+
+#if EWE_DEBUG_NAMING
+    void Image::SetName(std::string_view name) {
+        debugName = name;
+        logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE, name);
+    }
+#endif
 }

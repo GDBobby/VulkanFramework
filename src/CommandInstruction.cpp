@@ -7,7 +7,7 @@
 namespace EWE{
     uint64_t CommandInstruction::GetParamSize(Type type) noexcept {
         switch (type) {
-            case Type::BindPipeline: return sizeof(Pipeline*);
+            case Type::BindPipeline: return sizeof(PipelineParamPack);
             case Type::BindDescriptor: return sizeof(VkDescriptorSet);
             case Type::PushConstant: return sizeof(GlobalPushConstant);
             case Type::BeginRender: return sizeof(VkRenderingInfo*);

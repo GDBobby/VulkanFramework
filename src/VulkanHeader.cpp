@@ -2,6 +2,9 @@
 
 #include <string>
 #include <cassert>
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 namespace EWE{
     //i think im going to change this to print out some history of the render graph
@@ -12,12 +15,12 @@ namespace EWE{
     
 #if EWE_USING_EXCEPTIONS
 
-#if CALL_TRACING
+#if EWE_CALL_STACK_DEBUG
         EWEException::EWEException(uint8_t skip, uint8_t max_depth, VkResult result, std::string_view msg) noexcept
             :
             std::runtime_error("EWE except"), 
             result{result},
-            text{msg},
+            msg{msg},
             stacktrace{std::stacktrace::current(skip, max_depth)}
         {}
         EWEException::EWEException(uint8_t skip, uint8_t max_depth, std::string_view msg) noexcept
@@ -30,7 +33,7 @@ namespace EWE{
 #endif
 
         EWEException::EWEException(VkResult result, std::string_view msg) noexcept : 
-#if CALL_TRACING
+#if EWE_CALL_STACK_DEBUG
             EWEException(1, 16, result, msg)
 #else
             std::runtime_error(std::to_string(result)),
@@ -39,7 +42,7 @@ namespace EWE{
         {}
 
         EWEException::EWEException(std::string_view msg) noexcept : 
-#if CALL_TRACING
+#if EWE_CALL_STACK_DEBUG
             EWEException(1, 16, VK_RESULT_MAX_ENUM, msg)
 #else
             EWEException(VK_RESULT_MAX_ENUM, msg)
@@ -47,13 +50,27 @@ namespace EWE{
         {}
 
         EWEException::EWEException(VkResult result) noexcept : 
-#if CALL_TRACING
-            EWEException(1, 16, result, msg)
+#if EWE_CALL_STACK_DEBUG
+            EWEException(1, 16, result, "")
 #else
             EWEException(result, "")
 #endif
         {}
-
-
 #endif
+
+        void EWE_VK_RESULT(VkResult vkResult) {
+
+
+            assert(vkResult == VK_SUCCESS);
+#if EWE_USING_EXCEPTIONS
+            if (vkResult != VK_SUCCESS) {
+#if EWE_CALL_STACK_DEBUG
+                std::stacktrace error_trace = std::stacktrace::current(2);
+                std::cout << "vk result : " << vkResult << std::endl << error_trace << std::endl << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+#endif
+                throw EWEException(vkResult);
+            }
+#endif
+        }
 }

@@ -7,6 +7,8 @@
 
 #include <cassert>
 #include <fstream>
+
+#include <iostream>
 #define SANITY_CHECK true
 
 #if SANITY_CHECK
@@ -289,6 +291,44 @@ namespace EWE {
 			}
 		}
 		auto resources = compiler.get_shader_resources();
+
+		uint32_t id_bound = compiler.get_current_id_bound();
+		for (uint32_t id = 0; id < id_bound; ++id) {
+
+			try {
+				const spirv_cross::SPIRType& type = compiler.get_type(id);
+
+				// We want: OpTypeStruct used as a buffer_reference
+				if (type.basetype == spirv_cross::SPIRType::Struct && type.op == spirv_cross::Op::OpTypeStruct) {
+					
+
+					auto& strBack = structData.emplace_back();
+					strBack.name = compiler.get_name(id);
+					strBack.size = compiler.get_declared_struct_size(type);
+
+					std::size_t arraySize = compiler.get_declared_struct_size_runtime_array(type, 2);
+					if (strBack.size != arraySize) {
+						printf("figure out what array size means\n");
+					}
+
+					for (uint32_t m = 0; m < type.member_types.size(); m++) {
+
+						strBack.members.push_back(
+							Shader::ShaderStruct::Member{
+								.name = compiler.get_member_name(id, m),
+								.type = ST_COUNT,
+								.offset = compiler.type_struct_member_offset(type, m)
+							}
+						);
+					}
+
+				}
+			}
+			catch (...) {
+
+			}
+		}
+
 		InterpretPushConstants(compiler, resources.push_constant_buffers, pushRange);
 		//pushRange.stageFlags = shaderStageCreateInfo.stage;
 		//InterpretInputAttributes(compiler, vertexInputAttributes);

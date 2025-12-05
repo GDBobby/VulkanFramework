@@ -35,4 +35,33 @@ namespace EWE{
             EWE_VK(vkCreateSemaphore, logicalDevice.device, &semaphoreCreateInfo, nullptr, &vkSemaphore);
         }
     }
+    Semaphore::~Semaphore() {
+        if (vkSemaphore != VK_NULL_HANDLE) {
+            vkDestroySemaphore(logicalDevice.device, vkSemaphore, nullptr);
+        }
+    }
+    
+    Semaphore::Semaphore(Semaphore&& moveSrc) noexcept
+        : logicalDevice{moveSrc.logicalDevice},
+        vkSemaphore{moveSrc.vkSemaphore},
+        waiting{moveSrc.waiting},
+        signaling{moveSrc.signaling}
+    {
+        moveSrc.vkSemaphore = VK_NULL_HANDLE;
+    }
+    Semaphore& Semaphore::operator=(Semaphore&& moveSrc) noexcept{
+        assert(logicalDevice == moveSrc.logicalDevice);
+        vkSemaphore = moveSrc.vkSemaphore;
+        moveSrc.vkSemaphore = VK_NULL_HANDLE;
+
+        waiting = moveSrc.waiting;
+        signaling = moveSrc.signaling;
+        return *this;
+    }
+    
+#if EWE_DEBUG_NAMING
+        void Semaphore::SetName(std::string_view name){
+            logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
+        }
+#endif
 }

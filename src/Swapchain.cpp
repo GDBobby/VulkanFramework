@@ -4,17 +4,23 @@
 #include <cassert>
 #include <limits>
 
+
 namespace EWE{
 
+    VkFenceCreateInfo GetFenceCreateInfo() {
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        fenceCreateInfo.pNext = nullptr;
+        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        return fenceCreateInfo;
+    }
 
     Swapchain::Swapchain(LogicalDevice& logicalDevice, Window& window, Queue& presentQueue) noexcept
         : logicalDevice{logicalDevice},
         window{window},
         presentQueue{presentQueue},
         activeSwapchain{VK_NULL_HANDLE},
-        drawSemaphores{logicalDevice, false},
-        presentSemaphores{logicalDevice, false},
-        drawnFences{logicalDevice},
+        inFlightFences{logicalDevice, GetFenceCreateInfo()},
         swapCreateInfo{}
     {
         swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -61,17 +67,6 @@ namespace EWE{
         semCreateInfo.pNext = nullptr;
         semCreateInfo.flags = 0;
 
-        VkFenceCreateInfo fenceCreateInfo{};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = nullptr;
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-        for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-            EWE_VK(vkCreateSemaphore, logicalDevice.device, &semCreateInfo, nullptr, &drawSemaphores[i].vkSemaphore);
-            EWE_VK(vkCreateSemaphore, logicalDevice.device, &semCreateInfo, nullptr, &presentSemaphores[i].vkSemaphore);
-            EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &drawnFences[i].vkFence);
-        }
-
         return RecreateSwapchain();
     }
 
@@ -108,7 +103,7 @@ namespace EWE{
 
         //wait for each fence
         std::vector<VkFence> fences{};
-        for(auto& fence : drawnFences){
+        for(auto& fence : inFlightFences){
             fences.push_back(fence.vkFence);
         }
         //timeout is not an accepted result here
@@ -116,12 +111,45 @@ namespace EWE{
 
         EWE_VK(vkCreateSwapchainKHR, logicalDevice.device, &swapCreateInfo, nullptr, &activeSwapchain);
 
+        //10 is an arbitrary number meant to be at least as large as the most images that would ever be acquired
         uint32_t swapImageCount = 0;
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, nullptr);
-        images.resize(swapImageCount);
-        EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, images.data());
+        std::vector<VkImage> tempImageBuffer(swapImageCount);
+        EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, tempImageBuffer.data());
+
+
+/*
+        for (auto& old : swap_image_package) {
+            logicalDevice.GarbageDisposal.toss<VkDestroySemaphore>(old.acquire_semaphore, swap_image_package.size() + 1);
+            logicalDevice.GarbageDisposal.toss(old.present_semaphore, swap_image_package.size() + 1);
+        }
+        swap_image_package.clear();
+        for (uint32_t i = 0; i < swapImageCount; i++) {
+            swap_image_package.push_back(
+                SwapImage{
+                    .image = tempImageBuffer.image,
+                    .acquire_semaphore = 
+                }
+            );
+        }
+*/
+        assert(swapImageCount >= swap_image_package.size() && "this is temporary, i need to setup a reduction in size");
         
-        printf("delete the old views\n");
+        const std::size_t previous_swap_size = swap_image_package.size();
+        for(uint32_t i = 0; i < previous_swap_size; i++){
+            swap_image_package[i].image = tempImageBuffer[i];
+        }
+
+        for (uint32_t i = previous_swap_size; i < swapImageCount; i++) {
+            swap_image_package.push_back(
+                SwapImage{
+                    .image = tempImageBuffer[i],
+                    .present_semaphore = Semaphore{logicalDevice, false},
+                    .acquire_semaphore = Semaphore{logicalDevice, false}
+                }
+            );
+        }
+
 
         imageIndex = 0;
         currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -153,9 +181,11 @@ namespace EWE{
 
         //wait for 2 seconds, then timeout, which will assert or throw
         //its nanoseconds, which have 9 zeros i guess
-        static constexpr uint64_t fence_timeout_v = static_cast<uint64_t>(2e9);
-        EWE_VK(vkWaitForFences, logicalDevice.device, 1, &drawnFences[frameIndex].vkFence, VK_TRUE, fence_timeout_v);
-        EWE_VK(vkResetFences, logicalDevice.device, 1, &drawnFences[frameIndex].vkFence);
+        static constexpr uint64_t fence_timeout_v = static_cast<uint64_t>(2.0e9);
+        EWE_VK(vkWaitForFences, logicalDevice.device, 1, &inFlightFences[frameIndex].vkFence, VK_TRUE, fence_timeout_v);
+        EWE_VK(vkResetFences, logicalDevice.device, 1, &inFlightFences[frameIndex].vkFence);
+        //fence.Wait(fence_timeout_v);
+        //fence.Reset();
 
         uint32_t image_index;
 
@@ -169,10 +199,14 @@ namespace EWE{
             vkCreateSwapchainKHR
             vkDestroySwapchainKHR
         */
+       
         //printf("lock queue mutex here\n");
-        VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, drawSemaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &image_index);
+        VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, swap_image_package[imageIndex].acquire_semaphore.vkSemaphore, VK_NULL_HANDLE, &image_index);
         //printf("unlock queue mutex\n");
 
+        //im assuming that it always matches. if it does not, i need to restrategize how the semaphores and images are associated
+        assert(imageIndex == image_index);
+        
         switch(acquireResult){
             case VK_SUCCESS: break; //dont do anything
             case VK_SUBOPTIMAL_KHR: break; //dont do anythign? need to look into this

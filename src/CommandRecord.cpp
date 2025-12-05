@@ -21,7 +21,7 @@ namespace EWE{
     }
 
 #if EWE_DEBUG_BOOL
-    bool ValidateInstructions(std::vector<CommandInstruction> const& records){
+    bool CommandRecord::ValidateInstructions() const{
         int64_t current_if_depth = 0;
         int64_t current_label_depth = 0;
         std::vector<uint32_t> if_command_length{};
@@ -90,7 +90,8 @@ namespace EWE{
     }
 #endif
     
-    GPUTask CommandRecord::Compile(LogicalDevice& logicalDevice, Queue& queue) noexcept {
+    /*
+    void CommandRecord::Compile(GPUTask* constructionPointer, LogicalDevice& logicalDevice, Queue& queue) noexcept {
         assert(!hasBeenCompiled);
         const uint64_t full_data_size = records.back().paramOffset + CommandInstruction::GetParamSize(records.back().type);
 
@@ -128,6 +129,7 @@ namespace EWE{
 
         return ret;
     }
+    */
 
     
     DeferredReference<ViewportScissorParamPack>* CommandRecord::SetViewportScissor(){
@@ -216,5 +218,15 @@ namespace EWE{
         auto deferred_ref = new DeferredReference<VkPresentInfoKHR*>(GetCurrentOffset(records.back()));
         deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
+    }
+
+
+
+    void CommandRecord::FixDeferred(const std::size_t pool_address) noexcept {
+
+        for (auto& def_ref : deferred_references) {
+            def_ref->data += pool_address;
+            //we convert the initial offset to a real pointer into the paramPool
+        }
     }
 } //namespace EWE

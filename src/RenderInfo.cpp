@@ -25,16 +25,16 @@ namespace EWE{
         ret.offset.x = 0;
         ret.offset.y = 0;
         //if we're not enforcing uniform size, render area will be equal to the smallest size here
-        ret.extent.width = color_attachments[0].imageView->image.extent.width;
-        ret.extent.height = color_attachments[0].imageView->image.extent.height;
+        ret.extent.width = color_attachments[0].imageView[0]->image.extent.width;
+        ret.extent.height = color_attachments[0].imageView[0]->image.extent.height;
 #if EWE_DEBUG_BOOL
         for (std::size_t i = 1; i < color_attachments.size(); i++) {
-            assert(color_attachments[i].imageView->image.extent.width == ret.extent.width);
-            assert(color_attachments[i].imageView->image.extent.height == ret.extent.height);
+            assert(color_attachments[i].imageView[0]->image.extent.width == ret.extent.width);
+            assert(color_attachments[i].imageView[0]->image.extent.height == ret.extent.height);
         }
-        if(depth_attachment.imageView != nullptr){
-            assert(depth_attachment.imageView->image.extent.width == ret.extent.width);
-            assert(depth_attachment.imageView->image.extent.height = ret.extent.height);
+        if(depth_attachment.imageView[0] != nullptr){
+            assert(depth_attachment.imageView[0]->image.extent.width == ret.extent.width);
+            assert(depth_attachment.imageView[0]->image.extent.height = ret.extent.height);
         }
 #endif
         return ret;
@@ -44,6 +44,8 @@ namespace EWE{
         RenderInfo& ret = *out;
         ret.renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
         ret.renderingInfo.pNext = nullptr;
+
+        assert(ret.colorAttachmentInfo.size() == 0);
 
         for (auto const& att : color_attachments) {
             auto& backAtt = ret.colorAttachmentInfo.emplace_back();
@@ -58,18 +60,13 @@ namespace EWE{
             backAtt.loadOp = att.loadOp;
             backAtt.storeOp = att.storeOp;
 
-            backAtt.imageView = att.imageView->view;
-            backAtt.imageLayout = att.imageView->image.layout;
+            backAtt.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         }
 
         ret.depthAttachmentInfo.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
         ret.depthAttachmentInfo.pNext = nullptr;
 
-        if (depth_attachment.imageView != nullptr) {
-            ret.depthAttachmentInfo.imageView = depth_attachment.imageView->view;
-            ret.depthAttachmentInfo.imageLayout = depth_attachment.imageView->image.layout;
-        }
-        else {
+        if (depth_attachment.imageView[0] == nullptr) {
             ret.depthAttachmentInfo.imageView = VK_NULL_HANDLE;
         }
 
@@ -80,6 +77,7 @@ namespace EWE{
         ret.depthAttachmentInfo.clearValue = depth_attachment.clearValue;
         ret.depthAttachmentInfo.loadOp = depth_attachment.loadOp;
         ret.depthAttachmentInfo.storeOp = depth_attachment.storeOp;
+        ret.depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 
 
         ret.renderingInfo.colorAttachmentCount = static_cast<uint32_t>(ret.colorAttachmentInfo.size());
@@ -95,6 +93,17 @@ namespace EWE{
         RenderInfo ret{};
         Expand(&ret);
         return ret;
+    }
+
+    void RenderInfo2::Update(RenderInfo* out, uint8_t frameIndex) const {
+        
+        assert(out->colorAttachmentInfo.size() == color_attachments.size());
+        for(std::size_t color_att_index = 0; color_att_index < color_attachments.size(); color_att_index++){
+            out->colorAttachmentInfo[color_att_index].imageView = color_attachments[color_att_index].imageView[frameIndex]->view;
+        }
+        if(depth_attachment.imageView[frameIndex] != nullptr){
+            out->depthAttachmentInfo.imageView = depth_attachment.imageView[frameIndex]->view;
+        }
     }
 
     /*

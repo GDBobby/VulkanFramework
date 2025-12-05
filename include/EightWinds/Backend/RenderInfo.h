@@ -27,7 +27,7 @@ namespace EWE{
 
     //temporarily just going to pretend like resolve doesnt exist
     struct SimplifiedAttachment {
-        ImageView*              imageView; //i dont know if i want ownership or view here
+        std::array<ImageView*, max_frames_in_flight>   imageView; //i dont know if i want ownership or view here
         VkAttachmentLoadOp      loadOp;
         VkAttachmentStoreOp     storeOp;
         VkClearValue            clearValue;
@@ -44,6 +44,7 @@ namespace EWE{
         RenderInfo Expand() const;
         //Expand(RenderInfo* out) fixes the pointers in place since it wont potentially be moved on return
         void Expand(RenderInfo* out) const;
+        void Update(RenderInfo* out, uint8_t frameIndex) const;
         //all sizes must be uniform at the moment, i dont know if i ever want it different
         VkRect2D CalculateRenderArea() const noexcept;
     };

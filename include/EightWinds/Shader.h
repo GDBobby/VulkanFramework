@@ -116,6 +116,18 @@ namespace EWE {
 
 		std::vector<SpecializationEntry> defaultSpecConstants{};
 
+        struct ShaderStruct {
+            std::string name;
+            std::size_t size;
+            struct Member {
+                std::string name;
+                FundamentalType type;
+                uint32_t offset;
+            };
+            std::vector<Member> members{};
+        };
+        std::vector<ShaderStruct> structData{};
+
 		explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation);
 		Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data);
 		Shader(LogicalDevice& logicalDevice);

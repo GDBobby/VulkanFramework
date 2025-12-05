@@ -95,9 +95,15 @@ namespace EWE{
 
     namespace Exec{
         //define command functions here
+        void BeginRender(ExecContext& ctx) {
+            auto* data = reinterpret_cast<VkRenderingInfo* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            vkCmdBeginRendering(ctx.cmdBuf, *data);
+        }
+        void EndRender(ExecContext& ctx) {
+            vkCmdEndRendering(ctx.cmdBuf);
+        }
         void BindPipeline(ExecContext& ctx) {
-            const std::size_t addressCast = *reinterpret_cast<std::size_t const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            PipelineParamPack const& pipePack = *reinterpret_cast<PipelineParamPack*>(addressCast);
+            PipelineParamPack const& pipePack = *reinterpret_cast<PipelineParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
             assert(pipePack.pipe != VK_NULL_HANDLE);
             assert(pipePack.layout != VK_NULL_HANDLE);
             ctx.boundPipeline = pipePack;
@@ -119,13 +125,6 @@ namespace EWE{
             vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant), push);
         }
 
-        void BeginRender(ExecContext& ctx){
-            auto* data = reinterpret_cast<VkRenderingInfo* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            vkCmdBeginRendering(ctx.cmdBuf, *data);
-        }
-        void EndRender(ExecContext& ctx){
-            vkCmdEndRendering(ctx.cmdBuf);
-        }
 
         void Draw(ExecContext& ctx){
             auto* data = reinterpret_cast<VertexDrawParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
@@ -145,7 +144,7 @@ namespace EWE{
         }
         void Blit(ExecContext& ctx) {
             auto* data = reinterpret_cast<BlitParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            vkCmdBlitImage(ctx.cmdBuf, data->srcImage, data->srcLayout, data->dstImage, data->dstLayout, 1, &data->blitParams, data->filter);
+            vkCmdBlitImage(ctx.cmdBuf, data->srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, data->dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &data->blitParams, data->filter);
         }
 
         void Present(ExecContext& ctx) {

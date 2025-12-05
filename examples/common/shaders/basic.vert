@@ -11,7 +11,7 @@ layout(location = 0) out vec3 outColor;
 
 void main(){
 
-    Vertex vertex = Vertex(push.device_addresses[0]);
+    Vertex vertex = Vertex(push.device_addresses[0]) + gl_VertexIndex;
     gl_Position = vec4(vertex.position, 0.0, 1.0);
   
     outColor = vertex.color;

@@ -1,0 +1,4 @@
+VTX, IDX, gl_Position.x, gl_Position.y, gl_Position.z, gl_Position.w, fullData:col0.x, fullData:col0.y, fullData:col0.z, fullData:col0.w, fullData:col1.x, fullData:col1.y, fullData:col1.z, fullData:col1.w, fullData:col2.x, fullData:col2.y, fullData:col2.z, fullData:col2.w, fullData:col3.x, fullData:col3.y, fullData:col3.z, fullData:col3.w, address
+0, 0, -0.50, -0.50, 0.00, 1.00, -0.50, -0.50, 1.00, 0.00, 0.00, 1.00, 0.00, 0.50, 0.50, 0.00, NaN, NaN, NaN, 0.00, 0.00, 4.20390E-45, 140720308486144
+1, 1, -0.50, -0.50, 0.00, 1.00, -0.50, -0.50, 1.00, 0.00, 0.00, 1.00, 0.00, 0.50, 0.50, 0.00, NaN, NaN, NaN, 0.00, 0.00, 4.20390E-45, 140720308486176
+2, 2, -0.50, -0.50, 0.00, 1.00, -0.50, -0.50, 1.00, 0.00, 0.00, 1.00, 0.00, 0.50, 0.50, 0.00, NaN, NaN, NaN, 0.00, 0.00, 4.20390E-45, 140720308486208

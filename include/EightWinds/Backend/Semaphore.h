@@ -23,6 +23,11 @@ namespace EWE{
         std::vector<Tracking> tracking{};
 #endif
         [[nodiscard]] explicit Semaphore(LogicalDevice& logicalDevice, bool timelineSemaphore, uint8_t initialValue = 0);
+        Semaphore(Semaphore const& copySrc) = delete;
+        Semaphore& operator=(Semaphore const& copySrc) = delete;
+        Semaphore(Semaphore&& moveSrc) noexcept;
+        Semaphore& operator=(Semaphore&& moveSrc) noexcept;
+        ~Semaphore();
 
         bool waiting{ false };
         bool signaling{ false };
@@ -33,5 +38,10 @@ namespace EWE{
         void BeginSignaling();
         void FinishWaiting();
         void BeginWaiting();
+        
+#if EWE_DEBUG_NAMING
+        std::string debugName;
+        void SetName(std::string_view name);
+#endif
     };
 }

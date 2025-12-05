@@ -100,3 +100,27 @@ instead of doing each command explicitly, i need the object to "just draw". some
 handle the explicit expansion of each draw command. the pass has it's config, and each object has it's own config
 that will combine to create the pipelines and such. i think that will be a render graph builder. idk. the more i think
 about it the more vague it becomes.
+
+## 12/4
+im tmepted to completely remove blits. it forces a bit of separate handling compared to the push constants, 
+which leads to a bit more complexity in GPUTask. and i don't think it has any benefits beyond an explicit 
+compute shader copy. 
+
+also, i don't really know how I want to handle barrier generation. im tempted to make explicit vectors of read and write
+resources, but i don't know 
+
+if i can put a semaphore in between each task, maybe an 'event' in between same command buffer renders, i can narrow the cross reference to writes on the left side only.
+
+i could separate task into 
+* read only graphics task
+* read/write graphics tasks (most likely mesh shaders and blits)
+* read/write compute task
+* write only transfer task
+
+the question is, how would specifying that a task is read/write as opposed to read only simplify the logic? or would it complicate it? that would probably be a flag for the rendergraph,
+to prevent a bridge being created between that task and whatever follows.
+
+i could have typign on the resources as well, that specifies wether it's expecting to be written to or not.
+
+i decided to go with adding the layout to resource. now any usage of a image needs to declare the layout it wants, 
+which will then be interpreted by TaskBridge when the barriers are generated

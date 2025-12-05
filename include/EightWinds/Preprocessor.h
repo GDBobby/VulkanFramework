@@ -9,6 +9,20 @@
 
 #define EWE_USING_EXCEPTIONS true
 
+#ifdef EWE_DEBUG_NAME_FORCE
+#define EWE_DEBUG_NAMING EWE_DEBUG_NAME_FORCE
+#else
+#define EWE_DEBUG_NAMING EWE_DEBUG_BOOL
+#endif
+
+#ifdef EWE_CALL_STACK_FORCE
+#define EWE_CALL_STACK_DEBUG EWE_CALL_STACK_FORCE
+#else
+//check is stacktrace is enabled first, clang doesnt support it (or it didnt 6 months ago)
+#define EWE_CALL_STACK_DEBUG EWE_DEBUG_BOOL
+#endif
+
+
 #if EWE_DEBUG_BOOL
     #include <cassert> //sucks to include this in the header but whatever
 

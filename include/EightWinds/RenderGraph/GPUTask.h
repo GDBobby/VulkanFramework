@@ -16,6 +16,7 @@
 namespace EWE{
     struct Buffer;
     struct Image;
+    struct CommandRecord;
 
     struct ResourceUsageData {
         VkPipelineStageFlags2 stage;
@@ -25,6 +26,19 @@ namespace EWE{
     struct Resource{
         T* resource;
         ResourceUsageData usage;
+    };
+
+    template<>
+    struct Resource<Buffer> {
+        Buffer* resource;
+        ResourceUsageData usage;
+    };
+    template<>
+    struct Resource<Image> {
+        Image* resource;
+        ResourceUsageData usage;
+        //add validation to make sure layout doesnt change within a task
+        VkImageLayout layout;
     };
 
     //ok i think i remove the trackers. they just add an intermediary overhead. i can do a direct comparison on the param pool
@@ -46,6 +60,7 @@ namespace EWE{
         RenderInfo vk_data;
         RenderInfo2 compact;
     };
+    
 
     //the id of this task is its address
     //GPUTask is intended to be used in a single thread.
@@ -58,17 +73,11 @@ namespace EWE{
 
         CommandExecutor commandExecutor;
         
-        [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue) 
-            : logicalDevice{logicalDevice}, 
-            queue{queue},
-            commandExecutor{logicalDevice} 
-        {}
+        [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask& operator=(GPUTask const&) = delete;
-
-        //i dont know if i want it to be movable or not yet, but for now this is fine
-        GPUTask(GPUTask&&) = default;
+        GPUTask(GPUTask&&) = delete;
         GPUTask& operator=(GPUTask&&) = delete;
 
         //i need another system wrapping GPUTask to handle how the command buffers are dealt with
@@ -77,7 +86,8 @@ namespace EWE{
         //optional, a compute wouldnt use htis
         RenderTracker* renderTracker = nullptr;
 
-        void SetRenderInfo();
+        void SetRenderInfo(); 
+        void UpdateFrameIndex(uint8_t frameIndex);
         
         //write directly to the push tracker. 
         //replace the old buffer if necessary
@@ -94,15 +104,15 @@ namespace EWE{
         void PushBuffer(Buffer* buffer, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData) noexcept;
         //if the user passes in a index greater/equal to GlobalPushConstant::buffer_count then i'll shift it by that value
         //ill also assert both (buffer and image) slots are valid in debug mode
-        void PushImage(Image* image, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData) noexcept;
+        void PushImage(Image* image, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData, VkImageLayout layout)
+            noexcept;
 
         //if its nullptr, it's guaranteed no barriers are necessary
         void DefineBlitUsage(uint16_t blitIndex, Image* srcImage, Image* dstImage) noexcept;
 
-        void SetRenderInfo(RenderInfo2 const& renderInfo);
         //ok, maybe we just dont allow internal sync
         //it got extremely complicated extremely quickly
-        void GenerateInternalSync();
+        //void GenerateInternalSync();
 
 
         //im not committed to putting the command buffer here. 

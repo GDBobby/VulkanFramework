@@ -108,4 +108,12 @@ namespace EWE{
     ImageView::~ImageView(){
         vkDestroyImageView(image.logicalDevice.device, view, nullptr);
     }
+
+
+#if EWE_DEBUG_NAMING
+    void ImageView::SetName(std::string_view name) {
+        debugName = name;
+        image.logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE_VIEW, name);
+    }
+#endif
 }

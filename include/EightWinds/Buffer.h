@@ -51,9 +51,10 @@ namespace EWE{
         VkDescriptorBufferInfo* DescriptorInfo(VkDeviceSize size, VkDeviceSize offset);
 
         [[nodiscard]] static VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits); 
-    
-#if DEBUG_NAMING
-        void SetName(std::string_view name) const;
+
+#if EWE_DEBUG_NAMING
+        std::string debugName;
+        void SetName(std::string_view name);
 #endif
     };
 }

@@ -1,6 +1,7 @@
 #include "EightWinds/RenderGraph/GPUTask.h"
 
 #include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/Command/Record.h"
 
 #include <cassert>
 
@@ -15,6 +16,46 @@ namespace EWE{
         for(uint8_t i = 0; i < GlobalPushConstant::texture_count; i++){
             textures[i].resource = nullptr;
         }
+    }
+
+    GPUTask::GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord) 
+        : logicalDevice{logicalDevice}, 
+        queue{queue},
+        commandExecutor{logicalDevice}
+    {
+        assert(!cmdRecord.hasBeenCompiled);
+        //cmdRecord.Optimize(); <--- EVENTUALLY
+        const uint64_t full_data_size = cmdRecord.records.back().paramOffset + CommandInstruction::GetParamSize(cmdRecord.records.back().type);
+
+        commandExecutor.instructions = cmdRecord.records;
+        commandExecutor.paramPool.resize(full_data_size);
+        const std::size_t param_pool_address = reinterpret_cast<std::size_t>(commandExecutor.paramPool.data());
+        cmdRecord.FixDeferred(param_pool_address);
+        for(auto& push_off : cmdRecord.push_offsets){
+            std::size_t temp_addr = reinterpret_cast<std::size_t>(push_off);
+            pushTrackers.emplace_back(reinterpret_cast<GlobalPushConstant*>(temp_addr + param_pool_address));
+        }
+        uint64_t blitIndex = 0;
+        for (auto const& inst : cmdRecord.records) {
+            if (inst.type == CommandInstruction::Type::BeginRender) {
+                renderTracker = new RenderTracker();
+            }
+            if(inst.type == CommandInstruction::Type::Blit) {
+                auto& blitBack = blitTrackers.emplace_back();
+                blitBack.dstImage.resource = nullptr;
+                blitBack.srcImage.resource = nullptr;
+            }
+        }
+
+        //all validations will be here
+        //theres some non-validation stuff here, like collapsing empty branches
+        //maybe split out optimization into a different loop
+#if EWE_DEBUG_BOOL
+        assert(cmdRecord.ValidateInstructions());
+#endif
+       cmdRecord.hasBeenCompiled = true;
+    
+
     }
 
     GPUTask::~GPUTask(){
@@ -82,6 +123,7 @@ namespace EWE{
             tracker.srcImage.resource = srcImage;
             tracker.srcImage.usage.accessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
             tracker.srcImage.usage.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            tracker.srcImage.layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         }
         else {
             tracker.srcImage.resource = nullptr;
@@ -91,6 +133,7 @@ namespace EWE{
             tracker.dstImage.resource = dstImage;
             tracker.dstImage.usage.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
             tracker.dstImage.usage.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+            tracker.dstImage.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
         }
         else {
             tracker.dstImage.resource = nullptr;
@@ -114,7 +157,7 @@ namespace EWE{
             desired_slot.resource = nullptr;
         }
     }
-    void GPUTask::PushImage(Image* img, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData) noexcept{
+    void GPUTask::PushImage(Image* img, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData, VkImageLayout layout) noexcept{
         assert(slot < (GlobalPushConstant::texture_count + GlobalPushConstant::buffer_count));
         if(slot >= GlobalPushConstant::buffer_count){
             slot -= GlobalPushConstant::buffer_count;
@@ -124,9 +167,11 @@ namespace EWE{
         //ReplaceResource(usedImages, desired_slot, img);
         if (img != nullptr) {
             printf("set up the image texture index\n");
-            //pushTrackers[pushIndex].pushAddress->texture_indices[slot] = img->texture_index;
+            assert(img->texture_index >= 0);
+            pushTrackers[pushIndex].pushAddress->texture_indices[slot] = img->texture_index;
             desired_slot.resource = img;
             desired_slot.usage = usageData;
+            desired_slot.layout = layout;
         }
         else {
             pushTrackers[pushIndex].pushAddress->texture_indices[slot] = -1;
@@ -138,9 +183,6 @@ namespace EWE{
         assert(renderTracker != nullptr);
         renderTracker->compact.Expand(&renderTracker->vk_data);
         
-
-#if EWE_DEBUG_BOOL
-
         bool hasBeginRender = false;
         for (auto& inst : commandExecutor.instructions) {
             if (inst.type == CommandInstruction::Type::BeginRender) {
@@ -152,7 +194,9 @@ namespace EWE{
             }
         }
         assert(hasBeginRender);
-#endif
+    }
+    void GPUTask::UpdateFrameIndex(uint8_t frameIndex) {
+        renderTracker->compact.Update(&renderTracker->vk_data, frameIndex);
     }
 
     /*

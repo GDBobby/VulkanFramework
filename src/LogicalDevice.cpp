@@ -98,9 +98,10 @@ namespace EWE{
             queues.emplace_back(device, physicalDevice.queueFamilies[qci.queueFamilyIndex], queuePriorities[qci.queueFamilyIndex]);
         }
 
-#if DEBUG_NAMING
-        BeginLabel = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT");
-        EndLabel = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT");
+#if EWE_DEBUG_NAMING
+        BeginLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT"));
+        EndLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT"));
+        debugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT"));
         printf("setup object naming\n");
 #endif
 
@@ -116,5 +117,14 @@ namespace EWE{
         EWE_VK_RESULT(result);
     }
 
+    void LogicalDevice::SetObjectName(void* objectHandle, VkObjectType objectType, std::string_view name) const {
+        VkDebugUtilsObjectNameInfoEXT nameInfo{};
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.pNext = nullptr;
+        nameInfo.objectHandle = reinterpret_cast<uint64_t>(objectHandle);
+        nameInfo.objectType = objectType;
+        nameInfo.pObjectName = name.data();
+        EWE_VK(debugUtilsObjectName, device, &nameInfo);
+    }
     //a separate function will allow for customizaiton of queues
 }

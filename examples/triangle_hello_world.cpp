@@ -18,6 +18,7 @@
 #include "EightWinds/Command/Execute.h"
 #include "EightWinds/RenderGraph/GPUTask.h"
 #include "EightWinds/RenderGraph/TaskBridge.h"
+#include "EightWinds/RenderGraph/RenderGraph.h"
 
 #include "EightWinds/GlobalPushConstant.h"
 
@@ -29,6 +30,7 @@
 #include <cassert>
 #include <filesystem>
 #include <chrono>
+#include <array>
 
 void PrintAllExtensions(VkPhysicalDevice physicalDevice) {
     uint32_t extCount = 0;
@@ -70,8 +72,8 @@ using Example_ExtensionManager = EWE::ExtensionManager<application_wide_vk_versi
     EWE::ExtensionEntry<swapchainExt, true, 0>,
     EWE::ExtensionEntry<dynState3Ext, true, 0>,
     EWE::ExtensionEntry<meshShaderExt, false, 100000>,
-    EWE::ExtensionEntry<deviceFaultExt, true, 0>,
-    EWE::ExtensionEntry<dabReportExt, true, 0>
+    EWE::ExtensionEntry<deviceFaultExt, false, 0>,
+    EWE::ExtensionEntry<dabReportExt, false, 0>
 >;
 
 
@@ -160,9 +162,6 @@ int main() {
 
     DeviceSpec specDev{};
 
-    //vk::CppType<VkPhysicalDeviceMeshShaderFeaturesEXT>::Type meshCPPTypeObject;
-    //VULKAN_HPP_CPP_VERSION;
-
     auto& dynState3 = specDev.GetFeature<VkPhysicalDeviceExtendedDynamicState3FeaturesEXT>();
     dynState3.extendedDynamicState3ColorBlendEnable = VK_TRUE;
     dynState3.extendedDynamicState3ColorBlendEquation = VK_TRUE;
@@ -175,7 +174,6 @@ int main() {
 
     auto& features2 = specDev.GetFeature<VkPhysicalDeviceFeatures2>();
     features2.features.samplerAnisotropy = VK_TRUE;
-    //features2.features.geometryShader = VK_TRUE;
     features2.features.wideLines = VK_TRUE;
     features2.features.shaderInt64 = VK_TRUE;
     
@@ -220,6 +218,8 @@ int main() {
             }
         }
 #endif
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+
         return -1;
     }
     else{
@@ -254,15 +254,14 @@ int main() {
 
     //the stypes and pnexts were populated when scoring the devices
     VkBaseInStructure* pNextChain = reinterpret_cast<VkBaseInStructure*>(&specDev.features.base);
-    //i shouldnt need to rebuild this, something is wrong
-    auto& feat12 = specDev.GetFeature<VkPhysicalDeviceVulkan12Features>();
-    auto addr = reinterpret_cast<std::size_t>(&feat12);
-    printf("base addr - %zx\n", &specDev.features.base);
-    uint16_t whichAddr = 0;
-    auto addr_print_func = [&whichAddr](auto& feat) {
-        printf("addr[%u] - %zx\n", whichAddr++, &feat);
-    };
-    specDev.features.features.ForEach(addr_print_func);
+    {
+        printf("base addr - %zx\n", &specDev.features.base);
+        uint16_t whichAddr = 0;
+        auto addr_print_func = [&whichAddr](auto& feat) {
+            printf("addr[%u] - %zx\n", whichAddr++, &feat);
+        };
+        specDev.features.features.ForEach(addr_print_func);
+    }
 
     EWE::LogicalDevice logicalDevice = specDev.ConstructDevice(
         evaluatedDevices[0],
@@ -283,6 +282,7 @@ int main() {
     }
     if (renderQueue == nullptr) {
         printf("failed to find a render queue, exiting\n");
+        std::this_thread::sleep_for(std::chrono::seconds(5));
         return -1;
     }
     
@@ -310,49 +310,11 @@ int main() {
     framework.deviceFaultEnabled = specDev.extension_support[specDev.GetExtensionIndex(VK_EXT_DEVICE_FAULT_EXTENSION_NAME)];
     framework.meshShadersEnabled = specDev.extension_support[specDev.GetExtensionIndex(VK_EXT_MESH_SHADER_EXTENSION_NAME)];
 
-    auto* triangle_vert = framework.shaderFactory.GetShader("examples/common/shaders/basic.vert.spv");
-    auto* triangle_frag = framework.shaderFactory.GetShader("examples/common/shaders/basic.frag.spv");
-
-    EWE::PipeLayout triangle_layout(framework, std::initializer_list<EWE::Shader*>{ triangle_vert, triangle_frag });
-
-    VkPipelineRenderingCreateInfo renderingCreateInfo{};
-    renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    renderingCreateInfo.pNext = nullptr;
-    renderingCreateInfo.colorAttachmentCount = 1;
-
-
-    
-    EWE::CommandPool renderCmdPool{logicalDevice, *renderQueue, false};
-    std::vector<VkCommandBuffer> cmdBufVector(2, VK_NULL_HANDLE);
-
-    VkCommandBufferAllocateInfo cmdBufAllocInfo{};
-    cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmdBufAllocInfo.pNext = nullptr;
-    cmdBufAllocInfo.commandBufferCount = 2;
-    cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmdBufAllocInfo.commandPool = renderCmdPool.commandPool;
-    
-    EWE::EWE_VK(vkAllocateCommandBuffers, logicalDevice.device, &cmdBufAllocInfo, cmdBufVector.data());
-    renderCmdPool.allocatedBuffers += 2;
-
-    std::vector<EWE::CommandBuffer> commandBuffers{};
-    commandBuffers.emplace_back(renderCmdPool, cmdBufVector[0]);
-    commandBuffers.emplace_back(renderCmdPool, cmdBufVector[1]);
-
     //if either of these formats are changed, passConfig needs to be changed as well. these just happen to match the defaults
     VkFormat colorFormat = VK_FORMAT_R8G8B8A8_UNORM;
     VkFormat depthFormat = VK_FORMAT_D16_UNORM;
 
     //from here, create the render graph
-
-    //passconfig should be using a full rendergraph setup
-    EWE::PipelinePassConfig passConfig;
-    passConfig.SetDefaults();
-    EWE::PipelineObjectConfig objectConfig;
-    objectConfig.SetDefaults();
-
-    std::vector<VkDynamicState> dynamicState{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
-    EWE::GraphicsPipeline triangle_pipeline{ logicalDevice, 0, &triangle_layout, passConfig, objectConfig, dynamicState };
 
 
     EWE::PerFlight<EWE::Image> colorAttachmentImages{logicalDevice};
@@ -387,19 +349,23 @@ int main() {
     vmaAllocCreateInfo.flags = static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) | static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT);
     //}
     for (auto& cai : colorAttachmentImages) {
-        cai.format = VK_FORMAT_R8G8B8A8_UNORM;
-        cai.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        cai.format = colorFormat;
+        cai.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         cai.Create(vmaAllocCreateInfo);
     }
     for (auto& dai : depthAttachmentImages) {
-        dai.format = VK_FORMAT_D16_UNORM;
-        dai.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        dai.format = depthFormat;
+        dai.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         dai.Create(vmaAllocCreateInfo);
     }
+    colorAttachmentImages[0].SetName("cai 0");
+    colorAttachmentImages[1].SetName("cai 1");
+    depthAttachmentImages[0].SetName("dai 0");
+    depthAttachmentImages[1].SetName("dai 1");
 
     //before getting into the render, the layouts of the attachments need to be transitioned
     {
-        EWE::CommandPool stc_cmdPool{logicalDevice, *renderQueue, true};
+        EWE::CommandPool stc_cmdPool{logicalDevice, *renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT};
         
         VkCommandBufferAllocateInfo cmdBufAllocInfo{};
         cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -435,7 +401,7 @@ int main() {
             transition_barriers[current_barrier_index].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             transition_barriers[current_barrier_index].newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             transition_barriers[current_barrier_index].subresourceRange = EWE::ImageView::GetDefaultSubresource(cai);
-            transition_barriers[current_barrier_index].srcStageMask = VK_PIPELINE_STAGE_2_HOST_BIT;
+            transition_barriers[current_barrier_index].srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
             transition_barriers[current_barrier_index].dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
             current_barrier_index++;
@@ -451,7 +417,7 @@ int main() {
             transition_barriers[current_barrier_index].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             transition_barriers[current_barrier_index].newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
             transition_barriers[current_barrier_index].subresourceRange = EWE::ImageView::GetDefaultSubresource(dai);
-            transition_barriers[current_barrier_index].srcStageMask = VK_PIPELINE_STAGE_2_HOST_BIT;
+            transition_barriers[current_barrier_index].srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
             transition_barriers[current_barrier_index].dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
 
             current_barrier_index++;
@@ -460,6 +426,7 @@ int main() {
         VkDependencyInfo transition_dependency{};
         transition_dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
         transition_dependency.pNext = nullptr;
+        transition_dependency.dependencyFlags = 0;
         transition_dependency.bufferMemoryBarrierCount = 0;
         transition_dependency.memoryBarrierCount = 0;
         transition_dependency.imageMemoryBarrierCount = static_cast<uint32_t>(transition_barriers.size());
@@ -469,13 +436,11 @@ int main() {
 
         transition_stc.End();
 
-        VkFence stc_fence;
-
         VkFenceCreateInfo fenceCreateInfo{};
         fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceCreateInfo.pNext = nullptr;
         fenceCreateInfo.flags = 0;
-        EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &stc_fence);
+        EWE::Fence stc_fence{ logicalDevice, fenceCreateInfo };
 
         VkSubmitInfo stc_submit_info{};
         stc_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -488,7 +453,7 @@ int main() {
 
         renderQueue->Submit(1, &stc_submit_info, stc_fence);
 
-        EWE::EWE_VK(vkWaitForFences, logicalDevice.device, 1, &stc_fence, VK_TRUE, 5 * static_cast<uint64_t>(1e9));
+        EWE::EWE_VK(vkWaitForFences, logicalDevice.device, 1, &stc_fence.vkFence, VK_TRUE, 5 * static_cast<uint64_t>(1.0e9));
         
         for(auto& cai : colorAttachmentImages){
             cai.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -501,9 +466,28 @@ int main() {
     EWE::PerFlight<EWE::ImageView> colorAttViews{ colorAttachmentImages};
     EWE::PerFlight<EWE::ImageView> depthAttViews{ depthAttachmentImages};
 
+    //pipeline
+    auto* triangle_vert = framework.shaderFactory.GetShader("examples/common/shaders/basic.vert.spv");
+    auto* triangle_frag = framework.shaderFactory.GetShader("examples/common/shaders/basic.frag.spv");
 
-    //this will also get filled out by the rendergraph
-    VkRenderingInfo renderingInfo{};
+    EWE::PipeLayout triangle_layout(framework, std::initializer_list<EWE::Shader*>{ triangle_vert, triangle_frag });
+    //passconfig should be using a full rendergraph setup
+    EWE::PipelinePassConfig passConfig;
+    passConfig.SetDefaults();
+    passConfig.depthStencilInfo.depthTestEnable = VK_FALSE;
+    passConfig.depthStencilInfo.depthWriteEnable = VK_FALSE;
+    passConfig.depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+    passConfig.depthStencilInfo.stencilTestEnable = VK_FALSE;
+
+    EWE::PipelineObjectConfig objectConfig;
+    objectConfig.SetDefaults();
+    objectConfig.cullMode = VK_CULL_MODE_NONE;
+    objectConfig.depthClamp = false;
+    objectConfig.rasterizerDiscard = false;
+
+    std::vector<VkDynamicState> dynamicState{ VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR };
+    EWE::GraphicsPipeline triangle_pipeline{ logicalDevice, 0, &triangle_layout, passConfig, objectConfig, dynamicState };
+
 
     EWE::CommandRecord renderRecord{};
     renderRecord.BeginRender();
@@ -513,10 +497,17 @@ int main() {
     uint32_t pushIndex = renderRecord.Push();
     auto* def_draw = renderRecord.Draw();
     renderRecord.EndRender();
-    EWE::GPUTask renderTask = renderRecord.Compile(logicalDevice, *renderQueue);
+
+    EWE::RenderGraph renderGraph{logicalDevice, swapchain, *renderQueue};
+    EWE::GPUTask& renderTask = renderGraph.tasks.AddElement(logicalDevice, *renderQueue, renderRecord);
+
+    def_pipe->data->pipe = triangle_pipeline.vkPipe;
+    def_pipe->data->layout = triangle_pipeline.pipeLayout->vkLayout;
+    def_pipe->data->bindPoint = triangle_pipeline.pipeLayout->bindPoint;
 
     auto& color_att = renderTask.renderTracker->compact.color_attachments.emplace_back();
-    color_att.imageView = &colorAttViews[0];
+    color_att.imageView[0] = &colorAttViews[0];
+    color_att.imageView[1] = &colorAttViews[1];
     color_att.clearValue.color.float32[0] = 0.f;
     color_att.clearValue.color.float32[1] = 0.f;
     color_att.clearValue.color.float32[2] = 0.f;
@@ -525,16 +516,14 @@ int main() {
     color_att.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
     auto& depth_att = renderTask.renderTracker->compact.depth_attachment;
+    depth_att.imageView[0] = &depthAttViews[0];
+    depth_att.imageView[1] = &depthAttViews[1];
     depth_att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depth_att.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depth_att.clearValue.depthStencil.depth = 0.f;
     depth_att.clearValue.depthStencil.stencil = 0; //idk what to set this to tbh
 
     renderTask.SetRenderInfo();
-
-    def_pipe->data->bindPoint = triangle_pipeline.pipeLayout->bindPoint;
-    def_pipe->data->layout = triangle_pipeline.pipeLayout->vkLayout;
-    def_pipe->data->pipe = triangle_pipeline.vkPipe;
 
     def_vp_scissor->data->scissor = window.screenDimensions;
     def_vp_scissor->data->viewport.x = 0.f;
@@ -554,69 +543,66 @@ int main() {
     vmaAllocInfo.priority = 1.f;
     vmaAllocInfo.pUserData = nullptr;
 
-    struct TriangleVertex {
+    struct alignas(16) TriangleVertex {
         float pos[2]; //xy
-        float color[3]; //rgb
+        float color[3]; //rgb, the 4th element isnt read, but i need it for alignment
     };
+    for (auto& str : triangle_vert->structData) {
+        if (str.name == "Vertex") {
+            printf("size comparison - %zu : %zu\n", str.size, sizeof(TriangleVertex));
+            //im getting fucked by spv. its forcing 32bit alignment, even tho spirvcross says 20bit
+            //assert(str.size == sizeof(TriangleVertex));
+        }
+    }
     EWE::Buffer vertex_buffer{framework, sizeof(TriangleVertex) * 3, 1, vmaAllocInfo, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT };
-    TriangleVertex* mappedData = reinterpret_cast<TriangleVertex*>(vertex_buffer.Map());
+    vertex_buffer.SetName("vertex buffer");
+    {
+        TriangleVertex* mappedData = reinterpret_cast<TriangleVertex*>(vertex_buffer.Map());
 
-    mappedData[0].pos[0] = -0.5f;
-    mappedData[0].pos[1] = -0.5f;
+        mappedData[0].pos[0] = -0.5f;
+        mappedData[0].pos[1] = -0.5f;
 
-    mappedData[1].pos[0] = 0.f;
-    mappedData[1].pos[1] = 0.5f;
+        mappedData[0].color[0] = 1.f;
+        mappedData[0].color[1] = 0.f;
+        mappedData[0].color[2] = 0.f;
 
-    mappedData[2].pos[0] = 0.5f;
-    mappedData[2].pos[1] = 0.5f;
+        mappedData[1].pos[0] = 0.f;
+        mappedData[1].pos[1] = 0.5f;
 
-    mappedData[0].color[0] = 1.f;
-    mappedData[0].color[1] = 0.f;
-    mappedData[0].color[2] = 0.f;
+        mappedData[1].color[0] = 0.f;
+        mappedData[1].color[1] = 1.f;
+        mappedData[1].color[2] = 0.f;
 
-    mappedData[1].color[0] = 0.f;
-    mappedData[1].color[1] = 1.f;
-    mappedData[1].color[2] = 0.f;
+        mappedData[2].pos[0] = 0.5f;
+        mappedData[2].pos[1] = -0.5f;
 
-    mappedData[2].color[0] = 0.f;
-    mappedData[2].color[1] = 0.f;
-    mappedData[2].color[2] = 1.f;
+        mappedData[2].color[0] = 0.f;
+        mappedData[2].color[1] = 0.f;
+        mappedData[2].color[2] = 1.f;
 
-    vertex_buffer.Flush();
-    vertex_buffer.Unmap();
+        vertex_buffer.Flush();
+        vertex_buffer.Unmap();
+    }
 
-    EWE::ResourceUsageData resourceUsageData{
-        .stage = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
-        .accessMask = VK_ACCESS_2_DESCRIPTOR_BUFFER_READ_BIT_EXT
-    };
+    {
+        EWE::ResourceUsageData resourceUsageData{
+            .stage = VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
+            .accessMask = VK_ACCESS_2_DESCRIPTOR_BUFFER_READ_BIT_EXT
+        };
 
-    renderTask.PushBuffer(&vertex_buffer, pushIndex, 0, resourceUsageData);
+        renderTask.PushBuffer(&vertex_buffer, pushIndex, 0, resourceUsageData);
 
-    def_draw->data->firstInstance = 0;
-    def_draw->data->firstVertex = 0;
-    def_draw->data->instanceCount = 1;
-    def_draw->data->vertexCount = 3;
-
+        def_draw->data->firstInstance = 0;
+        def_draw->data->firstVertex = 0;
+        def_draw->data->instanceCount = 1;
+        def_draw->data->vertexCount = 3;
+    }
     EWE::CommandRecord presentRecord{};
     auto* deferredBlit = presentRecord.Blit();
-    auto* deferredPresent = presentRecord.Present();
 
     //i think the rendergraph creates and defines the present task
     uint32_t swapchainImageIndex = 0;
-    EWE::GPUTask presentTask = presentRecord.Compile(logicalDevice, *renderQueue);
-    //*def_pipe->data = reinterpret_cast<EWE::Pipeline*>(&triangle_pipeline);
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.pNext = nullptr;
-    VkResult presentResult = VK_SUCCESS;
-    presentInfo.pResults = &presentResult;
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = &swapchain.activeSwapchain;
-    presentInfo.pImageIndices = &swapchainImageIndex;
-    presentInfo.waitSemaphoreCount = 1;
-    //presentInfo.pWaitSemaphores = swapchain.presentSemaphores;
-    //^ add this in the per-frame loop
-    *deferredPresent->data = &presentInfo;
+    EWE::GPUTask& presentTask = renderGraph.tasks.AddElement(logicalDevice, *renderQueue, presentRecord);
 
 
     VkSubmitInfo submitInfo{};
@@ -625,9 +611,9 @@ int main() {
     submitInfo.pNext = nullptr;
     submitInfo.pSignalSemaphores = nullptr;
     submitInfo.signalSemaphoreCount = 0;
-    submitInfo.waitSemaphoreCount = 0;
-    submitInfo.pWaitSemaphores = nullptr;
-    submitInfo.pWaitDstStageMask = nullptr;
+    submitInfo.waitSemaphoreCount = 1;
+    VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    submitInfo.pWaitDstStageMask = &waitDstStageMask;
 
     //VkImageBlit imageBlit{};
     //imageBlit.srcSubresource
@@ -637,7 +623,6 @@ int main() {
     cmdBeginInfo.pNext = nullptr;
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = 0;
-    uint8_t frameIndex = 1;
 
     deferredBlit->data->filter = VK_FILTER_LINEAR;
     VkImageBlit& blitParams = deferredBlit->data->blitParams;
@@ -666,53 +651,130 @@ int main() {
     blitParams.dstSubresource.baseArrayLayer = 0;
     blitParams.dstSubresource.layerCount = 1;
     blitParams.dstSubresource.mipLevel = 0;
-    try {
 
+    //, VkCommandPoolCreateFlags createFlag
+    EWE::CommandPool renderCmdPool{ logicalDevice, *renderQueue, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT};
+    std::vector<VkCommandBuffer> cmdBufVector(2, VK_NULL_HANDLE);
+
+    VkCommandBufferAllocateInfo cmdBufAllocInfo{};
+    cmdBufAllocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdBufAllocInfo.pNext = nullptr;
+    cmdBufAllocInfo.commandBufferCount = 2;
+    cmdBufAllocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdBufAllocInfo.commandPool = renderCmdPool.commandPool;
+
+    EWE::EWE_VK(vkAllocateCommandBuffers, logicalDevice.device, &cmdBufAllocInfo, cmdBufVector.data());
+    renderCmdPool.allocatedBuffers += 2;
+
+    std::vector<EWE::CommandBuffer> commandBuffers{};
+    commandBuffers.emplace_back(renderCmdPool, cmdBufVector[0]);
+    commandBuffers.emplace_back(renderCmdPool, cmdBufVector[1]);
+
+    auto& taskBridge = renderGraph.bridges.AddElement(renderTask, presentTask);
+    auto& prepBridge = renderGraph.bridges.AddElement(/*if only 1 task is passed in, it's on the right hand side*/renderTask);
+
+    renderGraph.execution_order = { &prepBridge, &renderTask, &taskBridge, &presentTask };
+
+    try {
+        uint64_t totalFrames = 0;
         auto timeBegin = std::chrono::high_resolution_clock::now();
         VkDescriptorImageInfo descImg;
+        uint8_t frameIndex = 0;
+        std::chrono::nanoseconds elapsedTime = std::chrono::nanoseconds(0);
+        constexpr auto frameDuration = std::chrono::duration<double>(1.0 / 60.0); // seconds per frame
         while (true) {
             const auto timeEnd = std::chrono::high_resolution_clock::now();
-            const auto timeDiff = timeEnd - timeBegin;
+            elapsedTime += timeEnd - timeBegin;
             timeBegin = timeEnd;
+            if (elapsedTime >= frameDuration) {
 
-            if (swapchain.AcquireNextImage(frameIndex)) {
-                deferredBlit->data->dstImage = swapchain.images[swapchain.imageIndex];
-                deferredBlit->data->dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                deferredBlit->data->srcImage = colorAttachmentImages[frameIndex].image;
-                deferredBlit->data->srcLayout = colorAttachmentImages[frameIndex].layout;
+                glfwPollEvents();
 
-                //i need to figure out how to identify an attachment, and draw synchronization from it, or even use it later
-                auto& colorRef = colorAttViews[frameIndex]; //vs code doesnt let me peek the value of the view from inside PerFlight
-                auto& depthRef = depthAttViews[frameIndex];
-                renderTask.renderTracker->vk_data.colorAttachmentInfo[0].imageView = colorAttViews[frameIndex].view;
-                renderTask.renderTracker->vk_data.depthAttachmentInfo.imageView = depthAttViews[frameIndex].view;
+                if (renderGraph.Acquire(frameIndex)) {
+                    auto& swapPackage = swapchain.GetImagePackage();
+                    EWE::Image swapImage{ logicalDevice };
+                    swapImage.image = swapPackage.image;
+                    swapImage.layout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    swapImage.owningQueue = renderQueue;//i dont know how to logically set this, but this will work
+                    swapImage.mipLevels = 1;
+                    swapImage.arrayLayers = 1;
 
-                presentTask.DefineBlitUsage(0, &colorAttachmentImages[frameIndex], nullptr);
+                    deferredBlit->data->srcImage = colorAttachmentImages[frameIndex].image;
+                    deferredBlit->data->srcLayout = colorAttachmentImages[frameIndex].layout;
+                    deferredBlit->data->dstImage = swapPackage.image;
+                    deferredBlit->data->dstLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
-                EWE::TaskBridge taskBridge(renderTask, presentTask);
-                taskBridge.RecreateBarriers();
+                    renderTask.UpdateFrameIndex(frameIndex);
 
-                EWE::CommandBuffer& currentCmdBuf = commandBuffers[frameIndex];
-                //EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
-                currentCmdBuf.Begin(cmdBeginInfo);
-                renderTask.Execute(currentCmdBuf);
-                taskBridge.Submit(currentCmdBuf);
-                presentTask.Execute(currentCmdBuf);
+                    presentTask.DefineBlitUsage(0, &colorAttachmentImages[frameIndex], &swapImage);
 
-                //EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
-                currentCmdBuf.End();
-                submitInfo.pCommandBuffers = &currentCmdBuf.cmdBuf;
-                //EWE::EWE_VK(vkQueueSubmit, *renderQueue, 1, &submitInfo, VK_NULL_HANDLE);
-                renderQueue->Submit(1, &submitInfo, VK_NULL_HANDLE);
+                    taskBridge.RecreateBarriers(frameIndex);
+                    prepBridge.RecreateBarriers(frameIndex);
+
+                    EWE::CommandBuffer& currentCmdBuf = commandBuffers[frameIndex];
+                    //EWE::EWE_VK(vkBeginCommandBuffer, currentCmdBuf.cmdBuf, &cmdBeginInfo);
+                    currentCmdBuf.Begin(cmdBeginInfo);
+                    renderGraph.Execute(currentCmdBuf, frameIndex);
+
+                    if (swapImage.layout != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+                        //create and submit a barrier here
+                        VkImageMemoryBarrier2 present_img_barrier;
+                        present_img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+                        present_img_barrier.pNext = nullptr;
+                        //what was the last usage? i know what it is here, but how would I logically interpret it?
+                        //a lot of the members here dont have any logical feedback
+                        present_img_barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                        present_img_barrier.dstAccessMask = VK_ACCESS_2_NONE;
+                        present_img_barrier.srcQueueFamilyIndex = renderQueue->family.index;
+                        present_img_barrier.dstQueueFamilyIndex = renderGraph.presentQueue.family.index;//this is the same as the renderQueue
+                        present_img_barrier.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                        present_img_barrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+
+                        present_img_barrier.oldLayout = swapImage.layout;
+                        present_img_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+                        present_img_barrier.image = swapImage.image;
+                        present_img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                        present_img_barrier.subresourceRange.baseArrayLayer = 0;
+                        present_img_barrier.subresourceRange.baseMipLevel = 0;
+                        present_img_barrier.subresourceRange.layerCount = 1;
+                        present_img_barrier.subresourceRange.levelCount = 1;
+
+                        VkDependencyInfo depenInfo{};
+                        depenInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+                        depenInfo.pNext = nullptr;
+                        depenInfo.bufferMemoryBarrierCount = 0;
+                        depenInfo.memoryBarrierCount = 0;
+                        depenInfo.imageMemoryBarrierCount = 1;
+                        depenInfo.pImageMemoryBarriers = &present_img_barrier;
+                        vkCmdPipelineBarrier2(currentCmdBuf, &depenInfo);
+                    }
+
+                    //EWE::EWE_VK(vkEndCommandBuffer, currentCmdBuf);
+                    currentCmdBuf.End();
+                    submitInfo.pCommandBuffers = &currentCmdBuf.cmdBuf;
+                    //EWE::EWE_VK(vkQueueSubmit, *renderQueue, 1, &submitInfo, VK_NULL_HANDLE);
+                    submitInfo.signalSemaphoreCount = 1;
+                    submitInfo.pWaitSemaphores = &swapPackage.acquire_semaphore.vkSemaphore;
+                    submitInfo.pWaitDstStageMask = &waitDstStageMask;
+                    submitInfo.pSignalSemaphores = &swapPackage.present_semaphore.vkSemaphore;
+                    submitInfo.waitSemaphoreCount = 1;
+                    renderQueue->Submit(1, &submitInfo, swapchain.inFlightFences[frameIndex].vkFence);
+                    renderGraph.Present();
+
+                    swapchain.imageIndex = (swapchain.imageIndex + 1) % swapchain.swap_image_package.size();
+                    frameIndex = (frameIndex + 1) % EWE::max_frames_in_flight;
+                    totalFrames++;
+                }
+                else {
+                    //need to recreate swapchain, thats handled internally
+                    //any other Swapchain::Recreate 'callbacks' will be put here
+                    blitParams.dstOffsets[1].x = swapchain.swapCreateInfo.imageExtent.width;
+                    blitParams.dstOffsets[1].y = swapchain.swapCreateInfo.imageExtent.height;
+                    blitParams.dstOffsets[1].z = 1;
+                }
+                elapsedTime = std::chrono::nanoseconds(0);
             }
-            else {
-                //need to recreate swapchain, thats handled internally
-                //any other Swapchain::Recreate 'callbacks' will be put here
-                blitParams.dstOffsets[1].x = swapchain.swapCreateInfo.imageExtent.width;
-                blitParams.dstOffsets[1].y = swapchain.swapCreateInfo.imageExtent.height;
-                blitParams.dstOffsets[1].z = 1;
-            }
-            frameIndex = (frameIndex + 1) % EWE::max_frames_in_flight;
         }
     }
     catch (EWE::EWEException& except) {
@@ -726,5 +788,6 @@ int main() {
     delete triangle_frag;
 
 
+    std::this_thread::sleep_for(std::chrono::seconds(5)); 
     return 0;
 }

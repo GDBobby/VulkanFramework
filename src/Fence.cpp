@@ -40,4 +40,11 @@ namespace EWE{
             return false; //error silencing, this should not be reached
         }
     }
+
+    
+#if EWE_DEBUG_NAMING
+        void Fence::SetName(std::string_view name){
+            logicalDevice.SetObjectName(vkFence, VK_OBJECT_TYPE_FENCE, name);
+        }
+#endif
 }

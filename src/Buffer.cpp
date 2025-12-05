@@ -107,10 +107,9 @@ namespace EWE{
         return &buffer_info;
     }
 
-#if DEBUG_NAMING
-    void Buffer::SetName(std::string_view name) const{
-        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name.data());
-        vmaSetAllocationName(framework.logicalDevice.vmaAllocator, vmaAlloc, name.data());
+#if EWE_DEBUG_NAMING
+    void Buffer::SetName(std::string_view name) {
+        framework.logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);
     }
 #endif
 } //namespace EWE

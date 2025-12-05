@@ -5,10 +5,24 @@
 namespace EWE{
     struct Fence {
         LogicalDevice& logicalDevice;
-
-        [[nodiscard]] explicit Fence(LogicalDevice& logicalDevice) : logicalDevice{logicalDevice} {}
-
         VkFence vkFence{ VK_NULL_HANDLE };
+
+        [[nodiscard]] explicit Fence(LogicalDevice& logicalDevice, VkFenceCreateInfo const& fenceCreateInfo)
+            : logicalDevice{logicalDevice} 
+        {
+            EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &vkFence);
+        }
+        ~Fence() {
+            vkDestroyFence(logicalDevice.device, vkFence, nullptr);
+        }
+        operator VkFence() const {
+            return vkFence;
+        }
+
+        bool Wait(uint64_t wait_timer) {
+
+        }
+
         bool inUse{ false };
         bool submitted{ false };
         std::vector<Semaphore*> waitSemaphores{};
@@ -18,5 +32,11 @@ namespace EWE{
 
         //its up to the calling function to unlock the mutex
         bool CheckReturn(uint64_t time);
+
+        
+#if EWE_DEBUG_NAMING
+        std::string debugName;
+        void SetName(std::string_view name);
+#endif
     };
 }

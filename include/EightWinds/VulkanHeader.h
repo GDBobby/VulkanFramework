@@ -18,11 +18,18 @@
 
 #include "vma/include/vk_mem_alloc.h"
 
+#if EWE_CALL_STACK_DEBUG
+#include <stacktrace>
+#endif
+
 //i dont want anything in here besides global VULKAN related functions,
 //typeids, like PipelineID,
 //and vk result assertion (EWE_VK)
 
 namespace EWE{
+
+    
+    static constexpr uint8_t max_frames_in_flight = 2;
 
     using PipelineID = uint64_t;
 
@@ -39,7 +46,7 @@ namespace EWE{
         VkResult result;
         std::string msg;
         
-#if CALL_TRACING
+#if EWE_CALL_STACK_DEBUG
         //this will be populated in construction
         std::stacktrace stacktrace; 
         [[nodiscard]] explicit EWEException(uint8_t skip, uint8_t max_depth, VkResult result, std::string_view msg) noexcept;
@@ -65,15 +72,7 @@ namespace EWE{
         { t.pNext } -> std::convertible_to<const void*>;
     };
 
-    inline void EWE_VK_RESULT(VkResult vkResult) {
-#if EWE_USING_EXCEPTIONS
-        if(vkResult != VK_SUCCESS) {
-            throw EWEException(vkResult);
-        }
-#else
-        assert(vkResult == VK_SUCCESS);
-#endif
-    }
+    void EWE_VK_RESULT(VkResult vkResult);
 
     template<typename F, typename... Args>
     requires (std::is_invocable_v<F, Args...>)

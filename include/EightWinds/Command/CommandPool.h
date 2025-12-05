@@ -24,7 +24,7 @@ namespace EWE{
 
         //main rendering thread should not be auxilary, the rest are
         //auxilary pools can reset individual command buffers, main pool resets all at once
-        [[nodiscard]] explicit CommandPool(LogicalDevice& logicalDevice, Queue& queue, bool auxilary);
+        [[nodiscard]] explicit CommandPool(LogicalDevice& logicalDevice, Queue& queue, VkCommandPoolCreateFlags createFlags);
     };
 
     /*
