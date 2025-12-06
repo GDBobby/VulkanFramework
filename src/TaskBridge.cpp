@@ -66,7 +66,8 @@ namespace EWE {
 	TaskBridge::TaskBridge(GPUTask& lhs, GPUTask& rhs) noexcept
 		: logicalDevice{ lhs.logicalDevice },
 		lhs{ &lhs },
-		rhs{ &rhs }
+		rhs{ &rhs },
+		name{lhs.name + " -> " + rhs.name}
 	{
 		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
 		dependencyInfo.pNext = nullptr;
@@ -75,7 +76,8 @@ namespace EWE {
 	TaskBridge::TaskBridge(GPUTask& rhs) noexcept
 		: logicalDevice{ rhs.logicalDevice },
 		lhs{nullptr},
-		rhs{ &rhs }
+		rhs{ &rhs },
+		name{std::string(":~ " + rhs.name)}
 	{
 		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
 		dependencyInfo.pNext = nullptr;

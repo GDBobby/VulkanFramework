@@ -27,6 +27,7 @@ namespace EWE{
         LogicalDevice& logicalDevice;
         GPUTask* lhs;
         GPUTask* rhs; //rhs depends on lhs. the alternatives are to name this predecesor and successor which i dont like much
+        std::string name; //"{lhs->name} -> {rhs->name}"
 
         [[nodiscard]] explicit TaskBridge(GPUTask& lhs, GPUTask& rhs) noexcept;
         [[nodiscard]] explicit TaskBridge(GPUTask& rhs) noexcept;

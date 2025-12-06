@@ -18,10 +18,11 @@ namespace EWE{
         }
     }
 
-    GPUTask::GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord) 
+    GPUTask::GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord, std::string_view name) 
         : logicalDevice{logicalDevice}, 
         queue{queue},
-        commandExecutor{logicalDevice}
+        commandExecutor{logicalDevice},
+        name{name}
     {
         assert(!cmdRecord.hasBeenCompiled);
         //cmdRecord.Optimize(); <--- EVENTUALLY

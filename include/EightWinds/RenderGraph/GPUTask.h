@@ -71,9 +71,10 @@ namespace EWE{
         //i think i define a command pool here, or at least a queue
         Queue& queue;
 
+        std::string name;
         CommandExecutor commandExecutor;
         
-        [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord);
+        [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord, std::string_view name);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask& operator=(GPUTask const&) = delete;
@@ -104,8 +105,7 @@ namespace EWE{
         void PushBuffer(Buffer* buffer, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData) noexcept;
         //if the user passes in a index greater/equal to GlobalPushConstant::buffer_count then i'll shift it by that value
         //ill also assert both (buffer and image) slots are valid in debug mode
-        void PushImage(Image* image, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData, VkImageLayout layout)
-            noexcept;
+        void PushImage(Image* image, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData, VkImageLayout layout) noexcept;
 
         //if its nullptr, it's guaranteed no barriers are necessary
         void DefineBlitUsage(uint16_t blitIndex, Image* srcImage, Image* dstImage) noexcept;

@@ -50,11 +50,7 @@ namespace EWE{
 
     template<>
     struct DefaultWeights<VkPhysicalDeviceFeatures>{
-        //i might just define it here so I can use it later
-        //static constexpr uint32_t sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2; 
-
         static constexpr auto samplerAnisotropy = DeviceWeight<bool>(true, 1 << 8);
-
     };
 
     template<>
@@ -115,8 +111,6 @@ namespace EWE{
             else{
                 ret.score += DefW::samplerAnisotropy.score * features.samplerAnisotropy;
             }
-
-
             return ret;
         }
     };

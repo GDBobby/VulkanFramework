@@ -197,7 +197,7 @@ int main() {
     auto& dabReportFeatures = specDev.GetFeature<VkPhysicalDeviceAddressBindingReportFeaturesEXT>();
     dabReportFeatures.reportAddressBinding = VK_TRUE;
 
-    auto evaluatedDevices = specDev.ScorePhysicalDevices(instance.instance);
+    auto evaluatedDevices = specDev.ScorePhysicalDevices(instance);
 
     if (!evaluatedDevices[0].passedRequirements) {
         printf("highest score device failed requirements, exiting\n");
@@ -254,19 +254,9 @@ int main() {
 
     //the stypes and pnexts were populated when scoring the devices
     VkBaseInStructure* pNextChain = reinterpret_cast<VkBaseInStructure*>(&specDev.features.base);
-    {
-        printf("base addr - %zx\n", &specDev.features.base);
-        uint16_t whichAddr = 0;
-        auto addr_print_func = [&whichAddr](auto& feat) {
-            printf("addr[%u] - %zx\n", whichAddr++, &feat);
-        };
-        specDev.features.features.ForEach(addr_print_func);
-    }
 
     EWE::LogicalDevice logicalDevice = specDev.ConstructDevice(
         evaluatedDevices[0],
-        //i want physicaldevice to be moved, but i might just construct it inside the logicaldevice
-        //the main thing is i just dont want to repopulate the queues
         std::forward<EWE::PhysicalDevice>(physicalDevice),
         pNextChain,
         application_wide_vk_version,
@@ -499,7 +489,7 @@ int main() {
     renderRecord.EndRender();
 
     EWE::RenderGraph renderGraph{logicalDevice, swapchain, *renderQueue};
-    EWE::GPUTask& renderTask = renderGraph.tasks.AddElement(logicalDevice, *renderQueue, renderRecord);
+    EWE::GPUTask& renderTask = renderGraph.tasks.AddElement(logicalDevice, *renderQueue, renderRecord, "render");
 
     def_pipe->data->pipe = triangle_pipeline.vkPipe;
     def_pipe->data->layout = triangle_pipeline.pipeLayout->vkLayout;
@@ -602,7 +592,7 @@ int main() {
 
     //i think the rendergraph creates and defines the present task
     uint32_t swapchainImageIndex = 0;
-    EWE::GPUTask& presentTask = renderGraph.tasks.AddElement(logicalDevice, *renderQueue, presentRecord);
+    EWE::GPUTask& presentTask = renderGraph.tasks.AddElement(logicalDevice, *renderQueue, presentRecord, "present blit");
 
 
     VkSubmitInfo submitInfo{};
