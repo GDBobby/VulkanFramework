@@ -109,14 +109,5 @@ namespace EWE{
 
         //if its nullptr, it's guaranteed no barriers are necessary
         void DefineBlitUsage(uint16_t blitIndex, Image* srcImage, Image* dstImage) noexcept;
-
-        //ok, maybe we just dont allow internal sync
-        //it got extremely complicated extremely quickly
-        //void GenerateInternalSync();
-
-
-        //im not committed to putting the command buffer here. 
-        //i might let each GPUTask create its own command buffer on execution
-        //void Execute(CommandBuffer& cmdBuf) const noexcept;
     };
 }

@@ -252,7 +252,9 @@ namespace EWE{
             if (it != supported.end()) { return *it; }
         }
 
+#if EWE_DEBUG_BOOL
         printf("potentially need to debug this default return, idk how it behaves\n");
+#endif
         return VkSurfaceFormatKHR{};
     }
 

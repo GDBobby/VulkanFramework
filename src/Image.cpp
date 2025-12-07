@@ -52,7 +52,9 @@ namespace EWE{
         imgCreateInfo.pQueueFamilyIndices = &owningQueue->family.index;
         imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
+#if EWE_DEBUG_BOOL
         assert(false && "not readyy yet");
+#endif
         return false;
     }
 

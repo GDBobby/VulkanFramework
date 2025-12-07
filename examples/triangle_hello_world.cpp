@@ -26,12 +26,15 @@
 #include "EightWinds/ImageView.h"
 
 #include <cstdint>
+#if EWE_DEBUG_BOOL
 #include <cstdio>
 #include <cassert>
+#endif
 #include <filesystem>
 #include <chrono>
 #include <array>
 
+#if EWE_DEBUG_BOOL
 void PrintAllExtensions(VkPhysicalDevice physicalDevice) {
     uint32_t extCount = 0;
     vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extCount, nullptr);
@@ -42,6 +45,7 @@ void PrintAllExtensions(VkPhysicalDevice physicalDevice) {
         printf("\t%s\n", prop.extensionName);
     }
 }
+#endif
 
 
 //https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_device_address_binding_report.html
@@ -136,7 +140,10 @@ int main() {
 #endif
     };
     if (!glfwInit()) {
+#if EWE_DEBUG_BOOL
         printf("failed to glfw init\n");
+#endif
+        return -1;
     }
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -200,9 +207,9 @@ int main() {
     auto evaluatedDevices = specDev.ScorePhysicalDevices(instance);
 
     if (!evaluatedDevices[0].passedRequirements) {
+#if EWE_DEBUG_BOOL
         printf("highest score device failed requirements, exiting\n");
         printf("device count - %zu\n", evaluatedDevices.size());
-#if EWE_DEBUG_BOOL
         for(uint8_t i = 0; i < evaluatedDevices.size(); i++) {
             auto& evDev = evaluatedDevices[i];
             printf("results[%d] - %s --- %d - %zu\n", i, evDev.name.c_str(), evDev.passedRequirements, evDev.score);
@@ -222,6 +229,7 @@ int main() {
 
         return -1;
     }
+#if EWE_DEBUG_BOOL
     else{
         auto& evDev = evaluatedDevices[0];
         const uint32_t variant_version = evDev.api_version >> 29;
@@ -231,6 +239,7 @@ int main() {
 
         printf("api version - %d.%d.%d.%d\n", variant_version, major_version, minor_version, patch_version);
     }
+#endif
 
     EWE::PhysicalDevice physicalDevice{ instance, evaluatedDevices[0].device, window.surface };
     //PrintAllExtensions(physicalDevice.device);
@@ -271,7 +280,9 @@ int main() {
         }
     }
     if (renderQueue == nullptr) {
+#if EWE_DEBUG_BOOL
         printf("failed to find a render queue, exiting\n");
+#endif
         std::this_thread::sleep_for(std::chrono::seconds(5));
         return -1;
     }
@@ -279,7 +290,9 @@ int main() {
 
     EWE::Swapchain swapchain{ logicalDevice, window, *renderQueue };
 
+#if EWE_DEBUG_BOOL
     printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
+#endif
 
     //need to fix htis. its something with my windows debugger
 #ifdef _WIN32
@@ -289,11 +302,15 @@ int main() {
     auto parentStem = current_working_directory.parent_path().stem();
     if(parentStem == "build"){
         current_working_directory = current_working_directory.parent_path().parent_path();
+#if EWE_DEBUG_BOOL
         printf("build redacted working dir - %s\n", current_working_directory.string().c_str());
+#endif
     }
     std::filesystem::current_path(current_working_directory);
 #endif
+#if EWE_DEBUG_BOOL
     printf("current dir - %s\n", std::filesystem::current_path().string().c_str());
+#endif
     EWE::Framework framework(logicalDevice);
     framework.properties = specDev.GetProperty<VkPhysicalDeviceProperties2>().properties;
     //framework.graphicsLibraryEnabled = specDev.GetExtensionIndex(VK_EXT_GRAPHICS_PIPELINE_LIBRARY_EXTENSION_NAME);
@@ -348,10 +365,12 @@ int main() {
         dai.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         dai.Create(vmaAllocCreateInfo);
     }
+#if EWE_DEBUG_NAMING
     colorAttachmentImages[0].SetName("cai 0");
     colorAttachmentImages[1].SetName("cai 1");
     depthAttachmentImages[0].SetName("dai 0");
     depthAttachmentImages[1].SetName("dai 1");
+#endif
 
     //before getting into the render, the layouts of the attachments need to be transitioned
     {
@@ -539,13 +558,18 @@ int main() {
     };
     for (auto& str : triangle_vert->structData) {
         if (str.name == "Vertex") {
+
+#if EWE_DEBUG_BOOL
             printf("size comparison - %zu : %zu\n", str.size, sizeof(TriangleVertex));
             //im getting fucked by spv. its forcing 32bit alignment, even tho spirvcross says 20bit
             //assert(str.size == sizeof(TriangleVertex));
+#endif
         }
     }
     EWE::Buffer vertex_buffer{framework, sizeof(TriangleVertex) * 3, 1, vmaAllocInfo, VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT };
+#if EWE_DEBUG_NAMING
     vertex_buffer.SetName("vertex buffer");
+#endif
     {
         TriangleVertex* mappedData = reinterpret_cast<TriangleVertex*>(vertex_buffer.Map());
 
@@ -772,7 +796,9 @@ int main() {
     }
 
 
+#if EWE_DEBUG_BOOL
     printf("returning successfully\n");
+#endif
 
     delete triangle_vert;
     delete triangle_frag;

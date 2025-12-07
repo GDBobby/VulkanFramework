@@ -115,7 +115,9 @@ namespace EWE{
         void BindDescriptor(ExecContext& ctx){
             //i dont know where to store the texture descriptor set yet
             VkDescriptorSet* desc = nullptr;
+#if EWE_DEBUG_BOOL
             printf("i don't know where to store this yet\n");
+#endif
             assert(false);
             vkCmdBindDescriptorSets(ctx.cmdBuf, ctx.boundPipeline.bindPoint, ctx.boundPipeline.layout, 0, 1, desc, 0, nullptr);
         }
@@ -219,17 +221,25 @@ namespace EWE{
         
         void LoopBegin(ExecContext& ctx){
             //i need to wait and see how this pans out before i code it
+#if EWE_DEBUG_BOOL
             printf("not enabled currently\n");
+#endif
         }
 
         void Switch(ExecContext& ctx){
+#if EWE_DEBUG_BOOL
             printf("not enabled currently\n");
+#endif
         }
         void Case(ExecContext& ctx){
+#if EWE_DEBUG_BOOL
             printf("not enabled currently\n");
+#endif
         }
         void Default(ExecContext& ctx){
+#if EWE_DEBUG_BOOL
             printf("not enabled currently\n");
+#endif
         }
 
     } //namespace Exec

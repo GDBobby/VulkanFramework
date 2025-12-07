@@ -21,7 +21,9 @@ namespace EWE{
             //buit its tempalted, and i don't really want to template this or LogicalDevice
             
         alignmentSize = CalculateAlignment(instanceSize, usageFlags, framework.properties.limits);
+#if EWE_DEBUG_BOOL
         printf("design not finalzied, potentially an error here\n");
+#endif
         alignmentSize = instanceSize;
         bufferSize = alignmentSize * instanceCount;
         
@@ -89,7 +91,6 @@ namespace EWE{
         }
 
         if (minOffsetAlignment > 0) {
-            //printf("get alignment size : %zu \n", (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1));
             return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
         }
         return instanceSize;

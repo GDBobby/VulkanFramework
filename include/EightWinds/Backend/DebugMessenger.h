@@ -1,10 +1,9 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
 
-#define Enable_Validation_Layers EWE_DEBUG_BOOL
 
 namespace EWE{
-#if Enable_Validation_Layers
+#if EWE_DEBUG_BOOL
     struct Instance;
 
     struct DebugMessenger {

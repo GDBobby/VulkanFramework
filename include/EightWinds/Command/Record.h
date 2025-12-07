@@ -47,10 +47,6 @@ namespace EWE{
         //so im going to disable it
         bool hasBeenCompiled = false;
 
-#if 1 //COMMAND_RECORD_NAMING
-        std::string name;
-#endif
-
         std::vector<CommandInstruction> records{};
 
         
@@ -73,10 +69,6 @@ namespace EWE{
         //this shouldnt be used directly
         void BeginRender();
         void EndRender();
-
-        //this needs to be expanded
-        //potentially dont even allow this to be called explicitly?
-        DeferredReference<PipelineBarrier>* Barrier();
 
         DeferredReference<LabelParamPack>* BeginLabel() noexcept;
         void EndLabel() noexcept;

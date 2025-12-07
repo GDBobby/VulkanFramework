@@ -16,7 +16,7 @@ namespace EWE{
         VkInstance instance;
         const uint32_t api_version;
 
-#if Enable_Validation_Layers
+#if EWE_DEBUG_BOOL
         DebugMessenger debugMessenger;
 #endif
 

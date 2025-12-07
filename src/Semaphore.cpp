@@ -11,7 +11,9 @@ namespace EWE{
             //VK_SEMAPHORE_TYPE_TIMELINE = 1,
 
             //i need to find a way to rectify features internally
+#if EWE_DEBUG_BOOL
             printf("not checking features to see if timeline semaphore is enabled yet\n");
+#endif
             //assert(logicalDevice.physicalDevice.features.timelineSemaphore);
 
             VkSemaphoreTypeCreateInfo timelineCreateInfo;

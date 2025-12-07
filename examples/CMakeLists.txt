@@ -9,5 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 
 add_executable(${PROJECT_NAME} "triangle_hello_world.cpp")
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ewgraphics)

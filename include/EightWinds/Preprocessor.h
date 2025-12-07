@@ -1,10 +1,9 @@
 #pragma once
 
 #ifndef EWE_DEBUG
-#define EWE_DEBUG
-#define EWE_DEBUG_BOOL true
-#else
 #define EWE_DEBUG_BOOL false
+#else
+#define EWE_DEBUG_BOOL true
 #endif
 
 #define EWE_USING_EXCEPTIONS true
@@ -18,7 +17,7 @@
 #ifdef EWE_CALL_STACK_FORCE
 #define EWE_CALL_STACK_DEBUG EWE_CALL_STACK_FORCE
 #else
-//check is stacktrace is enabled first, clang doesnt support it (or it didnt 6 months ago)
+//check if stacktrace is enabled first, clang doesnt support it
 #define EWE_CALL_STACK_DEBUG EWE_DEBUG_BOOL
 #endif
 

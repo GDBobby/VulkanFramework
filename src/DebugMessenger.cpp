@@ -1,11 +1,11 @@
 #include "EightWinds/Backend/DebugMessenger.h"
 
+#if EWE_DEBUG_BOOL
 #include "EightWinds/Instance.h"
 
 #include <cstring>
 #include <cassert>
 
-#if Enable_Validation_Layers
 namespace EWE {
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
@@ -120,7 +120,6 @@ namespace EWE {
     DebugMessenger::DebugMessenger(Instance& instance) 
         : instance{instance} 
     {
-        if (!Enable_Validation_Layers) { return; }
         //pass in the createinfo maybe??
         VkDebugUtilsMessengerCreateInfoEXT debugUtilCreateInfo = GetPopulatedDebugMessengerCreateInfo();
         CreateDebugUtilsMessengerEXT(instance.instance, &debugUtilCreateInfo, &messenger);

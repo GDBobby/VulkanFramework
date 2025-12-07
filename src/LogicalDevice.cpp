@@ -83,13 +83,6 @@ namespace EWE{
 
         deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-#if 0 //temp debugging
-        VkBaseInStructure const* pNextChain = reinterpret_cast<VkBaseInStructure const*>(deviceCreateInfo.pNext);
-        while (pNextChain != nullptr) {
-            printf("sType : %d\n", pNextChain->sType);
-            pNextChain = pNextChain->pNext;
-        }
-#endif
 
         EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
 
@@ -102,7 +95,6 @@ namespace EWE{
         BeginLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT"));
         EndLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT"));
         debugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT"));
-        printf("setup object naming\n");
 #endif
 
 
@@ -117,6 +109,7 @@ namespace EWE{
         EWE_VK_RESULT(result);
     }
 
+#if EWE_DEBUG_NAMING
     void LogicalDevice::SetObjectName(void* objectHandle, VkObjectType objectType, std::string_view name) const {
         VkDebugUtilsObjectNameInfoEXT nameInfo{};
         nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -126,5 +119,6 @@ namespace EWE{
         nameInfo.pObjectName = name.data();
         EWE_VK(debugUtilsObjectName, device, &nameInfo);
     }
+#endif
     //a separate function will allow for customizaiton of queues
 }

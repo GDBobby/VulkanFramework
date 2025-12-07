@@ -99,7 +99,9 @@ namespace EWE {
 	}
 
 	void TaskBridge::LeftToRightBarriers(const uint8_t frameIndex, ResourceCollectionSmall& rhsColl) {
+#if EWE_DEBUG_BOOL
 		assert(lhs != nullptr);
+#endif
 		ResourceCollectionSmall lhsColl{ *lhs };
 
 
@@ -271,7 +273,9 @@ namespace EWE {
 				bool foundMatch = false;
 				for (auto& existing : imageBarriers) {
 					if (existing.image == rhsImage->resource->image) {
+#if EWE_DEBUG_BOOL
 						assert(existing.newLayout == rhsImage->layout); //need to rectify this if it's an isuse
+#endif
 						foundMatch = true;
 						break;
 					}
@@ -377,7 +381,9 @@ namespace EWE {
 
 
 	void TaskBridge::Execute(CommandBuffer& cmdBuf){
+#if EWE_DEBUG_BOOL
 		assert(cmdBuf.commandPool.queue == rhs->queue);
+#endif
 
 		dependencyInfo.memoryBarrierCount = 0; //i could move this into the constructor but idk what this is even for tbh
 		dependencyInfo.imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size());

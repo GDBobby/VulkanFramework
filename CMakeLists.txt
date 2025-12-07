@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
 
+set(CMAKE_CONFIGURATION_TYPES "Debug;DebugASan;Release;RelWithDebInfo;RelWithDebInfoASan" CACHE STRING "" FORCE)
+
+
 project(ewgraphics)
 
 include(./.env.cmake OPTIONAL RESULT_VARIABLE LOCAL_ENV)
@@ -15,10 +18,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(USE_SSE "Enable SSE optimizations" OFF)
-option(USE_AVX2 "Enable AVX2 optimizations" ON)
-option(FORCE_DEBUG_MODE "Internal Debugging In Release Mode" OFF)
-
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 	set(is_project_root ON)
 else()
@@ -26,8 +25,12 @@ else()
 endif()
 message(STATUS "is ${PROJECT_NAME} project root? ${is_project_root}")
 
-
 Message(STATUS "Cmake Generator : ${CMAKE_GENERATOR}")
+
+set(OUTPUT_BASE_DIR "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}/${CMAKE_BUILD_TYPE}")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}/${CMAKE_BUILD_TYPE}")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}/${CMAKE_BUILD_TYPE}")
 
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.c)
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/*.hpp)
@@ -48,9 +51,6 @@ set(GLFW_VULKAN_STATIC ON CACHE BOOL "")
 
 add_subdirectory(external/glfw)
 
-#potentially use a cmake option, USE_AFTERMATH
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/explicit_external/")
-
 option(USING_NVIDIA_AFTERMATH, "Nvidia Aftermath" OFF)
 if(USING_NVIDIA_AFTERMATH)
 	message(STATUS "including 64 bit Aftermath")
@@ -64,6 +64,17 @@ endif()
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADER_FILES})
+
+option(USING_ASAN "address sanitizer" OFF)
+if(USING_ASAN)
+	if(MSVC)
+        target_compile_options(${PROJECT_NAME} PUBLIC /fsanitize=address)
+        target_link_options(${PROJECT_NAME} PUBLIC /fsanitize=address)
+	else()
+        target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
+        target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
+    endif()
+endif()
 
 # 1. Set VULKAN_SDK_PATH in .env.cmake to target specific vulkan version
 if (DEFINED VULKAN_SDK_PATH)
@@ -120,12 +131,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	${Vulkan_LIBRARY}
 	#$<$<CONFIG:Debug>:${AFTERMATH_LIBS}>
   	#LinearAlgebra::LinearAlgebra-compile-options
-)
-
-set_target_properties(${PROJECT_NAME}
-    PROPERTIES
-    DEBUG_POSTFIX "-d"  # Appends "-d" in Debug mode
-    RELEASE_POSTFIX ""   # No postfix in Release mode
 )
 
 # Create source groups to maintain file structure in Visual Studio

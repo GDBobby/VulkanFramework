@@ -12,7 +12,9 @@ namespace EWE{
 #if EWE_USING_EXCEPTIONS
     void Framework::HandleVulkanException(EWEException& renderExcept) {
 
+        //i need to do something here when it's runtime. write to file or something
 
+#if EWE_DEBUG_BOOL
         if (renderExcept.result == VK_ERROR_DEVICE_LOST) {
             PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfo = nullptr;
             GetDeviceFaultInfo = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(logicalDevice.device, "vkGetDeviceFaultInfoEXT"));
@@ -88,6 +90,7 @@ namespace EWE{
             free(faultInfo.pVendorInfos);
             free(faultInfo.pVendorBinaryData);
         }
+#endif
     }
 #endif
 }

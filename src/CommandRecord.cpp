@@ -170,14 +170,6 @@ namespace EWE{
         BindCommand(records, CommandInstruction::Type::EndRender);
     }
 
-    DeferredReference<PipelineBarrier>* CommandRecord::Barrier(){
-        printf("this needs to be fixed\n");
-        //BindCommand(records, CommandType::PipelineBarrier, sizeof(PipelineBarrier));
-        auto deferred_ref = new DeferredReference<PipelineBarrier>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
-        return deferred_ref;
-    }
-
     DeferredReference<LabelParamPack>* CommandRecord::BeginLabel() noexcept{
         BindCommand(records, CommandInstruction::Type::BeginLabel);
         auto deferred_ref = new DeferredReference<LabelParamPack>(GetCurrentOffset(records.back()));

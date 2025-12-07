@@ -5,7 +5,9 @@
 
 #include <algorithm>
 
+#if EWE_DEBUG_BOOL
 #include <cassert>
+#endif
 #include <fstream>
 
 #include <iostream>
@@ -15,7 +17,9 @@
 #include <string.h>
 #endif
 
+#if EWE_DEBUG_BOOL
 #define SPV_REFLECT(func, ...) {auto result = func(__VA_ARGS__); if (result != SPV_REFLECT_RESULT_SUCCESS) {printf("failed to read reflected shader data - %s - %s\n", #func, magic_enum::enum_name(result).data());}}
+#endif
 
 namespace EWE {
 
@@ -24,8 +28,10 @@ namespace EWE {
 		std::ifstream shaderFile{};
 		shaderFile.open(filepath.data(), std::ios::binary);
 		if (!shaderFile.is_open()) {
+#if EWE_DEBUG_BOOL
 			printf("failed ot open shader file : %s\n", filepath.data());
 			assert(shaderFile.is_open() && "failed to open shader");
+#endif
 		}
 		shaderFile.seekg(0, std::ios::end);
 		const std::size_t fileSize = static_cast<std::size_t>(shaderFile.tellg());
@@ -307,9 +313,11 @@ namespace EWE {
 					strBack.size = compiler.get_declared_struct_size(type);
 
 					std::size_t arraySize = compiler.get_declared_struct_size_runtime_array(type, 2);
+#if EWE_DEBUG_BOOL
 					if (strBack.size != arraySize) {
 						printf("figure out what array size means\n");
 					}
+#endif
 
 					for (uint32_t m = 0; m < type.member_types.size(); m++) {
 
@@ -424,7 +432,9 @@ namespace EWE {
 			memPtr = reinterpret_cast<uint64_t>(malloc(specInfo.dataSize));
 		}
 		catch (const std::runtime_error& e) {
+#if EWE_DEBUG_BOOL
 			printf("malloc error - %s\n", e.what());
+#endif
 			specInfo.mapEntryCount = 0;
 			specInfo.pData = nullptr;
 		}

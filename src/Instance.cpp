@@ -1,7 +1,9 @@
 #include "EightWinds/Instance.h"
 
+#if EWE_DEBUG_BOOL
 #include <cstdio>
 #include <cassert>
+#endif
 #include <vector>
 #include <unordered_set>
 #include <stdexcept>
@@ -31,8 +33,10 @@ namespace EWE{
                 logFile << "Extension is not available! : " << required << std::endl;
                 logFile.close();
 #endif
+#if EWE_DEBUG_BOOL
                 printf("failed to find extension[%s]\n", required);
-                assert(false && "Missing required extension");
+#endif
+                throw std::runtime_error("missing required extension");
                 return false;
             }
         }
@@ -80,7 +84,7 @@ namespace EWE{
         instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(all_extensions.size());
         instanceCreateInfo.ppEnabledExtensionNames = all_extensions.data();
 
-#if Enable_Validation_Layers
+#if EWE_DEBUG_BOOL
         if (!DebugMessenger::CheckValidationLayerSupport()) {
             printf("validation layers not available \n");
             assert(false && "validation layers requested, but not available!");
@@ -102,8 +106,10 @@ namespace EWE{
 
     Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) 
         : api_version{api_version},
-        instance{CreateInstance(api_version, requiredExtensions, optionalExtensions)},
-        debugMessenger{*this}
+        instance{CreateInstance(api_version, requiredExtensions, optionalExtensions)}
+#if EWE_DEBUG_BOOL
+        ,debugMessenger{*this}
+#endif
     {
     }
 }
