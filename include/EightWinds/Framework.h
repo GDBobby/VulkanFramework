@@ -29,9 +29,6 @@ namespace EWE{
         //handles command buffer pools underneath it
         //CommandBufferFactory cbFac;
         Backend::Descriptor::LayoutCache dslCache;
-        
-        //this is going to be a copy. i need it internally for buffer alignment.
-        VkPhysicalDeviceProperties properties; 
 
         bool graphicsLibraryEnabled = false;
         bool meshShadersEnabled = false;

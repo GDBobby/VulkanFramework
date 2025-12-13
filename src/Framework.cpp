@@ -19,7 +19,7 @@ namespace EWE{
             PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfo = nullptr;
             GetDeviceFaultInfo = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(logicalDevice.device, "vkGetDeviceFaultInfoEXT"));
             if (GetDeviceFaultInfo == nullptr) {
-                std::runtime_error("unhandled device lost");
+                throw std::runtime_error("unhandled device lost");
                 return;
             }
 

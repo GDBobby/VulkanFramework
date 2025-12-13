@@ -2,6 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
+#include "FeaturePropertyPack.h"
 
 //one of the main reasons im avoiding hpp in the rest of the app is to reduce compile time. 
 //i dont think it's avoidable here without retyping a very large portion of it
@@ -188,11 +189,9 @@ namespace EWE{
 
 
             features.PopulateInPlace(physicalDevice.device);
-            
-            //auto featureCopyForScoring = features;
-            //featureCopyForScoring.Populate(physicalDevice.device);
             properties.Populate(physicalDevice.device);
-            //check extensions
+            auto featurePack = features.GetFeaturePack();
+            auto propertyPack = properties.GetPropertyPack();
             
             VkDeviceCreateInfo deviceCreateInfo{};
             deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -220,7 +219,14 @@ namespace EWE{
             deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(active_extensions.size());
             deviceCreateInfo.ppEnabledExtensionNames = active_extensions.data();
 
-            return LogicalDevice(std::forward<PhysicalDevice>(physicalDevice), deviceCreateInfo, api_version, vmaAllocatorFlags);
+            return LogicalDevice(
+                std::forward<PhysicalDevice>(physicalDevice), 
+                deviceCreateInfo, 
+                api_version, 
+                vmaAllocatorFlags,
+                featurePack,
+                propertyPack
+            );
         }
 
     };

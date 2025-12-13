@@ -13,10 +13,18 @@ namespace EWE{
 
         const std::vector<QueueFamily> queueFamilies;
 
+#if EWE_DEBUG_NAMING
+        std::string name;
+#endif
+
         //the device is selected separately
         [[nodiscard]] explicit PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
         [[nodiscard]] explicit PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, std::vector<QueueFamily> const& queueFamilies);
 
         PhysicalDevice(PhysicalDevice&& moveSrc) noexcept;
+
+        operator VkPhysicalDevice() const {
+            return device;
+        }
     };
 }

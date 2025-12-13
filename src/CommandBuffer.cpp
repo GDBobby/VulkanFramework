@@ -16,46 +16,35 @@ namespace EWE{
         assert(commandPool.allocatedBuffers > 0);
         commandPool.allocatedBuffers--;
     }
-/*
-    CommandBuffer& CommandBuffer::operator=(VkCommandBuffer cmdBuf) noexcept;
-        void operator=(VkCommandBuffer cmdBuf) noexcept {
-        assert(this->cmdBuf == VK_NULL_HANDLE);
-        this->cmdBuf = cmdBuf;
-
-        return *this;
-    }
-*/
 
     void CommandBuffer::Reset() {
-        assert(commandPool.flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT && inUse);
-        EWE_VK(vkResetCommandBuffer, cmdBuf, resetFlags);
-        assert(!inUse);
-        //inUse = false;
+        /*
+        ideally State::Pending would be transitioned to invalid with a fence callback
+        and this would assert that the state is currently invalid
+        UNTIL i get that setup, this is going to require state be in present
+        */
+        assert(commandPool.flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+        if (state == State::Pending) {
+            EWE_VK(vkResetCommandBuffer, cmdBuf, resetFlags);
 
-        assert(labelDepth == 0);
+            assert(labelDepth == 0);
+            state = State::Initial;
+        }
     }
 
     void CommandBuffer::End() {
-        inUse = false;
+#if EWE_DEBUG_BOOL
+        assert(state == State::Recording);
+        state = State::Executable;
+#endif
         EWE_VK(vkEndCommandBuffer, cmdBuf);
     }
 
     void CommandBuffer::Begin(VkCommandBufferBeginInfo const& beginInfo) {
-        inUse = true;
-#if COMMAND_BUFFER_TRACING
-        if (usageTracking.size() > 2) {
-            usageTracking.pop();
-        }
-        usageTracking.push({});
+#if EWE_DEBUG_BOOL
+        assert(state == State::Initial);
+        state = State::Recording;
 #endif
-        EWE_VK(vkBeginCommandBuffer, cmdBuf, &beginInfo);
-    }
-    void CommandBuffer::BeginSingleTime() noexcept {
-        inUse = true;
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.pNext = nullptr;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 #if COMMAND_BUFFER_TRACING
         if (usageTracking.size() > 2) {
             usageTracking.pop();

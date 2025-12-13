@@ -104,6 +104,9 @@ namespace EWE{
         if(depth_attachment.imageView[frameIndex] != nullptr){
             out->depthAttachmentInfo.imageView = depth_attachment.imageView[frameIndex]->view;
         }
+        else {
+            out->renderingInfo.pDepthAttachment = nullptr;
+        }
     }
 
     /*

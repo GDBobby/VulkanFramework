@@ -144,8 +144,8 @@ namespace EWE {
 		return merged;
 	}
 
-	PipeLayout::PipeLayout(Framework& framework, std::initializer_list<::EWE::Shader*> shaders) noexcept
-		: framework{framework}
+	PipeLayout::PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<::EWE::Shader*> shaders, VkDescriptorSetLayout dsl) noexcept
+		: logicalDevice{logicalDevice}
 	{
 		this->shaders.fill(nullptr);
 		for (auto& shader : shaders) {
@@ -153,25 +153,9 @@ namespace EWE {
 		}
 		descriptorSets = MergeDescriptorSets(this->shaders);
 		pushConstantRanges = MergePushRanges(this->shaders);
-		CreateVkPipeLayout();
+		CreateVkPipeLayout(dsl);
 		bindPoint = BindPointFromType(pipelineType);
 	}
-
-	
-	PipeLayout::PipeLayout(Framework& framework, std::initializer_list<std::string_view> shaderFileLocations)
-		: framework{framework}
-	{
-		this->shaders.fill(nullptr);
-		for (auto& fileLocation : shaderFileLocations) {
-			Shader* shader = framework.shaderFactory.GetShader(fileLocation);
-			shaders[Shader::Stage(shader->shaderStageCreateInfo.stage).value] = shader;
-		}
-		descriptorSets = MergeDescriptorSets(this->shaders);
-		pushConstantRanges = MergePushRanges(this->shaders);
-		CreateVkPipeLayout();
-		bindPoint = BindPointFromType(pipelineType);
-	}
-	
 
 	std::vector<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
 		std::vector<VkPipelineShaderStageCreateInfo> ret{};
@@ -200,7 +184,7 @@ namespace EWE {
 	}
 
 
-	void PipeLayout::CreateVkPipeLayout() {
+	void PipeLayout::CreateVkPipeLayout(VkDescriptorSetLayout dsl) {
 
 		if (shaders[Shader::Stage::Vertex] != nullptr) {
 			pipelineType = PipelineType::Vertex;
@@ -224,39 +208,13 @@ namespace EWE {
 		plCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
 		plCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 
-		//if (VK::Object->globalEmptyDSL == VK_NULL_HANDLE) {
-		//	VkDescriptorSetLayoutCreateInfo emptyInfo{};
-		//	emptyInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		//	emptyInfo.bindingCount = 0;
-		//	emptyInfo.pBindings = nullptr;
-
-		//	EWE_VK(vkCreateDescriptorSetLayout, logicalDevice.device, &emptyInfo, nullptr, &VK::Object->globalEmptyDSL);
-		//}
-		uint8_t highestCount = 0;
-		for (auto& dsl : descriptorSets.sets) {
-			//highestCount = lab::Max(highestCount, dsl.index); //theyre sorted, i need to add back() to KVContainer
-			highestCount = highestCount > dsl.index ? highestCount : dsl.index;
-		}
-
 		const bool hasSets = descriptorSets.sets.size() > 0;
-		std::vector<VkDescriptorSetLayout> layouts(highestCount + hasSets, VK_NULL_HANDLE);
-		for (uint8_t i = 0; i < descriptorSets.sets.size(); i++) {
-            //this needs to be dealt with
-			//promote this to a type that has the vkdsl
-			layouts[descriptorSets.sets[i].index] = framework.dslCache.Get(descriptorSets.sets[i].bindings);
-		}
+		assert(descriptorSets.sets.size() <= 1);
 
-		//potentially do a second pass to assert none are null_handle, which I believe is a bug, or a very poor shader
-#if EWE_DEBUG_BOOL
-		for(uint8_t i = 0; i < layouts.size(); i++){
-			assert(layouts[i] != VK_NULL_HANDLE);
-		}
-#endif	
+		plCreateInfo.setLayoutCount = static_cast<uint32_t>(hasSets);
+		plCreateInfo.pSetLayouts = &dsl;
 
-		plCreateInfo.setLayoutCount = static_cast<uint32_t>(layouts.size());
-		plCreateInfo.pSetLayouts = layouts.data();
-
-		EWE_VK(vkCreatePipelineLayout, framework.logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
+		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
 	}
 
 #if PIPELINE_HOT_RELOAD

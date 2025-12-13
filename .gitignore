@@ -36,3 +36,12 @@ external/
 .vscode/
 .env.cmake
 .vs/
+
+EWGraphics.dir/
+*.vcxproj
+*.filters
+*.stamp
+*.depends
+*.depend
+*.sln
+cmake_install.cmake

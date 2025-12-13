@@ -1,4 +1,4 @@
-#include "EightWinds/Command/Record.h"
+#include "EightWinds/RenderGraph/Command/Record.h"
 
 #include <cassert>
 
@@ -156,15 +156,19 @@ namespace EWE{
     //the plan is to only have the single descriptor set, for all bindless textures
     //void BindDescriptor(VkDescriptorSet set);
     
-    uint32_t CommandRecord::Push(){
+    DeferredReference<GlobalPushConstant>* CommandRecord::Push(){
         //assert a pipeline is binded
         BindCommand(records, CommandInstruction::Type::PushConstant);
         push_offsets.push_back(reinterpret_cast<GlobalPushConstant*>(GetCurrentOffset(records.back())));
-        return pushIndex++;
+        auto deferred_ref = new DeferredReference<GlobalPushConstant>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
     }
 
     void CommandRecord::BeginRender(){
         BindCommand(records, CommandInstruction::Type::BeginRender);
+        //this doesnt return a deferredreference because the pointer is scanned for later
+        //it still uses an offset of 8
     }
     void CommandRecord::EndRender(){
         BindCommand(records, CommandInstruction::Type::EndRender);
@@ -218,6 +222,7 @@ namespace EWE{
 
         for (auto& def_ref : deferred_references) {
             def_ref->data += pool_address;
+            def_ref->adjusted = true;
             //we convert the initial offset to a real pointer into the paramPool
         }
     }

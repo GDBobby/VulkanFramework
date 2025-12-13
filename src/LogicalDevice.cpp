@@ -3,15 +3,33 @@
 namespace EWE{
     
     LogicalDevice::LogicalDevice(
-        PhysicalDevice&& physicalDevice,
+        PhysicalDevice&& physDevice,
         VkDeviceCreateInfo& deviceCreateInfo,
         uint32_t api_version,
-        VmaAllocatorCreateFlags allocatorFlags
+        VmaAllocatorCreateFlags allocatorFlags,
+        Backend::FeaturePack const& featurePack,
+        Backend::PropertyPack const& propertyPack
     ) noexcept
-    : instance{physicalDevice.instance},
-        physicalDevice{std::forward<PhysicalDevice>(physicalDevice)},
-        api_version{api_version}
+    : instance{physDevice.instance},
+        physicalDevice{std::forward<PhysicalDevice>(physDevice)},
+        api_version{api_version},
+        
+        features{featurePack.features},
+        features11{featurePack.features11},
+        features12{featurePack.features12},
+        features13{featurePack.features13},
+        features14{featurePack.features14},
+        
+        properties{ propertyPack.properties},
+        properties11{ propertyPack.properties11},
+        properties12{ propertyPack.properties12},
+        properties13{ propertyPack.properties13},
+        properties14{ propertyPack.properties14}
     {
+#if EWE_DEBUG_NAMING
+        physicalDevice.name = properties.properties.deviceName;
+#endif
+
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         //pnext is set before coming into this function
         //extensions are set before coming into this function
@@ -86,9 +104,10 @@ namespace EWE{
 
         EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
 
+        queues.reserve(queueCreateInfos.size());
         for(auto& qci : queueCreateInfos){
             //VkDevice logicalDeviceExplicit, QueueFamily& family, float priority
-            queues.emplace_back(device, physicalDevice.queueFamilies[qci.queueFamilyIndex], queuePriorities[qci.queueFamilyIndex]);
+            queues.emplace_back(*this, physicalDevice.queueFamilies[qci.queueFamilyIndex], queuePriorities[qci.queueFamilyIndex]);
         }
 
 #if EWE_DEBUG_NAMING

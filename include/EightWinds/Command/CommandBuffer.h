@@ -15,7 +15,19 @@ namespace EWE{
         CommandPool& commandPool;
 
         VkCommandBuffer cmdBuf;
-        bool inUse = false;
+#if EWE_DEBUG_BOOL
+        enum class State {
+            Initial,
+            Recording,
+            Executable,
+            Pending,
+            Invalid,
+        };
+        //the state needs to be explicitly set to pending
+        //and then explicitly set to Invalid at the moment
+        //but ideally, a fence callback would indicate when it transitions from pending to invalid
+        State state = State::Initial; 
+#endif
 
         VkCommandBufferResetFlags resetFlags = 0;
 
@@ -45,7 +57,6 @@ namespace EWE{
         void End();
         //reads the queue in the command pool this was created from
         void SubmitAlone(VkFence fence); 
-        void BeginSingleTime() noexcept;
         //submit single time? im removing synchub for sure
 
         static bool InitLabelFunctions() noexcept;

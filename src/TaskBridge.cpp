@@ -18,51 +18,6 @@ namespace EWE {
 		v.push_back(ptr);
 	}
 
-	struct ResourceCollectionSmall {
-		std::vector<Resource<Buffer> const*> buffers;
-		std::vector<Resource<Image> const*> images;
-
-		void AddUniqueBuffer(Resource<Buffer> const* buf) {
-			if (buf->resource == nullptr) {
-				return;
-			}
-			for (auto const& ptr : buffers) {
-				if (ptr == buf) {
-					return;
-				}
-			}
-			buffers.push_back(buf);
-		}
-		void AddUniqueImage(Resource<Image> const* img) {
-			if (img->resource == nullptr) {
-				return;
-			}
-			for (auto const& ptr : images) {
-				if (ptr == img) {
-					return;
-				}
-			}
-			images.push_back(img);
-		}
-
-		[[nodiscard]] explicit ResourceCollectionSmall(GPUTask const& task) noexcept {
-
-			for (auto& push : task.pushTrackers) {
-				for (uint8_t i = 0; i < GlobalPushConstant::buffer_count; i++) {
-					AddUniqueBuffer(&push.buffers[i]);
-				}
-				for (uint8_t i = 0; i < GlobalPushConstant::texture_count; i++) {
-					AddUniqueImage(&push.textures[i]);
-				}
-			}
-
-			for (auto& blit : task.blitTrackers) {
-				AddUniqueImage(&blit.srcImage);
-				AddUniqueImage(&blit.dstImage);
-			}
-		}
-	};
-
 	TaskBridge::TaskBridge(GPUTask& lhs, GPUTask& rhs) noexcept
 		: logicalDevice{ lhs.logicalDevice },
 		lhs{ &lhs },
@@ -98,285 +53,244 @@ namespace EWE {
 		dependencyInfo.dependencyFlags = 0; //might need to fine tune this
 	}
 
-	void TaskBridge::LeftToRightBarriers(const uint8_t frameIndex, ResourceCollectionSmall& rhsColl) {
-#if EWE_DEBUG_BOOL
-		assert(lhs != nullptr);
-#endif
-		ResourceCollectionSmall lhsColl{ *lhs };
-
-
-		{ //buffers
-			VkBufferMemoryBarrier2 buf_bar{};
-			buf_bar.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
-			buf_bar.pNext = nullptr;
-			buf_bar.srcQueueFamilyIndex = lhs->queue.family.index;
-			buf_bar.dstQueueFamilyIndex = rhs->queue.family.index;
-
-			for (auto* left : lhsColl.buffers) {
-				for (auto* right : rhsColl.buffers) {
-					if (left->resource == right->resource) {
-						bool leftWrites = GetAccessMaskWrite(left->usage.accessMask);
-						bool rightWrites = GetAccessMaskWrite(right->usage.accessMask);
-
-						if (leftWrites || rightWrites) {
-							buf_bar.buffer = left->resource->buffer_info.buffer;
-							buf_bar.size = left->resource->buffer_info.range;
-							buf_bar.offset = left->resource->buffer_info.offset;
-
-							buf_bar.srcStageMask = left->usage.stage;
-							buf_bar.srcAccessMask = left->usage.accessMask;
-
-							buf_bar.dstStageMask = right->usage.stage;
-							buf_bar.dstAccessMask = right->usage.accessMask;
-							bufferBarriers.push_back(buf_bar);
-						}
-						//resources are unique, so no point in checking the rest if we found a match
-						break;
-					}
-				}
-			}
-		}
-
-		VkImageMemoryBarrier2 img_bar{};
-		img_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-		img_bar.pNext = nullptr;
-		img_bar.srcQueueFamilyIndex = lhs->queue.family.index;
-		img_bar.dstQueueFamilyIndex = rhs->queue.family.index;
-
-		img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		img_bar.subresourceRange.baseArrayLayer = 0;
-		img_bar.subresourceRange.baseMipLevel = 0;
-		{ //images
-
-			img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			for (auto* left : lhsColl.images) {
-				for (auto* right : rhsColl.images) {
-					if (left->resource == right->resource) {
-						bool leftWrites = GetAccessMaskWrite(left->usage.accessMask);
-						bool rightWrites = GetAccessMaskWrite(right->usage.accessMask);
-
-						if (leftWrites || rightWrites) {
-							img_bar.image = left->resource->image;
-
-							img_bar.subresourceRange.layerCount = left->resource->arrayLayers;
-							img_bar.subresourceRange.levelCount = left->resource->mipLevels;
-
-							img_bar.srcStageMask = left->usage.stage;
-							img_bar.srcAccessMask = left->usage.accessMask;
-							img_bar.oldLayout = left->layout;
-
-							img_bar.dstStageMask = right->usage.stage;
-							img_bar.dstAccessMask = right->usage.accessMask;
-							img_bar.newLayout = right->layout;
-							imageBarriers.push_back(img_bar);
-						}
-						//resources are unique, so no point in checking the rest if we found a match
-						break;
-					}
-				}
-			}
-		}
-
-		{ //attachments	
-			std::vector<Resource<Image>> previousAttachments{};
-
-			img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-			if (lhs->renderTracker != nullptr) {
-				std::size_t totalAttachmentCount = lhs->renderTracker->compact.color_attachments.size();
-				const bool hasDepth = lhs->renderTracker->compact.depth_attachment.imageView[frameIndex] != nullptr;
-				totalAttachmentCount += hasDepth;
-
-				previousAttachments.reserve(totalAttachmentCount);
-				for (auto& col_att : lhs->renderTracker->compact.color_attachments) {
-					auto& backAtt = previousAttachments.emplace_back();
-					backAtt.resource = &col_att.imageView[frameIndex]->image;
-					backAtt.usage.stage = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-					backAtt.usage.accessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-					backAtt.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-				}
-				{ //depth
-					if (hasDepth) {
-						auto& backAtt = previousAttachments.emplace_back();
-						backAtt.resource = &lhs->renderTracker->compact.depth_attachment.imageView[frameIndex]->image;
-						/*
-							VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT specifies the stage of the pipeline where early fragment tests
-							(depth and stencil tests before fragment shading) are performed. This stage also includes render pass load
-							operations for framebuffer attachments with a depth/stencil format.
-						*/
-						backAtt.usage.stage = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
-						backAtt.usage.accessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-						backAtt.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-					}
-				}
-			}
-
-			for (auto& left : previousAttachments) {
-			//now we find matches
-				for (auto* right : rhsColl.images) {
-					if (left.resource == right->resource) {
-						bool leftWrites = GetAccessMaskWrite(left.usage.accessMask);
-						bool rightWrites = GetAccessMaskWrite(right->usage.accessMask);
-
-						if (leftWrites || rightWrites) {
-							img_bar.image = left.resource->image;
-
-							if (left.layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) {
-								img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-							}
-							else {
-								img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-							}
-
-							img_bar.subresourceRange.layerCount = left.resource->arrayLayers;
-							img_bar.subresourceRange.levelCount = left.resource->mipLevels;
-
-							img_bar.srcStageMask = left.usage.stage;
-							img_bar.srcAccessMask = left.usage.accessMask;
-							img_bar.oldLayout = left.layout;
-
-							img_bar.dstStageMask = right->usage.stage;
-							img_bar.dstAccessMask = right->usage.accessMask;
-							img_bar.newLayout = right->layout;
-							imageBarriers.push_back(img_bar);
-							imageBarrierResources.push_back(
-								BarrierResource<Image>{
-								.resource = left.resource,
-									.finalLayout = right->layout
-							}
-							);
-						}
-						//resources are unique, so no point in checking the rest if we found a match
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	void TaskBridge::RightOnlyBarriers(const uint8_t frameIndex, ResourceCollectionSmall& rhsColl) {
-		VkImageMemoryBarrier2 img_bar{};
-		img_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-		img_bar.pNext = nullptr;
-		img_bar.srcQueueFamilyIndex = rhs->queue.family.index;
-		img_bar.dstQueueFamilyIndex = rhs->queue.family.index;
-
-		img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		img_bar.subresourceRange.baseArrayLayer = 0;
-		img_bar.subresourceRange.baseMipLevel = 0;
-
-		//layout exclusive transitions
-		for (auto& rhsImage : rhsColl.images) {
-			if (rhsImage->resource->layout != rhsImage->layout) {
-				//add to barriers
-				bool foundMatch = false;
-				for (auto& existing : imageBarriers) {
-					if (existing.image == rhsImage->resource->image) {
-#if EWE_DEBUG_BOOL
-						assert(existing.newLayout == rhsImage->layout); //need to rectify this if it's an isuse
-#endif
-						foundMatch = true;
-						break;
-					}
-				}
-				if (foundMatch) {
-					continue;
-				}
-
-				img_bar.srcQueueFamilyIndex = rhsImage->resource->owningQueue->family.index;
-
-				img_bar.oldLayout = rhsImage->resource->layout;
-				img_bar.newLayout = rhsImage->layout;
-				img_bar.srcAccessMask = rhsImage->usage.accessMask; //i dont really know what to put here
-				img_bar.dstAccessMask = rhsImage->usage.accessMask;
-				img_bar.srcStageMask = rhsImage->usage.stage;
-				img_bar.dstStageMask = rhsImage->usage.stage;
-				img_bar.image = rhsImage->resource->image;
-				img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				img_bar.subresourceRange.layerCount = rhsImage->resource->arrayLayers;
-				img_bar.subresourceRange.levelCount = rhsImage->resource->mipLevels;
-
-				imageBarriers.emplace_back(img_bar);
-				imageBarrierResources.push_back(
-					BarrierResource<Image>{
-					.resource = rhsImage->resource,
-						.finalLayout = rhsImage->layout
-					}
-				);
-			}
-		}
-
-		//layout exclusive for attachments
-		if (rhs->renderTracker != nullptr) {
-			for (auto& col_att : rhs->renderTracker->compact.color_attachments) {
-				if (col_att.imageView[frameIndex]->image.layout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-					auto& temp_image = col_att.imageView[frameIndex]->image;
-					//add it to the barriers
-					img_bar.srcQueueFamilyIndex = temp_image.owningQueue->family.index;
-
-					img_bar.oldLayout = temp_image.layout;
-					img_bar.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-					img_bar.srcAccessMask = VK_ACCESS_2_NONE; //i dont really know what to put here
-					img_bar.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-					img_bar.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-					img_bar.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-					img_bar.image = temp_image.image;
-					img_bar.subresourceRange.layerCount = temp_image.arrayLayers;
-					img_bar.subresourceRange.levelCount = temp_image.mipLevels;
-					img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-					imageBarriers.emplace_back(img_bar);
-					imageBarrierResources.push_back(
-						BarrierResource<Image>{
-						.resource = &temp_image,
-							.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-					}
-					);
-				}
-			}
-			if (rhs->renderTracker->compact.depth_attachment.imageView[frameIndex] != nullptr) {
-				if (rhs->renderTracker->compact.depth_attachment.imageView[frameIndex]->image.layout != VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL) {
-				//add to barriers
-					auto& temp_image = rhs->renderTracker->compact.depth_attachment.imageView[frameIndex]->image;
-					//add it to the barriers
-					img_bar.srcQueueFamilyIndex = temp_image.owningQueue->family.index;
-
-					img_bar.oldLayout = temp_image.layout;
-					img_bar.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-					img_bar.srcAccessMask = VK_ACCESS_2_NONE; //i dont really know what to put here
-					img_bar.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-					img_bar.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-					img_bar.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
-					img_bar.image = temp_image.image;
-					img_bar.subresourceRange.layerCount = temp_image.arrayLayers;
-					img_bar.subresourceRange.levelCount = temp_image.mipLevels;
-					img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-
-					imageBarriers.emplace_back(img_bar);
-					imageBarrierResources.push_back(
-						BarrierResource<Image>{
-						.resource = &temp_image,
-						.finalLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL
-						}
-					);
-				}
-			}
-		}
-	}
-		
-	void TaskBridge::RecreateBarriers(const uint8_t frameIndex) {
-		ResourceCollectionSmall rhsColl{ *rhs };
-
-		imageBarriers.clear();
+	void TaskBridge::RecreateBarriers() {
 		bufferBarriers.clear();
+		imageBarriers.clear();
 		bufferBarrierResources.clear();
 		imageBarrierResources.clear();
-
-		if (lhs) {
-			LeftToRightBarriers(frameIndex, rhsColl);
+		if (lhs != nullptr) {
+			GenerateBridgeBarriers(
+				lhs->explicitBufferState, rhs->explicitBufferState,
+				lhs->explicitImageState, rhs->explicitImageState,
+				lhs->queue, rhs->queue
+			);
 		}
-		RightOnlyBarriers(frameIndex, rhsColl);
+		else {
+			GenerateRightHandBarriers(
+				rhs->explicitBufferState,
+				rhs->explicitImageState,
+				rhs->queue
+			);
+		}
+	}
+
+	void TaskBridge::GenerateRightHandBarriers(
+		std::vector<Resource<Buffer>*>& buffs,
+		std::vector<Resource<Image>*>& imgs,
+		Queue& rhQueue
+	) {
+		{ //buffers
+			VkBufferMemoryBarrier2 buf_bar{};
+			buf_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			buf_bar.pNext = nullptr;
+			buf_bar.srcQueueFamilyIndex = rhs->queue.family.index;
+			buf_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+
+			//layout exclusive transitions
+			for (auto& rhsBuf: buffs) {
+				bool needs_barrier = rhsBuf->buffer->owningQueue->family.index != rhQueue.family.index;
+				if (needs_barrier) {
+					//add to barriers
+					bool foundMatch = false;
+					for (auto& existing : bufferBarriers) {
+						if (existing.buffer == rhsBuf->buffer->buffer_info.buffer) {
+							foundMatch = true;
+							break;
+						}
+					}
+					if (foundMatch) {
+						continue;
+					}
+
+					buf_bar.srcQueueFamilyIndex = rhsBuf->buffer->owningQueue->family.index;
+
+					buf_bar.srcAccessMask = VK_ACCESS_2_NONE; //i dont really know what to put here
+					buf_bar.dstAccessMask = rhsBuf->usage.accessMask;
+					buf_bar.srcStageMask = rhsBuf->usage.stage;
+					buf_bar.dstStageMask = rhsBuf->usage.stage;
+
+					buf_bar.buffer = rhsBuf->buffer->buffer_info.buffer;
+					buf_bar.size = rhsBuf->buffer->bufferSize;
+					buf_bar.offset = rhsBuf->buffer->buffer_info.offset;
+
+
+					bufferBarriers.emplace_back(buf_bar);
+					bufferBarrierResources.push_back(
+						BarrierResource<Buffer>{
+						.resource = rhsBuf->buffer
+					}
+					);
+				}
+			}
+		}
+
+
+		{ //images
+			VkImageMemoryBarrier2 img_bar{};
+			img_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			img_bar.pNext = nullptr;
+			img_bar.srcQueueFamilyIndex = rhs->queue.family.index;
+			img_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+
+			img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			img_bar.subresourceRange.baseArrayLayer = 0;
+			img_bar.subresourceRange.baseMipLevel = 0;
+
+			//layout exclusive transitions
+			for (auto& rhsImage : imgs) {
+				bool needs_barrier = (rhsImage->image->layout != rhsImage->usage.layout) || (rhsImage->image->owningQueue->family.index != rhQueue.family.index);
+				if (needs_barrier) {
+					//add to barriers
+					bool foundMatch = false;
+					for (auto& existing : imageBarriers) {
+						if (existing.image == rhsImage->image->image) {
+#if EWE_DEBUG_BOOL
+							assert(existing.newLayout == rhsImage->usage.layout); //need to rectify this if it's an isuse
+#endif
+							foundMatch = true;
+							break;
+						}
+					}
+					if (foundMatch) {
+						continue;
+					}
+
+					img_bar.srcQueueFamilyIndex = rhsImage->image->owningQueue->family.index;
+
+					img_bar.oldLayout = rhsImage->image->layout;
+					img_bar.newLayout = rhsImage->usage.layout;
+					img_bar.srcAccessMask = VK_ACCESS_2_NONE; //i dont really know what to put here
+					img_bar.dstAccessMask = rhsImage->usage.accessMask;
+					img_bar.srcStageMask = rhsImage->usage.stage;
+					img_bar.dstStageMask = rhsImage->usage.stage;
+					img_bar.image = rhsImage->image->image;
+					img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+					img_bar.subresourceRange.layerCount = rhsImage->image->arrayLayers;
+					img_bar.subresourceRange.levelCount = rhsImage->image->mipLevels;
+
+					imageBarriers.emplace_back(img_bar);
+					imageBarrierResources.push_back(
+						BarrierResource<Image>{
+						.resource = rhsImage->image,
+							.finalLayout = rhsImage->usage.layout
+					}
+					);
+				}
+			}
+		}
+	}
+
+	void TaskBridge::GenerateBridgeBarriers(
+		std::vector<Resource<Buffer>*>& lhsBuffs, std::vector<Resource<Buffer>*>& rhsBuffs,
+		std::vector<Resource<Image>*>& lhsImgs, std::vector<Resource<Image>*>& rhsImgs,
+		Queue& lhQueue, Queue& rhQueue
+	) {
+
+		std::vector<Resource<Buffer>*> rhsOnlyBuffer;
+		std::vector<Resource<Image>*> rhsOnlyImg;
+		{ //buffers
+			VkBufferMemoryBarrier2 buf_bar{};
+			buf_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			buf_bar.pNext = nullptr;
+			buf_bar.srcQueueFamilyIndex = rhs->queue.family.index;
+			buf_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+
+			//layout exclusive transitions
+			for (auto& rhsBuf : rhsBuffs) {
+				bool foundLHMatch = false;
+				for (auto& lhsBuf : lhsBuffs) {
+					if (lhsBuf->buffer == rhsBuf->buffer) {
+						foundLHMatch = true;
+						if (
+							(rhsBuf->buffer->owningQueue->family.index != rhQueue.family.index) ||
+							(lhs->queue.family.index != rhs->queue.family.index) ||
+							(GetAccessMaskWrite(lhsBuf->usage.accessMask) || GetAccessMaskWrite(rhsBuf->usage.accessMask))
+
+						) {
+
+							buf_bar.srcQueueFamilyIndex = rhsBuf->buffer->owningQueue->family.index;
+
+							buf_bar.srcAccessMask = rhsBuf->usage.accessMask; //i dont really know what to put here
+							buf_bar.dstAccessMask = rhsBuf->usage.accessMask;
+							buf_bar.srcStageMask = lhsBuf->usage.stage;
+							buf_bar.dstStageMask = rhsBuf->usage.stage;
+
+							buf_bar.buffer = rhsBuf->buffer->buffer_info.buffer;
+							buf_bar.size = rhsBuf->buffer->bufferSize;
+							buf_bar.offset = rhsBuf->buffer->buffer_info.offset;
+
+
+							bufferBarriers.emplace_back(buf_bar);
+							bufferBarrierResources.push_back(
+								BarrierResource<Buffer>{
+								.resource = rhsBuf->buffer
+								}
+							);
+							break;//guaranteed to be unique
+						}
+					}
+				}
+					//failed to find a match
+				if (!foundLHMatch) {
+					rhsOnlyBuffer.push_back(rhsBuf);
+				}
+			}
+		}
+		
+
+		{ //images
+			VkImageMemoryBarrier2 img_bar{};
+			img_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			img_bar.pNext = nullptr;
+			img_bar.srcQueueFamilyIndex = lhs->queue.family.index;
+			img_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+
+			img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			img_bar.subresourceRange.baseArrayLayer = 0;
+			img_bar.subresourceRange.baseMipLevel = 0;
+
+			//layout exclusive transitions
+			for (auto& rhsImage : rhsImgs) {
+				bool foundLHMatch = false;
+				for (auto& lhsImage : lhsImgs) {
+					if (lhsImage->image == rhsImage->image) {
+						foundLHMatch = true;
+						if (
+							(lhsImage->usage.layout != rhsImage->usage.layout) ||
+							(rhsImage->image->owningQueue->family.index != rhQueue.family.index) ||
+							(GetAccessMaskWrite(lhsImage->usage.accessMask) || GetAccessMaskWrite(rhsImage->usage.accessMask))
+							) {
+									//add to barriers
+							img_bar.oldLayout = lhsImage->usage.layout;
+							img_bar.newLayout = rhsImage->usage.layout;
+							img_bar.srcAccessMask = lhsImage->usage.accessMask; //i dont really know what to put here
+							img_bar.dstAccessMask = rhsImage->usage.accessMask;
+							img_bar.srcStageMask = lhsImage->usage.stage;
+							img_bar.dstStageMask = rhsImage->usage.stage;
+							img_bar.image = rhsImage->image->image;
+							img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+							img_bar.subresourceRange.layerCount = rhsImage->image->arrayLayers;
+							img_bar.subresourceRange.levelCount = rhsImage->image->mipLevels;
+
+							imageBarriers.emplace_back(img_bar);
+							imageBarrierResources.push_back(
+								BarrierResource<Image>{
+								.resource = rhsImage->image,
+								.finalLayout = rhsImage->usage.layout
+								}
+							);
+						}
+						break; //these are guaranteed to be unique
+					}
+				}
+				//failed to find a match
+				if (!foundLHMatch) {
+					rhsOnlyImg.push_back(rhsImage);
+				}
+			}
+		}
+
+		GenerateRightHandBarriers(rhsOnlyBuffer, rhsOnlyImg, rhQueue);
 	}
 
 
@@ -396,6 +310,10 @@ namespace EWE {
 		const uint32_t totalSize = dependencyInfo.memoryBarrierCount + dependencyInfo.imageMemoryBarrierCount + dependencyInfo.bufferMemoryBarrierCount;
 		if(totalSize > 0){
 			vkCmdPipelineBarrier2(cmdBuf, &dependencyInfo);		
+		}
+
+		for (auto& bbr : bufferBarrierResources) {
+			bbr.resource->owningQueue = &rhs->queue;
 		}
 
 		for (auto& ibr : imageBarrierResources) {

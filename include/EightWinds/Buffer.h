@@ -2,7 +2,6 @@
 
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
-#include "EightWinds/Framework.h"
 
 
 
@@ -18,10 +17,15 @@ namespace EWE{
     }
 
     struct Buffer{
-        Framework& framework;
+        LogicalDevice& logicalDevice;
         Queue* owningQueue;
 
-        [[nodiscard]] explicit Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags);
+        [[nodiscard]] explicit Buffer(
+            LogicalDevice& logicalDevice, 
+            VkDeviceSize instanceSize, uint32_t instanceCount, 
+            VmaAllocationCreateInfo const& vmaAllocCreateInfo, 
+            VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+        );
         ~Buffer();
 
         VkDescriptorBufferInfo buffer_info;
@@ -38,6 +42,7 @@ namespace EWE{
         VmaAllocation vmaAlloc{};
 
         void* mapped = nullptr;
+        void* GetMapped();
 
         VkDeviceAddress deviceAddress;
 

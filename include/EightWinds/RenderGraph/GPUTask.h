@@ -3,7 +3,7 @@
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/Backend/RenderInfo.h"
-#include "EightWinds/Command/Execute.h"
+#include "EightWinds/RenderGraph/Command/Execute.h"
 
 #include "EightWinds/Command/CommandPool.h"
 
@@ -17,28 +17,29 @@ namespace EWE{
     struct Buffer;
     struct Image;
     struct CommandRecord;
+    
+    template<typename T>
+    struct Resource{};
 
-    struct ResourceUsageData {
+    struct BufferUsageData {
         VkPipelineStageFlags2 stage;
         VkAccessFlags2 accessMask;
     };
-    template<typename T>
-    struct Resource{
-        T* resource;
-        ResourceUsageData usage;
+    struct ImageUsageData{
+        VkPipelineStageFlags2 stage;
+        VkAccessFlags2 accessMask;
+        VkImageLayout layout;
     };
 
     template<>
     struct Resource<Buffer> {
-        Buffer* resource;
-        ResourceUsageData usage;
+        Buffer* buffer;
+        BufferUsageData usage;
     };
     template<>
     struct Resource<Image> {
-        Image* resource;
-        ResourceUsageData usage;
-        //add validation to make sure layout doesnt change within a task
-        VkImageLayout layout;
+        Image* image;
+        ImageUsageData usage;
     };
 
     //ok i think i remove the trackers. they just add an intermediary overhead. i can do a direct comparison on the param pool
@@ -90,24 +91,20 @@ namespace EWE{
         void SetRenderInfo(); 
         void UpdateFrameIndex(uint8_t frameIndex);
         
-        //write directly to the push tracker. 
-        //replace the old buffer if necessary
-        std::vector<PushTracker> pushTrackers{};
-        std::vector<BlitTracker> blitTrackers{};
+        //these are debug helpers, remove for the moment
+        //std::vector<PushTracker> pushTrackers{};
+        //std::vector<BlitTracker> blitTrackers{};
 
-        //i'd like writes to be statically reflected but i dont think thats possible right now
-        //it should be somewhat easy to fix this in the future
-        //if necessary, i could leave this and put another function that statically reflects to reduce refactorign cost
-       
-        //if it was a small amount (100 or less) of pushes, using the address of the push itself and
-        //counting the offset into pushtrackers every time might be better
-        //but we could be talking 10k+ pushes
-        void PushBuffer(Buffer* buffer, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData) noexcept;
-        //if the user passes in a index greater/equal to GlobalPushConstant::buffer_count then i'll shift it by that value
-        //ill also assert both (buffer and image) slots are valid in debug mode
-        void PushImage(Image* image, uint32_t pushIndex, uint8_t slot, ResourceUsageData const& usageData, VkImageLayout layout) noexcept;
+        //add validation here to make sure each resource is unique
+        int AddImagePin(Image* image, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask, VkImageLayout layout);
+        int AddImagePin(Image* image, ImageUsageData const& usage);
+        int AddBufferPin(Buffer* buffer, BufferUsageData const& usage);
+        int AddBufferPin(Buffer* buffer, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask);
 
-        //if its nullptr, it's guaranteed no barriers are necessary
-        void DefineBlitUsage(uint16_t blitIndex, Image* srcImage, Image* dstImage) noexcept;
+        void SetResource(int pin, Image& image);
+        void SetResource(int pin, Buffer& buffer);
+
+        std::vector<Resource<Image>*> explicitImageState;
+        std::vector<Resource<Buffer>*> explicitBufferState;
     };
 }

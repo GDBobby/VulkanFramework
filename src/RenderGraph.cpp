@@ -1,10 +1,10 @@
 #include "EightWinds/RenderGraph/RenderGraph.h"
 
 namespace EWE{
-    RenderGraph::RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain, Queue& presentQueue)
+    RenderGraph::RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain)
         : logicalDevice{logicalDevice},
         swapchain{swapchain},
-        presentQueue{presentQueue}
+        presentBridge{logicalDevice, swapchain.presentQueue}
     {
 #if EWE_DEBUG_BOOL
         printf("need visual feedback for this\n");
@@ -20,8 +20,6 @@ namespace EWE{
         presentInfo.pSwapchains = &swapchain.activeSwapchain;
         presentInfo.pImageIndices = &swapchain.imageIndex;
         presentInfo.waitSemaphoreCount = 1;
-
-        
     }
 
     bool RenderGraph::Acquire(uint8_t frameIndex){
@@ -31,17 +29,17 @@ namespace EWE{
     void RenderGraph::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
 
         for (auto& task : execution_order) {
-            std::visit(
-                [&](auto* ptr) { 
-                    ptr->Execute(cmdBuf); 
-                }, 
-                task
-            );
+            task.Execute();
         }
         presentInfo.pWaitSemaphores = &swapchain.swap_image_package[swapchain.imageIndex].present_semaphore.vkSemaphore;
     }
 
+    void RenderGraph::PresentBridge(CommandBuffer& cmdBuf) {
+        presentBridge.Execute(cmdBuf);
+    }
+
     void RenderGraph::Present(){
-        vkQueuePresentKHR(presentQueue, &presentInfo);
+        vkQueuePresentKHR(swapchain.presentQueue, &presentInfo);
+        swapchain.imageIndex = (swapchain.imageIndex + 1) % swapchain.swap_image_package.size();
     }
 }

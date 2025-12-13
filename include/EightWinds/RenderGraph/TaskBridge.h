@@ -45,11 +45,21 @@ namespace EWE{
 
 		VkDependencyInfo dependencyInfo{};
 
-        void RecreateBarriers(const uint8_t frameIndex);
+        void RecreateBarriers();
 
         void Execute(CommandBuffer& cmdBuf);
 
-        void LeftToRightBarriers(const uint8_t frameIndex, ResourceCollectionSmall& rhsColl);
-        void RightOnlyBarriers(const uint8_t frameIndex, ResourceCollectionSmall& rhsColl);
+        //this is only considering images right now
+        void GenerateRightHandBarriers(
+            std::vector<Resource<Buffer>*>& rhsBuffs,
+            std::vector<Resource<Image>*>& rhsImgs,
+            Queue& rhQueue
+        );
+
+        void GenerateBridgeBarriers(
+            std::vector<Resource<Buffer>*>& lhsBuffs, std::vector<Resource<Buffer>*>& rhsBuffs,
+            std::vector<Resource<Image>*>& lhsImgs, std::vector<Resource<Image>*>& rhsImgs,
+            Queue& lhQueue, Queue& rhQueue
+        );
     };
 }

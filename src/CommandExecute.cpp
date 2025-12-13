@@ -1,4 +1,4 @@
-#include "EightWinds/Command/Execute.h"
+#include "EightWinds/RenderGraph/Command/Execute.h"
 
 #include "EightWinds/Command/CommandBuffer.h"
 
@@ -9,6 +9,8 @@
 #include "EightWinds/Backend/RenderInfo.h"
 
 #include <cassert>
+
+//#define EXECUTOR_DEBUGGING
 
 namespace EWE{
 
@@ -30,13 +32,12 @@ namespace EWE{
             PipelineParamPack boundPipeline{};
 
             std::size_t iterator = 0;
-            //std::size_t current_barrier_offset = 0;
-            //i dont really know what i want to do with the lower data
-            //i can do assertions, which will be nice for preventing bugs
-            //i could do static analysis for deeper bugs, or potentially even optimization
-            //im not sure if its necessary, i might just leave it til i need it
-
-            //GlobalPushConstant push;
+        
+#ifdef EXECUTOR_DEBUGGING
+            void Print(){
+                printf("\t[%d]:[%zu]:[%zu]:[%zu]\n", iterator, paramPool.data(), instructions[iterator].paramOffset, &paramPool[instructions[iterator].paramOffset]);
+            }
+#endif
         };
 
         using CommandFunction = void(ExecContext& ctx);
@@ -97,9 +98,15 @@ namespace EWE{
         //define command functions here
         void BeginRender(ExecContext& ctx) {
             auto* data = reinterpret_cast<VkRenderingInfo* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdBeginRendering(ctx.cmdBuf, *data);
         }
         void EndRender(ExecContext& ctx) {
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdEndRendering(ctx.cmdBuf);
         }
         void BindPipeline(ExecContext& ctx) {
@@ -108,6 +115,9 @@ namespace EWE{
             assert(pipePack.layout != VK_NULL_HANDLE);
             ctx.boundPipeline = pipePack;
 
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdBindPipeline(ctx.cmdBuf, pipePack.bindPoint, pipePack.pipe);
         }
 
@@ -118,40 +128,61 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
             printf("i don't know where to store this yet\n");
 #endif
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             assert(false);
             vkCmdBindDescriptorSets(ctx.cmdBuf, ctx.boundPipeline.bindPoint, ctx.boundPipeline.layout, 0, 1, desc, 0, nullptr);
         }
 
         void Push(ExecContext& ctx){
             auto* push = reinterpret_cast<GlobalPushConstant const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant), push);
         }
 
 
         void Draw(ExecContext& ctx){
             auto* data = reinterpret_cast<VertexDrawParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdDraw(ctx.cmdBuf, data->vertexCount, data->instanceCount, data->firstVertex, data->firstInstance);
         }
 
         void DrawIndexed(ExecContext& ctx){
             auto* data = reinterpret_cast<IndexDrawParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdDrawIndexed(ctx.cmdBuf, data->indexCount, data->instanceCount, data->firstIndex, data->vertexOffset, data->firstInstance);
         }
 
         void Dispatch(ExecContext& ctx){
             auto* data = reinterpret_cast<uint32_t const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             //maybe add an if statement here, check if all groups are above 0?
             vkCmdDispatch(ctx.cmdBuf, data[0], data[1], data[2]);
             
         }
         void Blit(ExecContext& ctx) {
             auto* data = reinterpret_cast<BlitParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdBlitImage(ctx.cmdBuf, data->srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, data->dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &data->blitParams, data->filter);
         }
 
         void Present(ExecContext& ctx) {
             VkPresentInfoKHR const* presentInfo = *reinterpret_cast<VkPresentInfoKHR* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            
+
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             VkResult result = vkQueuePresentKHR(ctx.cmdBuf.commandPool.queue.queue, presentInfo);
             if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
                 EWE_VK_RESULT(result);
@@ -165,6 +196,9 @@ namespace EWE{
         
         void ViewportScissor(ExecContext& ctx){
             auto* data = reinterpret_cast<ViewportScissorParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdSetViewport(ctx.cmdBuf, 0, 1, &data->viewport);
             vkCmdSetScissor(ctx.cmdBuf, 0, 1, &data->scissor);
         }
@@ -172,14 +206,18 @@ namespace EWE{
             auto* data = reinterpret_cast<ViewportScissorWithCountParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
             assert(data->currentViewportCount < ViewportScissorWithCountParamPack::ArbitraryViewportCountLimit);
             assert(data->currentScissorCount < ViewportScissorWithCountParamPack::ArbitraryScissorCountLimit);
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             vkCmdSetViewport(ctx.cmdBuf, 0, data->currentViewportCount, data->viewports);
             vkCmdSetScissor(ctx.cmdBuf, 0, data->currentScissorCount, data->scissors);
         }
 
         void BeginLabel(ExecContext& ctx){
-#if DEBUG_NAMING
+#if EWE_DEBUG_NAMING
             auto* data = reinterpret_cast<LabelParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            
+            auto* starting = &ctx.paramPool;
+
             VkDebugUtilsLabelEXT labelUtil{};
             labelUtil.pLabelName = data->name;
             labelUtil.color[0] = data->red;
@@ -188,12 +226,18 @@ namespace EWE{
             labelUtil.color[3] = 1.f;
             labelUtil.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
             labelUtil.pNext = nullptr;
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             ctx.device.BeginLabel(ctx.cmdBuf, &labelUtil);
 #endif
         }
 
         void EndLabel(ExecContext& ctx){
-#if DEBUG_NAMING
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+#if EWE_DEBUG_NAMING
             ctx.device.EndLabel(ctx.cmdBuf);
 #endif
         }
@@ -201,10 +245,16 @@ namespace EWE{
 
         void IfStatement(ExecContext& ctx){
             bool const* condition = reinterpret_cast<bool const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            
+
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
             if(*condition){
                 while(ctx.iterator < ctx.instructions.size()){
                     if(ctx.instructions[ctx.iterator].type == CommandInstruction::Type::EndIf){
+#ifdef EXECUTOR_DEBUGGING
+                        ctx.Print();
+#endif
                         return;
                     }
                     dispatchTable[static_cast<std::size_t>(ctx.instructions[ctx.iterator].type)](ctx);

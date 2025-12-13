@@ -5,15 +5,9 @@
 #include "EightWinds/PhysicalDevice.h"
 #include "EightWinds/Backend/QueueFamily.h"
 #include "EightWinds/Queue.h"
+#include "EightWinds/Backend/DeviceSpecialization/FeaturePropertyPack.h"
 
 namespace EWE{
-
-    //the physical device can technically be used by more than 1 logical device
-    //i dont believe there's would be a benefit to that, besides offloading some synchronization to the OS/driver/whatever
-    //with a correct rendergraph, that shouldn't be an issue
-
-    //so following that logic, the logicaldevice will own the physicaldevice. 
-
     struct LogicalDevice{
         Instance& instance;
         PhysicalDevice physicalDevice;
@@ -23,7 +17,7 @@ namespace EWE{
 
         //i think ill let the engine handle filtering the queues
         //i don't think there's a reason to use multiple queues in a single family currently.
-        std::vector<Queue> queues; 
+        std::vector<Queue> queues;
 
         VkDevice device;
 
@@ -33,10 +27,23 @@ namespace EWE{
             PhysicalDevice&& physicalDevice,
             VkDeviceCreateInfo& deviceCreateInfo,
             uint32_t api_version,
-            VmaAllocatorCreateFlags allocatorFlags
+            VmaAllocatorCreateFlags allocatorFlags,
+            Backend::FeaturePack const& featurePack,
+            Backend::PropertyPack const& propertyPack
         ) noexcept;
 
-        //uint64_t GetBufferMinimumAlignment(VkBufferUsageFlags2 usageFlags) const;
+        //i think i can force vulkan 1.4. or at least, i can force earlier API versions to deal with the empty later structs
+        const VkPhysicalDeviceFeatures2 features;
+        const VkPhysicalDeviceVulkan11Features features11;
+        const VkPhysicalDeviceVulkan12Features features12;
+        const VkPhysicalDeviceVulkan13Features features13; 
+        const VkPhysicalDeviceVulkan14Features features14;
+
+        const VkPhysicalDeviceProperties2 properties;
+        const VkPhysicalDeviceVulkan11Properties properties11;
+        const VkPhysicalDeviceVulkan12Properties properties12;
+        const VkPhysicalDeviceVulkan13Properties properties13;
+        const VkPhysicalDeviceVulkan14Properties properties14;
 
 #if EWE_DEBUG_NAMING
         PFN_vkCmdBeginDebugUtilsLabelEXT BeginLabel;

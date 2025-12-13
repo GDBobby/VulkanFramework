@@ -7,24 +7,16 @@ namespace EWE{
 
     Buffer::~Buffer(){
         if(vmaAlloc != VK_NULL_HANDLE){
-            vmaDestroyBuffer(framework.logicalDevice.vmaAllocator, buffer_info.buffer, vmaAlloc);
+            vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer_info.buffer, vmaAlloc);
         }
     }
 
-    Buffer::Buffer(Framework& framework, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags)
-        : framework{framework}, 
+    Buffer::Buffer(LogicalDevice& logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags)
+        : logicalDevice{ logicalDevice },
         usageFlags{ usageFlags } 
         {
             
-            //i dont really know how to handle this yet.
-            //device specializer holds the properties
-            //buit its tempalted, and i don't really want to template this or LogicalDevice
-            
-        alignmentSize = CalculateAlignment(instanceSize, usageFlags, framework.properties.limits);
-#if EWE_DEBUG_BOOL
-        printf("design not finalzied, potentially an error here\n");
-#endif
-        alignmentSize = instanceSize;
+        alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits);
         bufferSize = alignmentSize * instanceCount;
         
         VkBufferCreateInfo bufferInfo{};
@@ -35,36 +27,36 @@ namespace EWE{
         bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         assert(bufferSize > 0);
 
-        EWE_VK(vmaCreateBuffer, framework.logicalDevice.vmaAllocator, &bufferInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
+        EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
         
         VkBufferDeviceAddressInfo bdaInfo{};
         bdaInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
         bdaInfo.pNext = nullptr;
         bdaInfo.buffer = buffer_info.buffer;
-        deviceAddress = vkGetBufferDeviceAddress(framework.logicalDevice.device, &bdaInfo);
+        deviceAddress = vkGetBufferDeviceAddress(logicalDevice.device, &bdaInfo);
     }
 
     void* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {
-        EWE_VK(vmaMapMemory, framework.logicalDevice.vmaAllocator, vmaAlloc, &mapped);
+        EWE_VK(vmaMapMemory, logicalDevice.vmaAllocator, vmaAlloc, &mapped);
         assert(mapped != nullptr);
         return mapped;
     }
 
     void Buffer::Unmap() noexcept {
         assert(mapped);
-        vmaUnmapMemory(framework.logicalDevice.vmaAllocator, vmaAlloc);
+        vmaUnmapMemory(logicalDevice.vmaAllocator, vmaAlloc);
         mapped = nullptr;
     }
     
     void Buffer::Flush(VkDeviceSize size, VkDeviceSize offset) {
-        EWE_VK(vmaFlushAllocation, framework.logicalDevice.vmaAllocator, vmaAlloc, offset, size);
+        EWE_VK(vmaFlushAllocation, logicalDevice.vmaAllocator, vmaAlloc, offset, size);
     }
     void Buffer::FlushMin(VkDeviceSize offset){
         VkDeviceSize trueOffset = offset - (offset % minOffsetAlignment);
         if(offset != trueOffset){
             //warning maybe?
         }
-        EWE_VK(vmaFlushAllocation, framework.logicalDevice.vmaAllocator, vmaAlloc, trueOffset, minOffsetAlignment);
+        EWE_VK(vmaFlushAllocation, logicalDevice.vmaAllocator, vmaAlloc, trueOffset, minOffsetAlignment);
     }
     void Buffer::FlushIndex(uint32_t index) { 
         Flush(alignmentSize, index * alignmentSize); 
@@ -89,17 +81,25 @@ namespace EWE{
             //do i push it into the above?
             minOffsetAlignment = limits.minTexelBufferOffsetAlignment;
         }
+        
 
         if (minOffsetAlignment > 0) {
             return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
         }
         return instanceSize;
     }
-        VkDescriptorBufferInfo Buffer::DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) const {
+    VkDescriptorBufferInfo Buffer::DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) const {
         VkDescriptorBufferInfo ret = buffer_info;
         ret.offset = offset;
         ret.range = size;
         return ret;
+    }
+
+    void* Buffer::GetMapped(){
+#if EWE_DEBUG_BOOL
+        assert(mapped != nullptr);
+#endif
+        return mapped;
     }
 
     VkDescriptorBufferInfo* Buffer::DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) {
@@ -110,7 +110,7 @@ namespace EWE{
 
 #if EWE_DEBUG_NAMING
     void Buffer::SetName(std::string_view name) {
-        framework.logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);
+        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);
     }
 #endif
 } //namespace EWE

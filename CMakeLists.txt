@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 set(CMAKE_CONFIGURATION_TYPES "Debug;DebugASan;Release;RelWithDebInfo;RelWithDebInfoASan" CACHE STRING "" FORCE)
 
 
-project(ewgraphics)
+project(EWGraphics)
 
 include(./.env.cmake OPTIONAL RESULT_VARIABLE LOCAL_ENV)
 message(STATUS "Local .env.cmake: ${LOCAL_ENV}")
@@ -140,5 +140,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
 option(BUILD_EWG_EXAMPLES ON "build examples")
 #if(BUILD_EWG_EXAMPLES)
 message(STATUS "building ewg examples")
-add_subdirectory(examples)
+if(${is_project_root})
+	add_subdirectory(examples)
+endif()
 #endif()

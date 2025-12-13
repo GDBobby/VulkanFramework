@@ -3,7 +3,6 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Shader.h"
 #include "EightWinds/Backend/Descriptor/SetLayout.h"
-#include "EightWinds/Framework.h"
 
 #include "EightWinds/Data/KeyValueContainer.h"
 
@@ -25,12 +24,10 @@ namespace EWE {
 
 
 	struct PipeLayout {
-		Framework& framework;
+		LogicalDevice& logicalDevice;
 		VkPipelineLayout vkLayout;
 		//i suspect theres a mismangement of the Tracker references here
-		[[nodiscard]] explicit PipeLayout(Framework& framework, std::initializer_list<::EWE::Shader*> shaders) noexcept;
-		//temporarily i need to disable this. i need to figure out how to fix ShaderFactory inclusion dependency
-		[[nodiscard]] explicit PipeLayout(Framework& framework, std::initializer_list<std::string_view> shaderFileLocations);
+		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<::EWE::Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
 
 		//using PipeTraits = PipelineTraits<PipelineType>;
 		//i dont like the array much, i might do a KeyValuePair or something
@@ -44,7 +41,7 @@ namespace EWE {
 		std::vector<VkPipelineShaderStageCreateInfo> GetStageData() const;
 		std::vector<VkPipelineShaderStageCreateInfo> GetStageData(std::vector<KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>> const& specInfo) const;
 		//this doesnt need to be explicitly called after construction
-		void CreateVkPipeLayout();
+		void CreateVkPipeLayout(VkDescriptorSetLayout dsl);
 
 
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/Command/Instruction.h"
+#include "EightWinds/RenderGraph/Command/Instruction.h"
 
 #include "EightWinds/RenderGraph/GPUTask.h"
 
@@ -20,15 +20,27 @@ namespace EWE{
 
     template<typename T>
     struct DeferredReference{
+    private:
         T* data;
+        bool adjusted = false;
+    public:
 
+        DeferredReference() : data{ reinterpret_cast<T*>(UINT64_MAX) } {}
         DeferredReference(void* offset)
         : data{reinterpret_cast<T*>(offset)}
         {}
+
+        T& GetRef() {
+#if EWE_DEBUG_BOOL
+            assert(adjusted);
+#endif
+            return *data;
+        }
     };
 
     struct DeferredReferenceHelper {
         std::size_t data;
+        bool adjusted;
     };
 
     //if i want compile time optimization, i need to change how the data handles are done
@@ -36,6 +48,8 @@ namespace EWE{
     //vectors dont work with constexpr either, which is how the param_pool is currently setup.
     //the parampool could probably be a span tho
 
+    //i need a merge option, so that tasks can be modified more easily
+    //and commandrecord can be passed around as a pre-package kind of thing
     struct CommandRecord{
         CommandRecord() = default;
         CommandRecord(CommandRecord const&) = delete;
@@ -48,9 +62,6 @@ namespace EWE{
         bool hasBeenCompiled = false;
 
         std::vector<CommandInstruction> records{};
-
-        
-        uint32_t pushIndex = 0;
         std::vector<DeferredReferenceHelper*> deferred_references{};
         std::vector<GlobalPushConstant*> push_offsets{};
 
@@ -64,7 +75,7 @@ namespace EWE{
 
         //i need some expanded or manual method to keep track of when buffers are written to in shaders
 
-        uint32_t Push();
+        DeferredReference<GlobalPushConstant>* Push();
 
         //this shouldnt be used directly
         void BeginRender();

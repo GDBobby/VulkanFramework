@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
-#include "EightWinds/Command/Instruction.h"
+#include "EightWinds/RenderGraph/Command/Instruction.h"
 
 
 #include <vector>
@@ -20,11 +20,17 @@ namespace EWE{
         LogicalDevice& logicalDevice;
 
         [[nodiscard]] explicit CommandExecutor(LogicalDevice& logicalDevice) noexcept;
+        CommandExecutor(CommandExecutor const& copySrc) = delete;
+        CommandExecutor(CommandExecutor&& moveSrc) = delete;
+        CommandExecutor& operator=(CommandExecutor const& copySrc) = delete;
+        CommandExecutor& operator=(CommandExecutor&& moveSrc) = delete;
+
         //i can use templates to make the parampool type aware
         std::vector<uint8_t> paramPool;
         //std::vector<uint8_t> barrierPool;
         std::vector<CommandInstruction> instructions{};
 
         void Execute(CommandBuffer& cmdBuf) const noexcept;
+        void Debug() const noexcept;
     };
 }
