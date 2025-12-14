@@ -303,10 +303,10 @@ namespace EWE {
                 //do a if constexpr for branching
                 FeaturePack ret;
                 ret.features = base;
-                ret.features11 = features.Get<VkPhysicalDeviceVulkan11Features>();
-                ret.features12 = features.Get<VkPhysicalDeviceVulkan12Features>();
-                ret.features13 = features.Get<VkPhysicalDeviceVulkan13Features>();
-                ret.features14 = features.Get<VkPhysicalDeviceVulkan14Features>();
+                ret.features11 = features.template Get<VkPhysicalDeviceVulkan11Features>();
+                ret.features12 = features.template Get<VkPhysicalDeviceVulkan12Features>();
+                ret.features13 = features.template Get<VkPhysicalDeviceVulkan13Features>();
+                ret.features14 = features.template Get<VkPhysicalDeviceVulkan14Features>();
                 return ret;
             }
         };
@@ -353,10 +353,10 @@ namespace EWE {
             PropertyPack GetPropertyPack() const {
                 PropertyPack ret;
                 ret.properties = base;
-                ret.properties11 = properties.Get<VkPhysicalDeviceVulkan11Properties>();
-                ret.properties12 = properties.Get<VkPhysicalDeviceVulkan12Properties>();
-                ret.properties13 = properties.Get<VkPhysicalDeviceVulkan13Properties>();
-                ret.properties14 = properties.Get<VkPhysicalDeviceVulkan14Properties>();
+                ret.properties11 = properties.template Get<VkPhysicalDeviceVulkan11Properties>();
+                ret.properties12 = properties.template Get<VkPhysicalDeviceVulkan12Properties>();
+                ret.properties13 = properties.template Get<VkPhysicalDeviceVulkan13Properties>();
+                ret.properties14 = properties.template Get<VkPhysicalDeviceVulkan14Properties>();
                 return ret;
             }
         };

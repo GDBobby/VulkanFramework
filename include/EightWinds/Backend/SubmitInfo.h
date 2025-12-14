@@ -22,6 +22,8 @@ namespace EWE{
             void WaitOnPrevious(SubmitInfo& previous);
 
             VkSubmitInfo2 Expand();
+
+            VkSubmitInfo2 ExpandWithoutSignal();
         };
     }
 }

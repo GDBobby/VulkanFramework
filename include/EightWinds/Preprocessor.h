@@ -18,7 +18,7 @@
 #define EWE_CALL_STACK_DEBUG EWE_CALL_STACK_FORCE
 #else
 //check if stacktrace is enabled first, clang doesnt support it
-#define EWE_CALL_STACK_DEBUG EWE_DEBUG_BOOL
+#define EWE_CALL_STACK_DEBUG (EWE_DEBUG_BOOL && HAVE_STD_STACKTRACE)
 #endif
 
 

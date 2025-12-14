@@ -32,36 +32,41 @@ namespace EWE{
 
     SubmissionTask::SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, bool signals)
         : queue{queue},
-        cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_FLAGS},
+        cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
         signal{signals},
         signal_semaphores{logicalDevice, false, 0},
-        implicit_workload{nullptr},
-        explicit_workload{nullptr}
+        full_workload{nullptr},
+        external_workload{nullptr}
     {
 
     }
 
-    void SubmissionTask::Execute() {
+    bool SubmissionTask::Execute(uint8_t frameIndex) {
 
-        if(implicit_workload){
+        bool ret = true;
+        if(full_workload){
             CommandBuffer cmdBuf{cmdPool, VK_NULL_HANDLE};
 
             //beginInfo
-            cmdBuf.Begin();
+            VkCommandBufferBeginInfo cmdBeginInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .pInheritanceInfo = nullptr  
+            };
+            cmdBuf.Begin(cmdBeginInfo);
 
-            implicit_workload(cmdBuf);
+            ret = full_workload(cmdBuf);
 
             cmdBuf.End();
         }
-        else if(explicit_workload){
-            explicit_workload();
+        else if(external_workload){
+            ret = external_workload(submitInfo[frameIndex], frameIndex);
         }
         else{
             assert(false && "no active workload"); 
         }
 
-        auto subInfo = submitInfo.Expand();
-
-        queue.Submit2(1, &subInfo, VK_NULL_HANDLE);
+        return ret;
     }
 }

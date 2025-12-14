@@ -28,8 +28,22 @@ namespace EWE{
 
     void RenderGraph::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
 
-        for (auto& task : execution_order) {
-            task.Execute();
+        std::vector<VkSemaphoreSubmitInfo> signaledSemaphores{};
+        for(auto& subgroup : execution_order){
+            std::vector<VkSubmitInfo2> submissions{};
+            for(auto& ind_sub : subgroup){
+                //populate sumibssion
+                //separate by queue if necessary
+
+                if(ind_sub->signal){
+                    submissions.push_back(ind_sub->submitInfo[frameIndex].ExpandWithoutSignal());
+                    std::copy(signaledSemaphores.end(), ind_sub->submitInfo[frameIndex].signalSemaphores.begin(), ind_sub->submitInfo[frameIndex].signalSemaphores.end());
+                }
+                else{
+                    submissions.push_back(ind_sub->submitInfo[frameIndex].Expand());
+                }
+            }
+            //queue.Submit2(submissions.size(), submissions.data(), VK_NULL_HANDLE);
         }
         presentInfo.pWaitSemaphores = &swapchain.swap_image_package[swapchain.imageIndex].present_semaphore.vkSemaphore;
     }

@@ -137,10 +137,18 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
 # target_precompile_headers(${PROJECT_NAME} PRIVATE include/EWGraphics/stdafx.h)
 
-option(BUILD_EWG_EXAMPLES ON "build examples")
-#if(BUILD_EWG_EXAMPLES)
-message(STATUS "building ewg examples")
-if(${is_project_root})
-	add_subdirectory(examples)
+include(CheckCXXSourceCompiles)
+
+check_cxx_source_compiles("
+    #include <stacktrace>
+    int main() {
+        auto st = std::stacktrace::current();
+        return st.size();
+    }
+" HAVE_STD_STACKTRACE)
+
+if (HAVE_STD_STACKTRACE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC HAVE_STD_STACKTRACE)
 endif()
-#endif()
+
+

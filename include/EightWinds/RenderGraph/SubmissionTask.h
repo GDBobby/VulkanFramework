@@ -56,7 +56,7 @@ namespace EWE{
 
 
         //i dont really want to automatically generate barriers but we will for the moment
-        void Execute();
+        bool Execute(uint8_t frameIndex);
     };
 
     struct SubmissionBridge{
