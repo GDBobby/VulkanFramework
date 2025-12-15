@@ -40,6 +40,8 @@ namespace EWE{
         Hive<SubmissionTask> submissions;
 
         PresentBridge presentBridge;
+
+        //each inner vector needs to use only one queue
         std::vector<std::vector<SubmissionTask*>> execution_order;
 
 

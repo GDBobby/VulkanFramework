@@ -2,6 +2,8 @@
 
 #include "EightWinds/Command/CommandBuffer.h"
 
+#include <iterator>
+
 namespace EWE{
     namespace Backend{
         void SubmitInfo::AddCommandBuffer(CommandBuffer& cmdBuf){
@@ -27,7 +29,7 @@ namespace EWE{
                 .pWaitSemaphoreInfos = waitSemaphores.data(),
                 .commandBufferInfoCount = static_cast<uint32_t>(commandInfos.size()),
                 .pCommandBufferInfos = commandInfos.data(),
-                .signalSemaphoreCount = static_cast<uint32_t>(signalSemaphores.size()),
+                .signalSemaphoreInfoCount = static_cast<uint32_t>(signalSemaphores.size()),
                 .pSignalSemaphoreInfos = signalSemaphores.data()
             };
         }
@@ -43,7 +45,7 @@ namespace EWE{
                 .pWaitSemaphoreInfos = waitSemaphores.data(),
                 .commandBufferInfoCount = static_cast<uint32_t>(commandInfos.size()),
                 .pCommandBufferInfos = commandInfos.data(),
-                .signalSemaphoreCount = 0,
+                .signalSemaphoreInfoCount = 0,
                 .pSignalSemaphoreInfos = nullptr
             };
         }

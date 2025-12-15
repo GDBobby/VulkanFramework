@@ -17,7 +17,7 @@ namespace EWE{
             //dont directly deal with commands, VkCommandBufferSubmitInfo isn't for game development
             std::vector<VkCommandBufferSubmitInfo> commandInfos;
 
-            void AddCommandBuffer(CommandBuffer* cmdBuf);
+            void AddCommandBuffer(CommandBuffer& cmdBuf);
 
             void WaitOnPrevious(SubmitInfo& previous);
 
