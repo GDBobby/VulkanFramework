@@ -1,15 +1,13 @@
 #pragma once
 
-/*
-im getting stunlocked, i need to put this off
+
+//im getting stunlocked, i need to put this off
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/LogicalDevice.h"
-
 namespace EWE{
     namespace Backend{
-
+/*
         template<typename T, typename... Ts>
         struct index_of;
 
@@ -58,38 +56,29 @@ namespace EWE{
                 std::make_index_sequence<N - Pos>{}
             );
         }
+*/
 
         struct GarbageDisposal{
-            LogicalDevice& logicalDevice;
+            VkDevice vkDevice;
 
-            template<typename DestroyFunc, typename... Args>
-            auto Populate(Args&&... args) {
-                using vk_traits = Vulkan_Function_Traits<DestroyFunc>;
+            [[nodiscard]] explicit GarbageDisposal(VkDevice device);
+            ~GarbageDisposal();
 
-                static_assert(traits::logical_has_device,
-                            "Destroy function must accept a VkDevice");
+            struct GarbageItem{
+                void* object;
+                VkObjectType objectType;
+                uint8_t tossedDuration = 0;
 
-                constexpr int device_index = traits::logical_device_index;
+                void Destroy(VkDevice const vkDevice);
+            };
 
-                auto base_tup = std::make_tuple(std::forward<Args>(args)...);
+            std::vector<GarbageItem> items{};
 
-                DestroyFunc func = nullptr;
-                if constexpr(vk_traits::has_logical_device) {
+            void Clear();
 
-                    auto final_args = tuple_insert<device_index>(base_tup, device);
+            void Tick();
 
-                    return [t = std::move(final_args), func]() mutable {
-                        std::apply(
-                            [&](auto&&... packed_args){
-                                func(std::forward<decltype(packed_args)>(packed_args)...);
-                            },
-                            t
-                        );
-                        return true;
-                    };
-                }
-            }
+            void Toss(void* object, VkObjectType objectType);
         };
     } //namespace backend
 } //namespace EWE
-*/

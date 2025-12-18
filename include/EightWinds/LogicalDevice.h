@@ -6,6 +6,8 @@
 #include "EightWinds/Backend/QueueFamily.h"
 #include "EightWinds/Queue.h"
 #include "EightWinds/Backend/DeviceSpecialization/FeaturePropertyPack.h"
+#include "EightWinds/Backend/Descriptor/Bindless.h"
+#include "EightWinds/Backend/GarbageDisposal.h"
 
 namespace EWE{
     struct LogicalDevice{
@@ -31,6 +33,11 @@ namespace EWE{
             Backend::FeaturePack const& featurePack,
             Backend::PropertyPack const& propertyPack
         ) noexcept;
+        ~LogicalDevice();
+        LogicalDevice(LogicalDevice const& copySrc) = delete;
+        LogicalDevice& operator=(LogicalDevice const& copySrc) = delete;
+
+        Backend::BindlessDescriptor bindlessDescriptor;
 
         //i think i can force vulkan 1.4. or at least, i can force earlier API versions to deal with the empty later structs
         const VkPhysicalDeviceFeatures2 features;
@@ -45,6 +52,8 @@ namespace EWE{
         const VkPhysicalDeviceVulkan13Properties properties13;
         const VkPhysicalDeviceVulkan14Properties properties14;
 
+        Backend::GarbageDisposal garbageDisposal;
+
 #if EWE_DEBUG_NAMING
         PFN_vkCmdBeginDebugUtilsLabelEXT BeginLabel;
         PFN_vkCmdEndDebugUtilsLabelEXT EndLabel;
@@ -52,5 +61,8 @@ namespace EWE{
         PFN_vkSetDebugUtilsObjectNameEXT debugUtilsObjectName = nullptr;
         void SetObjectName(void* objectHandle, VkObjectType objectType, std::string_view name) const;
 #endif
+    private:
+        //just so i can force construction order. also creates queues
+        VkDevice CreateDevice(VkDeviceCreateInfo& deviceCreateInfo);
     };
 }

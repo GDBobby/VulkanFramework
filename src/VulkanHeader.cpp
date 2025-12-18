@@ -61,13 +61,22 @@ namespace EWE{
         void EWE_VK_RESULT(VkResult vkResult) {
 
 
-            assert(vkResult == VK_SUCCESS);
 #if EWE_USING_EXCEPTIONS
             if (vkResult != VK_SUCCESS) {
+#if EWE_DEBUG_BOOL
+                if (vkResult != VK_ERROR_DEVICE_LOST) {
+                    //going to use the device lost extension here
+                    assert(vkResult == VK_SUCCESS);
+
+                //the callstack isnt relevant for device lost
+#endif
 #if EWE_CALL_STACK_DEBUG
-                std::stacktrace error_trace = std::stacktrace::current(2);
-                std::cout << "vk result : " << vkResult << std::endl << error_trace << std::endl << std::endl;
-                std::this_thread::sleep_for(std::chrono::seconds(5));
+                    std::stacktrace error_trace = std::stacktrace::current(2);
+                    std::cout << "vk result : " << vkResult << std::endl << error_trace << std::endl << std::endl;
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
+#endif
+#if EWE_DEBUG_BOOL
+                }
 #endif
                 throw EWEException(vkResult);
             }

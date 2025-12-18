@@ -31,6 +31,8 @@ namespace EWE{
     
     static constexpr uint8_t max_frames_in_flight = 2;
 
+    using DescriptorIndex = uint32_t;
+    static constexpr DescriptorIndex INVALID_DESCRIPTOR_INDEX = UINT32_MAX;
     using PipelineID = uint64_t;
 
 
@@ -74,12 +76,43 @@ namespace EWE{
 
     void EWE_VK_RESULT(VkResult vkResult);
 
+
+    //constexpr std::size_t EWE_MAGIC_VALUE = 0x40000000004;
+
+    //template<typename T>
+    //constexpr bool ewe_castable_to_size_t =
+    //    std::is_pointer_v<std::remove_reference_t<T>> ||
+    //    std::is_integral_v<std::remove_reference_t<T>> ||
+    //    std::is_enum_v<std::remove_reference_t<T>>;
+
+    //template<typename T>
+    //inline bool ewe_arg_matches_magic(T&& arg) {
+    //    using U = std::remove_reference_t<T>;
+
+    //    if constexpr (std::is_pointer_v<U>) {
+    //        return reinterpret_cast<std::size_t>(arg) == EWE_MAGIC_VALUE;
+    //    }
+    //    else if constexpr (std::is_integral_v<U> || std::is_enum_v<U>) {
+    //        return static_cast<std::size_t>(arg) == EWE_MAGIC_VALUE;
+    //    }
+    //    else {
+    //        return false;
+    //    }
+    //}
+
     template<typename F, typename... Args>
     requires (std::is_invocable_v<F, Args...>)
     inline constexpr void EWE_VK(F&& f, Args&&... args) {
     #if WRAPPING_VULKAN_FUNCTIONS
         //call a preliminary function
+        //if constexpr ((ewe_castable_to_size_t<Args> || ...)) {
+        //    if ((ewe_arg_matches_magic(args) || ...)) {
+        //        printf("pause\n");
+        //    }
+        //}
     #endif
+
+
         EWE_VK_RESULT(std::invoke(std::forward<F>(f), std::forward<Args>(args)...));
         
     #if WRAPPING_VULKAN_FUNCTIONS

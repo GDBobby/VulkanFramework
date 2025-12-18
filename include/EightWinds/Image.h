@@ -38,8 +38,6 @@ namespace EWE{
 
 		VmaAllocation memory;
 
-        int texture_index = -1;
-
         VkImageCreateFlags createFlags;//this will specify if it's a cube or not. bunch of other flags, like 2d array. not sure what's necessary
         VkImageUsageFlags usage;
         VkImageType type;

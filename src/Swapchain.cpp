@@ -19,31 +19,39 @@ namespace EWE{
         : logicalDevice{logicalDevice},
         window{window},
         presentQueue{presentQueue},
+        swapCreateInfo{},
         activeSwapchain{VK_NULL_HANDLE},
-        inFlightFences{logicalDevice, GetFenceCreateInfo()},
-        swapCreateInfo{}
+        acquire_semaphores{logicalDevice, false},
+        inFlightFences{logicalDevice, GetFenceCreateInfo()}
     {
         swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapCreateInfo.pNext = nullptr;
         CreateSwapchain();
+#if EWE_DEBUG_NAMING
+        for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+            std::string debugName = std::string("swapchain acquire semaphore [") + std::to_string(i) + ']';
+            acquire_semaphores[i].SetName(debugName.c_str());
+        }
+#endif
     }
 
     bool Swapchain::CreateSwapchain(){
         uint32_t presentCount = 0;
         vkGetPhysicalDeviceSurfacePresentModesKHR(logicalDevice.physicalDevice.device, window.surface, &presentCount, nullptr);
-        presentModes.resize(presentCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(logicalDevice.physicalDevice.device, window.surface, &presentCount, presentModes.data());
+        available_presentModes.resize(presentCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(logicalDevice.physicalDevice.device, window.surface, &presentCount, available_presentModes.data());
 
         uint32_t surfaceFormatCount = 0;
         vkGetPhysicalDeviceSurfaceFormatsKHR(logicalDevice.physicalDevice.device, window.surface, &surfaceFormatCount, nullptr);
-        std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(logicalDevice.physicalDevice.device, window.surface, &surfaceFormatCount, surfaceFormats.data());
-        const VkSurfaceFormatKHR surfaceFormat = Swapchain::GetSurfaceFormat(surfaceFormats);
+        available_surface_formats.resize(surfaceFormatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(logicalDevice.physicalDevice.device, window.surface, &surfaceFormatCount, available_surface_formats.data());
+        surface_format = Swapchain::GetSurfaceFormat(available_surface_formats);
 
-        swapCreateInfo.imageFormat = surfaceFormat.format;
+        swapCreateInfo.imageColorSpace = surface_format.colorSpace;
+        swapCreateInfo.imageFormat = surface_format.format;
         swapCreateInfo.surface = window.surface;
         swapCreateInfo.presentMode = GetOptimalPresentMode();
-        swapCreateInfo.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        swapCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         /*
         theres 2 strategies available here
@@ -59,7 +67,6 @@ namespace EWE{
 
         swapCreateInfo.queueFamilyIndexCount = 1;
         swapCreateInfo.pQueueFamilyIndices = &presentQueue.family.index;
-        swapCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
         swapCreateInfo.imageArrayLayers = 1;
 
         VkSemaphoreCreateInfo semCreateInfo{};
@@ -114,42 +121,38 @@ namespace EWE{
         //10 is an arbitrary number meant to be at least as large as the most images that would ever be acquired
         uint32_t swapImageCount = 0;
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, nullptr);
-        std::vector<VkImage> tempImageBuffer(swapImageCount);
-        EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, tempImageBuffer.data());
+        std::vector<VkImage> raw_images(swapImageCount);
+        EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, raw_images.data());
 
+        images.clear();
+        for (uint8_t i = 0; i < swapImageCount; i++) {
+            auto& backImage = images.emplace_back(logicalDevice);
 
-/*
-        for (auto& old : swap_image_package) {
-            logicalDevice.GarbageDisposal.toss<VkDestroySemaphore>(old.acquire_semaphore, swap_image_package.size() + 1);
-            logicalDevice.GarbageDisposal.toss(old.present_semaphore, swap_image_package.size() + 1);
-        }
-        swap_image_package.clear();
-        for (uint32_t i = 0; i < swapImageCount; i++) {
-            swap_image_package.push_back(
-                SwapImage{
-                    .image = tempImageBuffer.image,
-                    .acquire_semaphore = 
-                }
-            );
-        }
-*/
-        assert(swapImageCount >= swap_image_package.size() && "this is temporary, i need to setup a reduction in size");
-        
-        const std::size_t previous_swap_size = swap_image_package.size();
-        for(uint32_t i = 0; i < previous_swap_size; i++){
-            swap_image_package[i].image = tempImageBuffer[i];
+            backImage.image = raw_images[i];
+            backImage.layout = VK_IMAGE_LAYOUT_UNDEFINED;
+            backImage.owningQueue = nullptr; //i need to make sure this is handled properly
+            backImage.mipLevels = 1;
+            backImage.arrayLayers = 1;
+            backImage.format = swapCreateInfo.imageFormat;
+            backImage.type = VK_IMAGE_TYPE_2D;
+            backImage.extent.width = swapCreateInfo.imageExtent.width;
+            backImage.extent.height = swapCreateInfo.imageExtent.height;
+
+#if EWE_DEBUG_NAMING
+            std::string imageIndexStr = std::string("swap chain image [") + std::to_string(i) + ']';
+            backImage.SetName(imageIndexStr.c_str());
+#endif
         }
 
-        for (uint32_t i = previous_swap_size; i < swapImageCount; i++) {
-            swap_image_package.push_back(
-                SwapImage{
-                    .image = tempImageBuffer[i],
-                    .present_semaphore = Semaphore{logicalDevice, false},
-                    .acquire_semaphore = Semaphore{logicalDevice, false}
-                }
-            );
+        present_semaphores.clear();
+        present_semaphores.reserve(swapImageCount);
+        for (uint8_t i = 0; i < swapImageCount; i++){
+            present_semaphores.push_back(Semaphore{ logicalDevice, false });
+#if EWE_DEBUG_NAMING
+            std::string debugName = std::string("swapchain present semaphore [") + std::to_string(i) + ']';
+            present_semaphores[i].SetName(debugName.c_str());
+#endif
         }
-
 
         imageIndex = 0;
         currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -171,12 +174,13 @@ namespace EWE{
             //this means its minimized i think
             return false;
         }
-        if((window_dimensions.width != swapCreateInfo.imageExtent.width) || (window_dimensions.height != swapCreateInfo.imageExtent.height)){
+        if((window_dimensions.width != swapCreateInfo.imageExtent.width) || (window_dimensions.height != swapCreateInfo.imageExtent.height) || wantsToRecreate){
             //resized
             if(!RecreateSwapchain()){
             //if recreating failed, return false
                 return false;
             }
+            wantsToRecreate = false;
         }
 
         //wait for 2 seconds, then timeout, which will assert or throw
@@ -201,11 +205,8 @@ namespace EWE{
         */
        
         //printf("lock queue mutex here\n");
-        VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, swap_image_package[imageIndex].acquire_semaphore.vkSemaphore, VK_NULL_HANDLE, &image_index);
+        VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, acquire_semaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &image_index);
         //printf("unlock queue mutex\n");
-
-        //im assuming that it always matches. if it does not, i need to restrategize how the semaphores and images are associated
-        assert(imageIndex == image_index);
         
         switch(acquireResult){
             case VK_SUCCESS: break; //dont do anything
@@ -215,18 +216,22 @@ namespace EWE{
         }
         EWE_VK_RESULT(acquireResult); //throws or asserts
 
+#if EWE_DEBUG_BOOL
+        //printf("acquired image index : %u\n", image_index);
+#endif
+
         imageIndex = image_index; //object index equal to local index
         return true;
     }
 
     VkPresentModeKHR Swapchain::GetOptimalPresentMode() const {
             
-            static constexpr auto desired_v = std::array{VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR};
-            for (auto const desired : desired_v) {
-                if (std::ranges::find(presentModes, desired) != presentModes.end()) { return desired; }
-            }
-            return VK_PRESENT_MODE_FIFO_KHR;
+        static constexpr auto desired_v = std::array{VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR};
+        for (auto const desired : desired_v) {
+            if (std::ranges::find(available_presentModes, desired) != available_presentModes.end()) { return desired; }
         }
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
 
     VkExtent2D Swapchain::GetImageExtent(VkSurfaceCapabilitiesKHR const& caps, VkExtent2D framebuffer) noexcept {
         constexpr auto limitless_v = std::numeric_limits<std::uint32_t>::max();
@@ -264,5 +269,9 @@ namespace EWE{
         if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR) { return VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR; }
         // according to the spec, at least one bit must be set
         return VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
+    }
+
+    Image& Swapchain::GetCurrentImage() {
+        return images[imageIndex];
     }
 }

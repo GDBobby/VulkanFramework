@@ -124,3 +124,8 @@ i could have typign on the resources as well, that specifies wether it's expecti
 
 i decided to go with adding the layout to resource. now any usage of a image needs to declare the layout it wants, 
 which will then be interpreted by TaskBridge when the barriers are generated
+
+## 12/15
+I think GPUTask should be changed. From the current TaskBridge system, to a Prefix, Body, and Suffix system. 
+Prefix will replace TaskBridge, basically a rename. Suffix will be used to facilitate queue ownership transfers.
+I don't think Submission Task will be need Prefix and Suffix, but they might use a Header and Footer GPUTask for inserting barriers for queue transfers.

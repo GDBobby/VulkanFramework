@@ -15,7 +15,6 @@ namespace EWE{
         CommandPool& commandPool;
 
         VkCommandBuffer cmdBuf;
-#if EWE_DEBUG_BOOL
         enum class State {
             Initial,
             Recording,
@@ -26,10 +25,13 @@ namespace EWE{
         //the state needs to be explicitly set to pending
         //and then explicitly set to Invalid at the moment
         //but ideally, a fence callback would indicate when it transitions from pending to invalid
-        State state = State::Initial; 
-#endif
+        State state = State::Initial;
 
         VkCommandBufferResetFlags resetFlags = 0;
+
+#if EWE_DEBUG_BOOL
+        bool debug_currentlyRendering = false;
+#endif
 
         int8_t labelDepth = 0;
 #if COMMAND_BUFFER_TRACING
@@ -40,9 +42,12 @@ namespace EWE{
         };
         std::queue<std::vector<Tracking>> usageTracking;
 
-        CommandBuffer() : cmdBuf{ VK_NULL_HANDLE }, inUse{ false }, usageTracking{} {}
+        CommandBuffer(CommandPool& commandPool) : commandPool{ commandPool }, cmdBuf { VK_NULL_HANDLE }, inUse{ false }, usageTracking{} {}
 #else
         [[nodiscard]] explicit CommandBuffer(CommandPool& commandPool, VkCommandBuffer cmdBuf) noexcept;
+        CommandBuffer(CommandBuffer const& copySrc) = delete;
+        CommandBuffer& operator=(CommandBuffer const& copySrc) = delete;
+        CommandBuffer(CommandBuffer&& moveSrc) noexcept;
         ~CommandBuffer();
 
         operator VkCommandBuffer() const { return cmdBuf; }
@@ -55,10 +60,10 @@ namespace EWE{
         void Reset();
         void Begin(VkCommandBufferBeginInfo const& beginInfo);
         void End();
-        //reads the queue in the command pool this was created from
-        void SubmitAlone(VkFence fence); 
-        //submit single time? im removing synchub for sure
 
-        static bool InitLabelFunctions() noexcept;
+#if EWE_DEBUG_NAMING
+        std::string debugName;
+        void SetDebugName(std::string_view name);
+#endif
     };
 }

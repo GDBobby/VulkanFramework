@@ -112,4 +112,8 @@ namespace EWE{
 #endif
     {
     }
+
+    Instance::~Instance() {
+        vkDestroyInstance(instance, nullptr);
+    }
 }

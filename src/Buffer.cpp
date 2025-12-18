@@ -6,6 +6,10 @@
 namespace EWE{
 
     Buffer::~Buffer(){
+        if (mapped != nullptr) {
+            //ideally buffers would be explicitly unmapped before deconstruction
+            Unmap();
+        }
         if(vmaAlloc != VK_NULL_HANDLE){
             vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer_info.buffer, vmaAlloc);
         }

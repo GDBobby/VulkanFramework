@@ -8,13 +8,14 @@
 
 namespace EWE {
 
+    std::function<void()> DebugMessenger::validation_callback = nullptr;
+
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData
     ) {
-
         switch (messageSeverity) {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
                 printf("validation verbose: %d : %s\n", messageType, pCallbackData->pMessage);
@@ -44,6 +45,13 @@ namespace EWE {
                 }
 #endif
                 logFile.close();
+#endif
+#if EWE_DEBUG_BOOL
+                //print global state here?
+                //potentially a callback?
+                if (DebugMessenger::validation_callback != nullptr) {
+                    DebugMessenger::validation_callback();
+                }
 #endif
 
                 assert(false && "validation layer error");

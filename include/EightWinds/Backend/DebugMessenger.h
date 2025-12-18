@@ -11,6 +11,8 @@ namespace EWE{
 
         VkDebugUtilsMessengerEXT messenger;
         Instance& instance;
+
+        static std::function<void()> validation_callback;
         
         static bool CheckValidationLayerSupport();
         static VkDebugUtilsMessengerCreateInfoEXT GetPopulatedDebugMessengerCreateInfo();

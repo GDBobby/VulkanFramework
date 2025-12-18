@@ -54,8 +54,6 @@ namespace EWE{
         void Draw(ExecContext& ctx);
         void DrawIndexed(ExecContext& ctx);
         void Dispatch(ExecContext& ctx);
-        void Blit(ExecContext& ctx);
-        void Present(ExecContext& ctx);
         //void Barrier(ExecContext& ctx);
         void ViewportScissor(ExecContext& ctx);
         void ViewportScissorWithCount(ExecContext& ctx);
@@ -80,8 +78,6 @@ namespace EWE{
         &Exec::Draw,
         &Exec::DrawIndexed,
         &Exec::Dispatch,
-        &Exec::Blit,
-        &Exec::Present,
         //&Exec::Barrier, 
         &Exec::ViewportScissor,
         &Exec::ViewportScissorWithCount,
@@ -101,11 +97,18 @@ namespace EWE{
 #ifdef EXECUTOR_DEBUGGING
             ctx.Print();
 #endif
+#if EWE_DEBUG_BOOL
+            ctx.cmdBuf.debug_currentlyRendering = true;
+#endif
             vkCmdBeginRendering(ctx.cmdBuf, *data);
         }
         void EndRender(ExecContext& ctx) {
 #ifdef EXECUTOR_DEBUGGING
             ctx.Print();
+#endif
+
+#if EWE_DEBUG_BOOL
+            ctx.cmdBuf.debug_currentlyRendering = false;
 #endif
             vkCmdEndRendering(ctx.cmdBuf);
         }
@@ -124,15 +127,17 @@ namespace EWE{
         //i dont know if i bother putting this in the list
         void BindDescriptor(ExecContext& ctx){
             //i dont know where to store the texture descriptor set yet
-            VkDescriptorSet* desc = nullptr;
-#if EWE_DEBUG_BOOL
-            printf("i don't know where to store this yet\n");
-#endif
+            VkDescriptorSet* desc = &ctx.device.bindlessDescriptor.set;
 #ifdef EXECUTOR_DEBUGGING
             ctx.Print();
 #endif
-            assert(false);
-            vkCmdBindDescriptorSets(ctx.cmdBuf, ctx.boundPipeline.bindPoint, ctx.boundPipeline.layout, 0, 1, desc, 0, nullptr);
+            vkCmdBindDescriptorSets(
+                ctx.cmdBuf, ctx.boundPipeline.bindPoint, 
+                ctx.boundPipeline.layout, 
+                0, 1, 
+                desc, 
+                0, nullptr
+            );
         }
 
         void Push(ExecContext& ctx){
@@ -169,25 +174,6 @@ namespace EWE{
             vkCmdDispatch(ctx.cmdBuf, data[0], data[1], data[2]);
             
         }
-        void Blit(ExecContext& ctx) {
-            auto* data = reinterpret_cast<BlitParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-#ifdef EXECUTOR_DEBUGGING
-            ctx.Print();
-#endif
-            vkCmdBlitImage(ctx.cmdBuf, data->srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, data->dstImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &data->blitParams, data->filter);
-        }
-
-        void Present(ExecContext& ctx) {
-            VkPresentInfoKHR const* presentInfo = *reinterpret_cast<VkPresentInfoKHR* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-
-#ifdef EXECUTOR_DEBUGGING
-            ctx.Print();
-#endif
-            VkResult result = vkQueuePresentKHR(ctx.cmdBuf.commandPool.queue.queue, presentInfo);
-            if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-                EWE_VK_RESULT(result);
-            }
-        }
 
         //void Barrier(ExecContext& ctx){
         //    assert(false && "this needs to be handled, maybe auto-generated only?");
@@ -217,15 +203,12 @@ namespace EWE{
 #if EWE_DEBUG_NAMING
             auto* data = reinterpret_cast<LabelParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
             auto* starting = &ctx.paramPool;
-
-            VkDebugUtilsLabelEXT labelUtil{};
-            labelUtil.pLabelName = data->name;
-            labelUtil.color[0] = data->red;
-            labelUtil.color[1] = data->green;
-            labelUtil.color[2] = data->blue;
-            labelUtil.color[3] = 1.f;
-            labelUtil.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-            labelUtil.pNext = nullptr;
+            VkDebugUtilsLabelEXT labelUtil{
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+                .pNext = nullptr,
+                .pLabelName = data->name,
+                .color = {data->red, data->green, data->blue, 1.f}
+            };
 #ifdef EXECUTOR_DEBUGGING
             ctx.Print();
 #endif

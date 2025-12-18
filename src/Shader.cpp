@@ -466,6 +466,9 @@ namespace EWE {
 		specInfo.mapEntryCount = static_cast<uint32_t>(mapEntries.size());
 		specInfo.pMapEntries = mapEntries.data();
 		specInfo.pData = reinterpret_cast<void*>(memPtr);
+		if (memPtr == 0) {
+			throw std::runtime_error("failed to allocate");
+		}
 		memcpy(reinterpret_cast<void*>(memPtr), copy.specInfo.pData, specInfo.dataSize);
 	}
 

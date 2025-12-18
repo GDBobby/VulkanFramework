@@ -21,6 +21,7 @@ namespace EWE{
         VkSubmitInfo2 SubmitInfo::Expand(){
     #if EWE_DEBUG_BOOL
             assert(commandInfos.size() == cmdBuffers.size());
+            assert(signalSemaphores.size() > 0 && "signaling with no context");
     #endif
             return VkSubmitInfo2{
                 .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
@@ -52,7 +53,7 @@ namespace EWE{
 
         
         void SubmitInfo::WaitOnPrevious(SubmitInfo& previous){
-            std::copy(previous.waitSemaphores.begin(), previous.waitSemaphores.end(), std::back_inserter(waitSemaphores));
+            std::copy(previous.signalSemaphores.begin(), previous.signalSemaphores.end(), std::back_inserter(waitSemaphores));
         }
     } //namespace Backend
 } //namespace EWE

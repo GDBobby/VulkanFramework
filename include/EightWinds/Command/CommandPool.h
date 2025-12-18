@@ -4,8 +4,10 @@
 
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Queue.h"
+#include "EightWinds/PerFlight.h"
 
 namespace EWE{
+    struct CommandBuffer;
     //command pools per device, per queue, and per thread
 
     //its recommend to not use vkCommandPoolCreateFlagBits::eResetCommandBuffer
@@ -25,6 +27,14 @@ namespace EWE{
         //main rendering thread should not be auxilary, the rest are
         //auxilary pools can reset individual command buffers, main pool resets all at once
         [[nodiscard]] explicit CommandPool(LogicalDevice& logicalDevice, Queue& queue, VkCommandPoolCreateFlags createFlags);
+
+        [[nodiscard]] PerFlight<CommandBuffer> AllocateCommandsPerFlight(VkCommandBufferLevel buffer_level);
+        [[nodiscard]] std::vector<CommandBuffer> AllocateCommands(uint8_t count, VkCommandBufferLevel buffer_level);
+        [[nodiscard]] CommandBuffer AllocateCommand(VkCommandBufferLevel buffer_level);
+
+        operator VkCommandPool() const {
+            return commandPool;
+        }
     };
 
     /*

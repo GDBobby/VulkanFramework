@@ -41,11 +41,6 @@ namespace EWE{
             if (inst.type == CommandInstruction::Type::BeginRender) {
                 renderTracker = new RenderTracker();
             }
-            if(inst.type == CommandInstruction::Type::Blit) {
-                //auto& blitBack = blitTrackers.emplace_back();
-                //blitBack.dstImage.resource = nullptr;
-                //blitBack.srcImage.resource = nullptr;
-            }
         }
 
         //all validations will be here

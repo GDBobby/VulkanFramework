@@ -7,14 +7,8 @@ namespace EWE{
         LogicalDevice& logicalDevice;
         VkFence vkFence{ VK_NULL_HANDLE };
 
-        [[nodiscard]] explicit Fence(LogicalDevice& logicalDevice, VkFenceCreateInfo const& fenceCreateInfo)
-            : logicalDevice{logicalDevice} 
-        {
-            EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &vkFence);
-        }
-        ~Fence() {
-            vkDestroyFence(logicalDevice.device, vkFence, nullptr);
-        }
+        [[nodiscard]] explicit Fence(LogicalDevice& logicalDevice, VkFenceCreateInfo const& fenceCreateInfo);
+        ~Fence();
         operator VkFence() const {
             return vkFence;
         }

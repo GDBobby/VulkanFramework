@@ -13,6 +13,8 @@ namespace EWE{
     struct Instance{
         [[nodiscard]] Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions);
 
+        ~Instance();
+
         VkInstance instance;
         const uint32_t api_version;
 

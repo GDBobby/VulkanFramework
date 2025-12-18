@@ -10,8 +10,9 @@
 
 #include "EightWinds/RenderGraph/GPUTask.h"
 #include "EightWinds/RenderGraph/TaskBridge.h"
-#include "EightWinds/RenderGraph/PresentBridge.h"
+#include "EightWinds/RenderGraph/PresentSubmission.h"
 #include "EightWinds/RenderGraph/SubmissionTask.h"
+#include "EightWinds/RenderGraph/PresentBridge.h"
 
 #include "EightWinds/Data/Hive.h"
 
@@ -30,6 +31,7 @@ namespace EWE{
         LogicalDevice& logicalDevice;
         Swapchain& swapchain;
 
+
         //its important that task dont get moved or copied
         Hive<GPUTask> tasks;
         
@@ -38,18 +40,16 @@ namespace EWE{
         //Hive<TaskBridge> bridges;
 
         Hive<SubmissionTask> submissions;
+        PresentSubmission presentSubmission;
 
         PresentBridge presentBridge;
 
         //each inner vector needs to use only one queue
         std::vector<std::vector<SubmissionTask*>> execution_order;
 
-
         VkResult presentResult = VK_SUCCESS;
         VkPresentInfoKHR presentInfo{};
 
-        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
-        void PresentBridge(CommandBuffer& cmdBuf);
-        void Present();
+        void Execute(uint8_t frameIndex);
     };
 }//namespace EWE

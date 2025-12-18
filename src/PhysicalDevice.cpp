@@ -39,5 +39,4 @@ namespace EWE{
         device{moveSrc.device},
         queueFamilies{moveSrc.queueFamilies.begin(), moveSrc.queueFamilies.end()}
     {}
-
 }

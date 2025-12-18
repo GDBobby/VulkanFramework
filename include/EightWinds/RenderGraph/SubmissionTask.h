@@ -35,14 +35,16 @@ namespace EWE{
     };
 
     struct SubmissionTask{
+        LogicalDevice& logicalDevice;
         Queue& queue;
         CommandPool cmdPool;
-        [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, bool signals);
-
+        PerFlight<CommandBuffer> cmdBuffers;
+        bool signal;
+        std::string name;
+        [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, bool signals, std::string_view name);
 
         PerFlight<Backend::SubmitInfo> submitInfo;
 
-        bool signal;
         PerFlight<Semaphore> signal_semaphores;
 
         //im abstracting the workload, so that the programmer isn't forced into using GPUTask.
@@ -54,19 +56,16 @@ namespace EWE{
         //if this is used, an extra wasted command pool will exist. probably not a big deal?
         std::function<bool(Backend::SubmitInfo&, uint8_t frameIndex)> external_workload;
 
-
         //i dont really want to automatically generate barriers but we will for the moment
         bool Execute(uint8_t frameIndex);
     };
 
-    struct SubmissionBridge{
+    //i dont think this object is necessary. idk
+    struct SubmissionBridge{ 
         //this wont care about access, only queue and layout
-        SubmissionTask* lhs;
+        std::span<SubmissionTask*> lhs;
         SubmissionTask* rhs;
-    };
 
-    struct QueueTask{
-        Queue& queue;
-        std::vector<SubmissionTask> subTasks{};
+        [[nodiscard]] explicit SubmissionBridge(std::span<SubmissionTask*> lhs, SubmissionTask* rhs);
     };
 }

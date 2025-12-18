@@ -439,7 +439,7 @@ namespace EWE {
 
         pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
-		vkCreateGraphicsPipelines(
+		EWE_VK(vkCreateGraphicsPipelines,
 			logicalDevice.device, 
 			VK_NULL_HANDLE, 
 			1, 

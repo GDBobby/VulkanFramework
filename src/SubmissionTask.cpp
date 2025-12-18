@@ -30,22 +30,29 @@ namespace EWE{
         return ordered_gpuTasks.size() > 0;
     }
 
-    SubmissionTask::SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, bool signals)
-        : queue{queue},
+    SubmissionTask::SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, bool signals, std::string_view name)
+        : logicalDevice{logicalDevice}, queue{queue},
         cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+        cmdBuffers{ cmdPool.AllocateCommandsPerFlight(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },
         signal{signals},
-        signal_semaphores{logicalDevice, false, 0},
+        signal_semaphores{logicalDevice, false},
         full_workload{nullptr},
-        external_workload{nullptr}
+        external_workload{nullptr},
+        name{name}
     {
-
+#if EWE_DEBUG_NAMING
+        for (uint8_t i = 0; i < EWE::max_frames_in_flight; i++) {
+            std::string debug_name = std::string(name) + "submission task [" + std::to_string(i) + ']';
+            signal_semaphores[i].SetName(debug_name);
+            cmdBuffers[i].SetDebugName(debug_name);
+        }
+#endif
     }
 
     bool SubmissionTask::Execute(uint8_t frameIndex) {
 
         bool ret = true;
         if(full_workload){
-            CommandBuffer cmdBuf{cmdPool, VK_NULL_HANDLE};
 
             //beginInfo
             VkCommandBufferBeginInfo cmdBeginInfo{
@@ -54,11 +61,28 @@ namespace EWE{
                 .flags = 0,
                 .pInheritanceInfo = nullptr  
             };
-            cmdBuf.Begin(cmdBeginInfo);
+            cmdBuffers[frameIndex].Reset();
+            cmdBuffers[frameIndex].Begin(cmdBeginInfo);
 
-            ret = full_workload(cmdBuf);
+#if EWE_DEBUG_NAMING
+            VkDebugUtilsLabelEXT labelUtil{
+                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+                .pNext = nullptr,
+                .pLabelName = name.c_str(),
+                .color = {0.f, 0.f, 0.f, 1.f}
+            };
+            logicalDevice.BeginLabel(cmdBuffers[frameIndex], &labelUtil);
+#endif
 
-            cmdBuf.End();
+            ret = full_workload(cmdBuffers[frameIndex]);
+
+#if EWE_DEBUG_NAMING
+            logicalDevice.EndLabel(cmdBuffers[frameIndex]);
+#endif
+
+            cmdBuffers[frameIndex].End();
+
+            cmdBuffers[frameIndex].state = CommandBuffer::State::Pending;
         }
         else if(external_workload){
             ret = external_workload(submitInfo[frameIndex], frameIndex);
@@ -69,4 +93,19 @@ namespace EWE{
 
         return ret;
     }
+
+
+
+    SubmissionBridge::SubmissionBridge(std::span<SubmissionTask*> lhs, SubmissionTask* rhs)
+        : lhs{lhs}, rhs{rhs}
+    {
+        for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+            for (auto& lh : lhs) {
+                assert(lh->signal); //i dont know if i want to force this or not
+                rhs->submitInfo[i].WaitOnPrevious(lh->submitInfo[i]);
+            }
+        }
+        
+    }
+    
 }

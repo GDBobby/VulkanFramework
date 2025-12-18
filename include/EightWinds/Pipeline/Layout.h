@@ -49,7 +49,7 @@ namespace EWE {
 		void HotReload();
 		void DrawImgui();
 #endif
-#if DEBUG_NAMING
+#if EWE_DEBUG_NAMING
 		void SetDebugName(const char* name);
 #endif
 	};

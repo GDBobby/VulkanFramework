@@ -25,12 +25,28 @@ namespace EWE{
 
     struct TaskBridge{
         LogicalDevice& logicalDevice;
+        Queue& queue;
         GPUTask* lhs;
         GPUTask* rhs; //rhs depends on lhs. the alternatives are to name this predecesor and successor which i dont like much
         std::string name; //"{lhs->name} -> {rhs->name}"
 
         [[nodiscard]] explicit TaskBridge(GPUTask& lhs, GPUTask& rhs) noexcept;
         [[nodiscard]] explicit TaskBridge(GPUTask& rhs) noexcept;
+
+        //explicit barriers
+        [[nodiscard]] explicit TaskBridge(
+            LogicalDevice& logicalDevice,
+            std::vector<Resource<Buffer>*>& rhsBuffs,
+            std::vector<Resource<Image>*>& rhsImgs,
+            Queue& rhQueue
+        );
+
+        [[nodiscard]] explicit TaskBridge(
+            LogicalDevice& logicalDevice, Queue& queue,
+            std::vector<Resource<Buffer>*>& lhsBuffs, std::vector<Resource<Buffer>*>& rhsBuffs,
+            std::vector<Resource<Image>*>& lhsImgs, std::vector<Resource<Image>*>& rhsImgs,
+            Queue& lhQueue, Queue& rhQueue
+        );
 
         TaskBridge(TaskBridge const& copySrc) = delete;
         TaskBridge(TaskBridge&& moveSrc) noexcept;

@@ -19,7 +19,7 @@ namespace EWE {
 	}
 
 	TaskBridge::TaskBridge(GPUTask& lhs, GPUTask& rhs) noexcept
-		: logicalDevice{ lhs.logicalDevice },
+		: logicalDevice{ lhs.logicalDevice }, queue{ rhs.queue },
 		lhs{ &lhs },
 		rhs{ &rhs },
 		name{lhs.name + " -> " + rhs.name}
@@ -29,7 +29,7 @@ namespace EWE {
 		dependencyInfo.dependencyFlags = 0; //might need to fine tune this
 	}
 	TaskBridge::TaskBridge(GPUTask& rhs) noexcept
-		: logicalDevice{ rhs.logicalDevice },
+		: logicalDevice{ rhs.logicalDevice }, queue{ rhs.queue },
 		lhs{nullptr},
 		rhs{ &rhs },
 		name{std::string(":~ " + rhs.name)}
@@ -39,8 +39,42 @@ namespace EWE {
 		dependencyInfo.dependencyFlags = 0; //might need to fine tune this
 	}
 
+	TaskBridge::TaskBridge(
+		LogicalDevice& logicalDevice,
+		std::vector<Resource<Buffer>*>& rhsBuffs,
+		std::vector<Resource<Image>*>& rhsImgs,
+		Queue& rhQueue
+	) : logicalDevice{ logicalDevice }, queue{rhQueue},
+		lhs{ nullptr }, rhs{ nullptr },
+		name{ "explicit rh only bridge" }
+	{
+		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyInfo.pNext = nullptr;
+		dependencyInfo.dependencyFlags = 0; //might need to fine tune this
+		GenerateRightHandBarriers(rhsBuffs, rhsImgs, rhQueue);
+	}
+
+	TaskBridge::TaskBridge(
+		LogicalDevice& logicalDevice, Queue& queue,
+		std::vector<Resource<Buffer>*>& lhsBuffs, std::vector<Resource<Buffer>*>& rhsBuffs,
+		std::vector<Resource<Image>*>& lhsImgs, std::vector<Resource<Image>*>& rhsImgs,
+		Queue& lhQueue, Queue& rhQueue
+	) : logicalDevice{ logicalDevice }, queue{ queue },
+		lhs{ nullptr }, rhs{ nullptr },
+		name{ "explicit lh:rh bridge" }
+	{
+		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyInfo.pNext = nullptr;
+		dependencyInfo.dependencyFlags = 0; //might need to fine tune this
+		GenerateBridgeBarriers(
+			lhsBuffs, rhsBuffs,
+			lhsImgs, rhsImgs,
+			lhQueue, rhQueue
+		);
+	}
+
 	TaskBridge::TaskBridge(TaskBridge&& moveSrc) noexcept
-		: logicalDevice{ lhs->logicalDevice },
+		: logicalDevice{ moveSrc.logicalDevice }, queue{moveSrc.queue},
 		lhs{ moveSrc.lhs },
 		rhs{ moveSrc.rhs },
 		bufferBarriers{ std::move(moveSrc.bufferBarriers) },
@@ -83,8 +117,8 @@ namespace EWE {
 			VkBufferMemoryBarrier2 buf_bar{};
 			buf_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			buf_bar.pNext = nullptr;
-			buf_bar.srcQueueFamilyIndex = rhs->queue.family.index;
-			buf_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+			buf_bar.srcQueueFamilyIndex = rhQueue.family.index;
+			buf_bar.dstQueueFamilyIndex = rhQueue.family.index;
 
 			//layout exclusive transitions
 			for (auto& rhsBuf: buffs) {
@@ -129,8 +163,8 @@ namespace EWE {
 			VkImageMemoryBarrier2 img_bar{};
 			img_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			img_bar.pNext = nullptr;
-			img_bar.srcQueueFamilyIndex = rhs->queue.family.index;
-			img_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+			img_bar.srcQueueFamilyIndex = rhQueue.family.index;
+			img_bar.dstQueueFamilyIndex = rhQueue.family.index;
 
 			img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			img_bar.subresourceRange.baseArrayLayer = 0;
@@ -138,7 +172,8 @@ namespace EWE {
 
 			//layout exclusive transitions
 			for (auto& rhsImage : imgs) {
-				bool needs_barrier = (rhsImage->image->layout != rhsImage->usage.layout) || (rhsImage->image->owningQueue->family.index != rhQueue.family.index);
+				bool queueTransfer = rhsImage->image->owningQueue ? (rhsImage->image->owningQueue->family.index != rhQueue.family.index) : false; 
+				bool needs_barrier = (rhsImage->image->layout != rhsImage->usage.layout) || queueTransfer;
 				if (needs_barrier) {
 					//add to barriers
 					bool foundMatch = false;
@@ -155,7 +190,12 @@ namespace EWE {
 						continue;
 					}
 
-					img_bar.srcQueueFamilyIndex = rhsImage->image->owningQueue->family.index;
+					if (rhsImage->image->owningQueue != nullptr) {
+						img_bar.srcQueueFamilyIndex = rhsImage->image->owningQueue->family.index;
+					}
+					else {
+						img_bar.srcQueueFamilyIndex = rhQueue.family.index; //same as QUEUE_FAMILY_UNKNOWN if theyre both equal
+					}
 
 					img_bar.oldLayout = rhsImage->image->layout;
 					img_bar.newLayout = rhsImage->usage.layout;
@@ -172,7 +212,7 @@ namespace EWE {
 					imageBarrierResources.push_back(
 						BarrierResource<Image>{
 						.resource = rhsImage->image,
-							.finalLayout = rhsImage->usage.layout
+						.finalLayout = rhsImage->usage.layout
 					}
 					);
 				}
@@ -192,8 +232,8 @@ namespace EWE {
 			VkBufferMemoryBarrier2 buf_bar{};
 			buf_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			buf_bar.pNext = nullptr;
-			buf_bar.srcQueueFamilyIndex = rhs->queue.family.index;
-			buf_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+			buf_bar.srcQueueFamilyIndex = rhQueue.family.index;
+			buf_bar.dstQueueFamilyIndex = rhQueue.family.index;
 
 			//layout exclusive transitions
 			for (auto& rhsBuf : rhsBuffs) {
@@ -203,7 +243,7 @@ namespace EWE {
 						foundLHMatch = true;
 						if (
 							(rhsBuf->buffer->owningQueue->family.index != rhQueue.family.index) ||
-							(lhs->queue.family.index != rhs->queue.family.index) ||
+							(lhQueue.family.index != rhQueue.family.index) ||
 							(GetAccessMaskWrite(lhsBuf->usage.accessMask) || GetAccessMaskWrite(rhsBuf->usage.accessMask))
 
 						) {
@@ -242,8 +282,8 @@ namespace EWE {
 			VkImageMemoryBarrier2 img_bar{};
 			img_bar.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			img_bar.pNext = nullptr;
-			img_bar.srcQueueFamilyIndex = lhs->queue.family.index;
-			img_bar.dstQueueFamilyIndex = rhs->queue.family.index;
+			img_bar.srcQueueFamilyIndex = lhQueue.family.index;
+			img_bar.dstQueueFamilyIndex = rhQueue.family.index;
 
 			img_bar.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			img_bar.subresourceRange.baseArrayLayer = 0;
@@ -259,7 +299,7 @@ namespace EWE {
 							(lhsImage->usage.layout != rhsImage->usage.layout) ||
 							(rhsImage->image->owningQueue->family.index != rhQueue.family.index) ||
 							(GetAccessMaskWrite(lhsImage->usage.accessMask) || GetAccessMaskWrite(rhsImage->usage.accessMask))
-							) {
+						) {
 									//add to barriers
 							img_bar.oldLayout = lhsImage->usage.layout;
 							img_bar.newLayout = rhsImage->usage.layout;
@@ -296,7 +336,9 @@ namespace EWE {
 
 	void TaskBridge::Execute(CommandBuffer& cmdBuf){
 #if EWE_DEBUG_BOOL
-		assert(cmdBuf.commandPool.queue == rhs->queue);
+		if (rhs != nullptr) {
+			assert(cmdBuf.commandPool.queue == rhs->queue);
+		}
 #endif
 
 		dependencyInfo.memoryBarrierCount = 0; //i could move this into the constructor but idk what this is even for tbh
@@ -309,6 +351,9 @@ namespace EWE {
 
 		const uint32_t totalSize = dependencyInfo.memoryBarrierCount + dependencyInfo.imageMemoryBarrierCount + dependencyInfo.bufferMemoryBarrierCount;
 		if(totalSize > 0){
+#if EWE_DEBUG_BOOL
+			assert(!cmdBuf.debug_currentlyRendering);
+#endif
 			vkCmdPipelineBarrier2(cmdBuf, &dependencyInfo);		
 		}
 
@@ -318,7 +363,9 @@ namespace EWE {
 
 		for (auto& ibr : imageBarrierResources) {
 			ibr.resource->layout = ibr.finalLayout;
-			ibr.resource->owningQueue = &rhs->queue;
+			if (rhs != nullptr) {
+				ibr.resource->owningQueue = &rhs->queue;
+			}
 		}
 	}
 }

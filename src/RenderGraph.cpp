@@ -1,10 +1,13 @@
 #include "EightWinds/RenderGraph/RenderGraph.h"
 
+#include "EightWinds/Backend/PerFlightDebugViewer.h"
+
 namespace EWE{
     RenderGraph::RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain)
         : logicalDevice{logicalDevice},
         swapchain{swapchain},
-        presentBridge{logicalDevice, swapchain.presentQueue}
+        presentBridge{logicalDevice, swapchain.presentQueue},
+        presentSubmission{ swapchain, swapchain.presentQueue }
     {
 #if EWE_DEBUG_BOOL
         printf("need visual feedback for this\n");
@@ -26,34 +29,57 @@ namespace EWE{
         return swapchain.AcquireNextImage(frameIndex);
     }
 
-    void RenderGraph::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
+    void RenderGraph::Execute(uint8_t frameIndex) {
 
-        std::vector<VkSemaphoreSubmitInfo> signaledSemaphores{};
-        for(auto& subgroup : execution_order){
-            std::vector<VkSubmitInfo2> submissions{};
-            for(auto& ind_sub : subgroup){
+        std::string_view name0 = execution_order[0][0]->name;
+        std::string_view name1 = execution_order[0][1]->name;
+        std::string_view name2 = execution_order[1][0]->name;
+        PerFlightDebugViewer temp0{ execution_order[0][0]->submitInfo };
+        PerFlightDebugViewer temp1{ execution_order[0][1]->submitInfo };
+        PerFlightDebugViewer temp2{ execution_order[1][0]->submitInfo };
+
+        //std::vector<VkSemaphoreSubmitInfo> signaledSemaphores{};
+        for (std::size_t i = 0; i < execution_order.size(); i++) {
+            std::vector<VkSubmitInfo2> subInfos{};
+            Queue* queue = nullptr;
+            for(auto& ind_sub : execution_order[i]) {
                 //populate sumibssion
-                //separate by queue if necessary
+                //potentially assert each queue is identical per submission group
+                queue = &ind_sub->queue;
+                ind_sub->Execute(frameIndex);
 
                 if(ind_sub->signal){
-                    submissions.push_back(ind_sub->submitInfo[frameIndex].ExpandWithoutSignal());
-                    std::copy(signaledSemaphores.end(), ind_sub->submitInfo[frameIndex].signalSemaphores.begin(), ind_sub->submitInfo[frameIndex].signalSemaphores.end());
+                    subInfos.push_back(ind_sub->submitInfo[frameIndex].Expand());
+                    //std::copy(signaledSemaphores.end(), ind_sub->submitInfo[frameIndex].signalSemaphores.begin(), ind_sub->submitInfo[frameIndex].signalSemaphores.end());
+                    //std::copy(previous.waitSemaphores.begin(), previous.waitSemaphores.end(), std::back_inserter(waitSemaphores));
                 }
                 else{
-                    submissions.push_back(ind_sub->submitInfo[frameIndex].Expand());
+                    subInfos.push_back(ind_sub->submitInfo[frameIndex].ExpandWithoutSignal());
                 }
             }
-            //queue.Submit2(submissions.size(), submissions.data(), VK_NULL_HANDLE);
+#if EWE_DEBUG_BOOL
+            assert(queue != nullptr);
+#endif
+            for (auto& subIn : subInfos) {
+                assert(subIn.commandBufferInfoCount > 0);
+            }
+
+#if 1 //TEMP INSANITY DEBUGGING
+            //back group wants inflightfence??
+            auto& sem0 = swapchain.acquire_semaphores[0];
+            auto& sem1 = swapchain.acquire_semaphores[1];
+            std::vector<VkSemaphoreSubmitInfo> waitInfos{};
+            for (uint32_t i = 0; i < subInfos[0].waitSemaphoreInfoCount; i++) {
+                waitInfos.push_back(subInfos[0].pWaitSemaphoreInfos[i]);
+            }
+#endif
+
+            if (i == (execution_order.size() - 1)) {
+                queue->Submit2(subInfos.size(), subInfos.data(), swapchain.inFlightFences[frameIndex]);
+            }
+            else {
+                queue->Submit2(subInfos.size(), subInfos.data(), VK_NULL_HANDLE);
+            }
         }
-        presentInfo.pWaitSemaphores = &swapchain.swap_image_package[swapchain.imageIndex].present_semaphore.vkSemaphore;
-    }
-
-    void RenderGraph::PresentBridge(CommandBuffer& cmdBuf) {
-        presentBridge.Execute(cmdBuf);
-    }
-
-    void RenderGraph::Present(){
-        vkQueuePresentKHR(swapchain.presentQueue, &presentInfo);
-        swapchain.imageIndex = (swapchain.imageIndex + 1) % swapchain.swap_image_package.size();
     }
 }

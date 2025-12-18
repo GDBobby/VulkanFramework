@@ -23,6 +23,7 @@ namespace EWE {
 			//Scheduler, //graph/scheduling - distinct? idk
 		}
 		EWE_UNREACHABLE;
+		return VK_PIPELINE_BIND_POINT_GRAPHICS;//error silencer
 	}
 
 
@@ -74,7 +75,7 @@ namespace EWE {
 								retBindings.writes.push_back(shaderBindings.writes[shader_index]);
 							}
 							else{
-								retBindings.writes[shader_index] = retBindings.writes[shader_index] | shaderBindings.writes[shader_index];
+								retBindings.writes[shader_index] = retBindings.writes[shader_index] || shaderBindings.writes[shader_index];
 							}
 						}
 						break;
@@ -212,7 +213,7 @@ namespace EWE {
 		assert(descriptorSets.sets.size() <= 1);
 
 		plCreateInfo.setLayoutCount = static_cast<uint32_t>(hasSets);
-		plCreateInfo.pSetLayouts = &dsl;
+		plCreateInfo.pSetLayouts = &logicalDevice.bindlessDescriptor.layout;
 
 		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
 	}
@@ -240,9 +241,9 @@ namespace EWE {
 	}
 #endif
 
-#if DEBUG_NAMING
+#if EWE_DEBUG_NAMING
 	void PipeLayout::SetDebugName(const char* name) {
-		DebugNaming::SetObjectName(vkLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name);
+		logicalDevice.SetObjectName(vkLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name);
 	}
 #endif
 }

@@ -43,7 +43,7 @@ namespace EWE {
 		//void BindPipelineWithVPScissor();
 
 		void Push(VkCommandBuffer cmdBuf, void* push, uint8_t pushIndex = 0);
-#if DEBUG_NAMING
+#if EWE_DEBUG_NAMING
 		void SetDebugName(const char* name);
 #endif
 	};

@@ -1,6 +1,15 @@
 #include "EightWinds/Backend/Fence.h"
 
 namespace EWE{
+
+    Fence::Fence(LogicalDevice& logicalDevice, VkFenceCreateInfo const& fenceCreateInfo)
+        : logicalDevice{ logicalDevice }
+    {
+        EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &vkFence);
+    }
+    Fence::~Fence() {
+        logicalDevice.garbageDisposal.Toss(vkFence, VK_OBJECT_TYPE_FENCE);
+    }
     
     bool Fence::CheckReturn(uint64_t time) {
         if (!submitted) {
@@ -22,9 +31,6 @@ namespace EWE{
         if (ret == VK_SUCCESS) {
             EWE_VK(vkResetFences, logicalDevice.device, 1, &vkFence);
             //its up to the calling function to unlock the mutex
-            for (auto& waitSem : waitSemaphores) {
-                waitSem->FinishWaiting();
-            }
             waitSemaphores.clear();
             //makes more sense to clear the submitted flag here, rather than on acquire
             submitted = false;

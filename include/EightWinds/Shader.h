@@ -41,9 +41,9 @@ namespace EWE {
                     case VK_SHADER_STAGE_MESH_BIT_EXT: value = Bits::Mesh; break;
                     case VK_SHADER_STAGE_FRAGMENT_BIT: value = Bits::Fragment; break;
                     case VK_SHADER_STAGE_COMPUTE_BIT: value = Bits::Compute; break;
+                    default: EWE_UNREACHABLE;value = Bits::Vertex;//error silencer
                 }
-                //have fun debugging this when it doesnt work.
-                //EWE_UNREACHABLE;
+                
             }
             constexpr operator VkShaderStageFlagBits() const {
                 switch (value) {
@@ -56,8 +56,7 @@ namespace EWE {
                     case Bits::Fragment:    return VK_SHADER_STAGE_FRAGMENT_BIT;
                     case Bits::Compute:		return VK_SHADER_STAGE_COMPUTE_BIT;
                 }
-                //have fun debugging this when it doesnt work
-                //EWE_UNREACHABLE;
+                EWE_UNREACHABLE;
             }
 
             constexpr bool operator==(Bits bits) const {
@@ -128,9 +127,9 @@ namespace EWE {
         };
         std::vector<ShaderStruct> structData{};
 
-		explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation);
-		Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data);
-		Shader(LogicalDevice& logicalDevice);
+		[[nodiscard]] explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation);
+        [[nodiscard]] explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data);
+        [[nodiscard]] explicit Shader(LogicalDevice& logicalDevice);
 		~Shader();
 
 		bool ValidateVertexInputAttributes(std::vector<VkVertexInputAttributeDescription> const& cpu_side) const;

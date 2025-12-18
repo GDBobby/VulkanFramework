@@ -25,4 +25,11 @@ namespace EWE {
     void Queue::Submit2(uint32_t submitCount, VkSubmitInfo2* submitInfos, VkFence fence) const{
         EWE_VK(vkQueueSubmit2, queue, submitCount, submitInfos, fence);
     }
+
+
+#if EWE_DEBUG_NAMING
+    void Queue::SetName(std::string_view name) {
+        logicalDevice.SetObjectName(queue, VK_OBJECT_TYPE_QUEUE, name);
+    }
+#endif
 }

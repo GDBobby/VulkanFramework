@@ -69,9 +69,9 @@ namespace EWE {
 		vkCmdPushConstants(cmdBuf, pipeLayout->vkLayout, range.stageFlags, range.offset, range.size, push);
 	}
 
-#if DEBUG_NAMING
+#if EWE_DEBUG_NAMING
 	void Pipeline::SetDebugName(const char* name) {
-		DebugNaming::SetObjectName(vkPipe, VK_OBJECT_TYPE_PIPELINE, name);
+		logicalDevice.SetObjectName(vkPipe, VK_OBJECT_TYPE_PIPELINE, name);
 		pipeLayout->SetDebugName(name);
 	}
 #endif

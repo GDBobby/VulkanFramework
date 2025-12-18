@@ -6,6 +6,7 @@
 #include "EightWinds/PerFlight.h"
 #include "EightWinds/Backend/Semaphore.h"
 #include "EightWinds/Backend/Fence.h"
+#include "EightWinds/Image.h"
 
 #include "EightWinds/Command/CommandBuffer.h"
 
@@ -17,7 +18,7 @@
 //starting with a straight copy of karnage's swapchain
 
 /*
-* small notes on the changes from karnage's implemenation
+* small notes on the changes from karnage's implementation
 
 i dont think i want the swapchain to own the command buffer
 it would imply that anything that uses that command buffer would be using the swapchain,
@@ -27,12 +28,6 @@ thats fine in smaller apps, but if i do pre-compute or post-compute, or whatever
 
 namespace EWE{
 
-    struct SwapImage {
-        VkImage image;
-        Semaphore present_semaphore;
-        Semaphore acquire_semaphore;
-    };
-
     struct Swapchain{
         LogicalDevice& logicalDevice;
         Window& window;
@@ -40,39 +35,39 @@ namespace EWE{
 
         [[nodiscard]] explicit Swapchain(LogicalDevice& logicalDevice, Window& window, Queue& presentQueue) noexcept;
 
-        std::vector<VkPresentModeKHR> presentModes{};
+        std::vector<VkPresentModeKHR> available_presentModes;
+        std::vector<VkSurfaceFormatKHR> available_surface_formats;
+        VkSurfaceFormatKHR surface_format;
         VkSwapchainCreateInfoKHR swapCreateInfo;//i dont nromaly keep these, ill have to come back to this
         VkSwapchainKHR activeSwapchain;
 
         uint32_t imageIndex = 0;
-        std::vector<SwapImage> swap_image_package;
+        std::vector<Image> images;
+
+        //im not sure what the magic number is
+        PerFlight<Semaphore> acquire_semaphores;
+        std::vector<Semaphore> present_semaphores;
+
+        inline Semaphore& GetAcquireSemaphore(uint8_t frameIndex) {
+            return acquire_semaphores[frameIndex];
+        }
+        inline Semaphore& GetCurrentPresentSemaphore() {
+            return present_semaphores[imageIndex];
+        }
 
         VkImageLayout currentLayout;
         
         //WSI (windows system interface or something) doesnt work with timeline semaphore
         PerFlight<Fence> inFlightFences;
 
+        bool wantsToRecreate = false;
+
         bool CreateSwapchain();
         bool RecreateSwapchain();
         bool RecreateSwapchain(VkPresentModeKHR desiredPresentMode);
         bool AcquireNextImage(uint8_t frameIndex);
-        SwapImage& GetImagePackage() {
-            return swap_image_package[imageIndex];
-        }
 
-        //im assuming htis gets absorbed by the render graph
-        /*
-        VkResult Present(std::span<Semaphore> semaphores) const{
-            VkPresentInfoKHR presentInfo{};
-            presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-            presentInfo.pNext = nullptr;
-            presentInfo.waitSemaphoreCount = static_cast<uint32_t>(semaphores.size());
-            presentInfo.swapchainCount = 1;
-            
-            std::unique_lock<std::mutex> queueLock{VK::Object->queueMutex[Queue::graphics]};
-            return vkQueuePresentKHR(VK::Object->queues[Queue::present], &presentInfo);
-        }
-        */
+        [[nodiscard]] Image& GetCurrentImage();
 
         [[nodiscard]] VkPresentModeKHR GetOptimalPresentMode() const;
         

@@ -28,20 +28,14 @@ namespace EWE{
         Semaphore(Semaphore&& moveSrc) noexcept;
         Semaphore& operator=(Semaphore&& moveSrc) noexcept;
         ~Semaphore();
-
-        bool waiting{ false };
-        bool signaling{ false };
-
-        bool Idle() const {
-            return !(waiting || signaling);
-        }
-        void BeginSignaling();
-        void FinishWaiting();
-        void BeginWaiting();
         
 #if EWE_DEBUG_NAMING
         std::string debugName;
         void SetName(std::string_view name);
 #endif
+
+        operator VkSemaphore() const {
+            return vkSemaphore;
+        }
     };
 }

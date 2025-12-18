@@ -3,6 +3,9 @@
 //i dont need vulkan, i just need max_frames_in_flight on a wider scale than here
 #include "EightWinds/VulkanHeader.h"
 
+#include <array>
+
+
 #include <cstdint>
 #include <concepts>
 #include <memory>
@@ -36,19 +39,26 @@ namespace EWE{
         Resource& operator[](size_t i) noexcept { return resources()[i]; }
         Resource const& operator[](size_t i) const noexcept { return resources()[i]; }
 
+        template <typename... Rs>
+        requires (sizeof...(Rs) == max_frames_in_flight && (std::constructible_from<Resource, Rs&&> && ...))
+        [[nodiscard]] explicit PerFlight(Rs&&... rs) {
+            size_t i = 0;
+            (std::construct_at(&resources()[i++], std::forward<Rs>(rs)), ...);
+        }
         //this function constructs every resource in the buffer with the same arguments
         template <typename... Args>
         requires std::constructible_from<Resource, Args...>
-        PerFlight(Args&&... args) {
+        [[nodiscard]] PerFlight(Args&&... args) {
             for (size_t i = 0; i < max_frames_in_flight; ++i) {
                 std::construct_at(&resources()[i], std::forward<Args>(args)...);
             }
         }
 
+
         //this constructs Resource with a reference of type Other, per object in the buffer
         template<typename Other>
         requires(std::is_constructible_v<Resource, Other&>)
-        explicit PerFlight(PerFlight<Other>& other) {
+        [[nodiscard]] explicit PerFlight(PerFlight<Other>& other) {
 
             for (std::size_t i = 0; i < max_frames_in_flight; ++i) {
                 std::construct_at(&resources()[i], other.resources()[i]);
@@ -90,22 +100,4 @@ namespace EWE{
         const Resource* cbegin() const noexcept { return resources(); }
         const Resource* cend()   const noexcept { return resources() + max_frames_in_flight; }
     };
-
-    /*
-    idk why im not doing this, maybe construction time?
-
-    template<typename Resource>
-    struct PerFlight {
-        static constexpr size_t max_frames_in_flight = 3;
-        Resource resources[max_frames_in_flight];
-
-        template<typename... Args>
-        explicit PerFlight(Args&&... args)
-            : resources{ std::forward<Args>(args)... }
-        {
-        }
-    };
-
-
-    */
 }

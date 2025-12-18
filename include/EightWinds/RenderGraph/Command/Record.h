@@ -68,10 +68,9 @@ namespace EWE{
         //i dont know if i need the Pipeline data for compile time optimization
         DeferredReference<PipelineParamPack>* BindPipeline();
 
-        //i think i want a descirptor set that contains the details for buffers and images contained
-        //im not sure how to do this yet
-        //with some further inspection, i want to exclusively use device buffer address
-        //DeferredReference<VkDescriptorSet>* BindDescriptor();
+        //void return only works if i FORCE the user to use device buffer addresses and bindless textures from a push constant
+        //and only the global bindless descriptor set is allowed (found in logicalDevice)
+        void BindDescriptor();
 
         //i need some expanded or manual method to keep track of when buffers are written to in shaders
 
@@ -87,9 +86,6 @@ namespace EWE{
         DeferredReference<VertexDrawParamPack>* Draw();
         DeferredReference<IndexDrawParamPack>* DrawIndexed();
         DeferredReference<DispatchParamPack>* Dispatch();
-
-        DeferredReference<BlitParamPack>* Blit();
-        DeferredReference<VkPresentInfoKHR*>* Present();
 
         DeferredReference<ViewportScissorParamPack>* SetViewportScissor();
         DeferredReference<ViewportScissorWithCountParamPack>* SetViewportScissorWithCount();

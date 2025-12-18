@@ -36,18 +36,21 @@ namespace EWE{
             semaphoreCreateInfo.flags = 0;
             EWE_VK(vkCreateSemaphore, logicalDevice.device, &semaphoreCreateInfo, nullptr, &vkSemaphore);
         }
+        if (0x40000000004 == reinterpret_cast<std::size_t>(vkSemaphore)) {
+            printf("pause\n");
+        }
     }
     Semaphore::~Semaphore() {
         if (vkSemaphore != VK_NULL_HANDLE) {
-            vkDestroySemaphore(logicalDevice.device, vkSemaphore, nullptr);
+            logicalDevice.garbageDisposal.Toss(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE);
         }
     }
     
     Semaphore::Semaphore(Semaphore&& moveSrc) noexcept
         : logicalDevice{moveSrc.logicalDevice},
-        vkSemaphore{moveSrc.vkSemaphore},
-        waiting{moveSrc.waiting},
-        signaling{moveSrc.signaling}
+        vkSemaphore{moveSrc.vkSemaphore}//,
+        //waiting{moveSrc.waiting},
+        //signaling{moveSrc.signaling}
     {
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
     }
@@ -56,8 +59,8 @@ namespace EWE{
         vkSemaphore = moveSrc.vkSemaphore;
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
 
-        waiting = moveSrc.waiting;
-        signaling = moveSrc.signaling;
+        //waiting = moveSrc.waiting;
+        //signaling = moveSrc.signaling;
         return *this;
     }
     

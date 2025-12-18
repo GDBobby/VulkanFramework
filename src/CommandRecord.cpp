@@ -174,6 +174,10 @@ namespace EWE{
         BindCommand(records, CommandInstruction::Type::EndRender);
     }
 
+    void CommandRecord::BindDescriptor() {
+        BindCommand(records, CommandInstruction::Type::BindDescriptor);
+    }
+
     DeferredReference<LabelParamPack>* CommandRecord::BeginLabel() noexcept{
         BindCommand(records, CommandInstruction::Type::BeginLabel);
         auto deferred_ref = new DeferredReference<LabelParamPack>(GetCurrentOffset(records.back()));
@@ -199,19 +203,6 @@ namespace EWE{
     DeferredReference<DispatchParamPack>* CommandRecord::Dispatch(){
         BindCommand(records, CommandInstruction::Type::Dispatch);
         auto deferred_ref = new DeferredReference<DispatchParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
-        return deferred_ref;
-    }
-
-    DeferredReference<BlitParamPack>* CommandRecord::Blit() {
-        BindCommand(records, CommandInstruction::Type::Blit);
-        auto deferred_ref = new DeferredReference<BlitParamPack>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
-        return deferred_ref;
-    }
-    DeferredReference<VkPresentInfoKHR*>* CommandRecord::Present() {
-        BindCommand(records, CommandInstruction::Type::Present);
-        auto deferred_ref = new DeferredReference<VkPresentInfoKHR*>(GetCurrentOffset(records.back()));
         deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
