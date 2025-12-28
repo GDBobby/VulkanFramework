@@ -14,33 +14,7 @@
 //equivalent a renderpass subpass?
 
 namespace EWE{
-    struct Buffer;
-    struct Image;
     struct CommandRecord;
-    
-    template<typename T>
-    struct Resource{};
-
-    struct BufferUsageData {
-        VkPipelineStageFlags2 stage;
-        VkAccessFlags2 accessMask;
-    };
-    struct ImageUsageData{
-        VkPipelineStageFlags2 stage;
-        VkAccessFlags2 accessMask;
-        VkImageLayout layout;
-    };
-
-    template<>
-    struct Resource<Buffer> {
-        Buffer* buffer;
-        BufferUsageData usage;
-    };
-    template<>
-    struct Resource<Image> {
-        Image* image;
-        ImageUsageData usage;
-    };
 
     //ok i think i remove the trackers. they just add an intermediary overhead. i can do a direct comparison on the param pool
     struct PushTracker{

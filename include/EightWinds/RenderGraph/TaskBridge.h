@@ -3,11 +3,80 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/RenderGraph/GPUTask.h"
 
-
+#include "EightWinds/PerFlight.h"
 
 namespace EWE{
+    struct Buffer;
+    struct Image;
+    
+    template<typename T>
+    struct Resource{};
 
-    struct ResourceCollectionSmall;//hide this maybe
+    template<typename T>
+    struct UsageData;
+
+    template<>
+    struct UsageData<Buffer> {
+        VkPipelineStageFlags2 stage;
+        VkAccessFlags2 accessMask;
+    };
+    template<>
+    struct UsageData<Image>{
+        VkPipelineStageFlags2 stage;
+        VkAccessFlags2 accessMask;
+        VkImageLayout layout;
+    };
+
+    template<>
+    struct Resource<Buffer> {
+        Buffer* buffer;
+        UsageData<Buffer> usage;
+    };
+    template<>
+    struct Resource<Image> {
+        Image* image;
+        UsageData<Image> usage;
+    };
+
+    struct TaskResourceUsage{
+        Queue& queue;
+
+        std::vector<Resource<Image>> images;
+        std::vector<Resource<Buffer>> buffers;
+        
+        std::vector<PerFlight<Resource<Image>>> images_perFlight;
+        std::vector<PerFlight<Resource<Buffer>>> buffers_perFlight;
+
+        template<typename Res>
+        void AddResource(Res& res, UsageData<Res> const& usage){
+            if constexpr (std::is_same_v<Res, Buffer>){
+                buffers.push_back(Resource<Buffer>{.buffer = &res, .usage = usage});
+            }
+            else if constexpr (std::is_same_v<Res, Image>){
+                images.push_back(Resource<Image>{.image = &res, .usage = usage});
+            }
+            else if constexpr (std::is_same_v<Res, PerFlight<Buffer>>){
+                buffers_perFlight.push_back(
+                    PerFlight<Resource<Buffer>>{
+                        Resource<Buffer>{.buffer = &res[0], .usage = usage},
+                        Resource<Buffer>{.buffer = &res[1], .usage = usage}
+                    }
+                );
+            }
+            else if constexpr (std::is_same_v<Res, PerFlight<Image>>){
+                images_perFlight.push_back(
+                    PerFlight<Resource<Image>>{
+                        Resource<Image>{.image = &res[0], .usage = usage},
+                        Resource<Image>{.image = &res[1], .usage = usage}
+                    }
+                );
+            }
+            else{
+                static_assert(false && "invalid resource type");
+            }
+        }
+
+    };
 
     template<typename T>
     struct BarrierResource {
@@ -23,59 +92,65 @@ namespace EWE{
         VkImageLayout finalLayout;
     };
 
-    struct TaskBridge{
-        LogicalDevice& logicalDevice;
+    template<typename Res>
+    struct ResourceTransition{
+        Resource<Res>* lhs;
+        Resource<Res>* rhs;
+    };
+
+    //first time in use of frame
+    template<typename Res>
+    struct ResourceAcquisition{
+        Resource<Res>* rhs;
+
+        //pass in the same queue if it's not a queue transfer
+        //this will also compare the layout 
+        void Acquire(Queue& lhsQueue); 
+    };
+
+    struct TaskPrefix{
         Queue& queue;
-        GPUTask* lhs;
-        GPUTask* rhs; //rhs depends on lhs. the alternatives are to name this predecesor and successor which i dont like much
-        std::string name; //"{lhs->name} -> {rhs->name}"
 
-        [[nodiscard]] explicit TaskBridge(GPUTask& lhs, GPUTask& rhs) noexcept;
-        [[nodiscard]] explicit TaskBridge(GPUTask& rhs) noexcept;
+        std::vector<ResourceTransition<Image>> imageTransitions;
+        std::vector<ResourceAcquisition<Image>> imageAcquisitions;
 
-        //explicit barriers
-        [[nodiscard]] explicit TaskBridge(
-            LogicalDevice& logicalDevice,
-            std::vector<Resource<Buffer>*>& rhsBuffs,
-            std::vector<Resource<Image>*>& rhsImgs,
-            Queue& rhQueue
-        );
+        std::vector<PerFlight<ResourceTransition<Image>>> imageTransitions_perFlight;
+        std::vector<PerFlight<ResourceAcquisition<Image>>> imageAcquisitions_perFlight;
 
-        [[nodiscard]] explicit TaskBridge(
-            LogicalDevice& logicalDevice, Queue& queue,
-            std::vector<Resource<Buffer>*>& lhsBuffs, std::vector<Resource<Buffer>*>& rhsBuffs,
-            std::vector<Resource<Image>*>& lhsImgs, std::vector<Resource<Image>*>& rhsImgs,
-            Queue& lhQueue, Queue& rhQueue
-        );
+        std::vector<ResourceTransition<Buffer>> bufferTransitions;
+        std::vector<ResourceAcquisition<Buffer>> bufferAcquisitions;
 
-        TaskBridge(TaskBridge const& copySrc) = delete;
-        TaskBridge(TaskBridge&& moveSrc) noexcept;
+        std::vector<PerFlight<ResourceTransition<Buffer>>> bufferTransitions_perFlight;
+        std::vector<PerFlight<ResourceAcquisition<Buffer>>> bufferAcquisitions_perFlight;
 
-        TaskBridge& operator=(TaskBridge const& copySrc) = delete;
-        TaskBridge& operator=(TaskBridge&& copySrc) = delete;
+        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
+    };
 
-        std::vector<VkBufferMemoryBarrier2> bufferBarriers{};
-        std::vector<VkImageMemoryBarrier2> imageBarriers{};
-        std::vector<BarrierResource<Buffer>> bufferBarrierResources{};
-        std::vector<BarrierResource<Image>> imageBarrierResources{};
+    //these suffixes are ONLY for queue transfers
+    //if it's not a queue transfer, it ONLY needs to be put in the prefix
+    //the suffix transition NEEDS to PERFECTLY MATCH the partner prefix transition
+    struct TaskSuffix{
+        Queue& queue;
 
-		VkDependencyInfo dependencyInfo{};
+        std::vector<ResourceTransition<Image>> imageTransitions;
+        std::vector<ResourceTransition<Buffer>> bufferTransitions;
+        
+        std::vector<PerFlight<ResourceTransition<Image>>> imageTransitions_perFlight;
+        std::vector<PerFlight<ResourceTransition<Buffer>>> bufferTransitions_perFlight;
 
-        void RecreateBarriers();
+        void Execute(CommandBufer& cmdBuf, uint8_t frameIndex);
+    };
 
-        void Execute(CommandBuffer& cmdBuf);
+    /*
+    so we can go prefix -> prefix
+    OR we can go suffix -> prefix
+    but we can't go prefix->suffix
+    */
 
-        //this is only considering images right now
-        void GenerateRightHandBarriers(
-            std::vector<Resource<Buffer>*>& rhsBuffs,
-            std::vector<Resource<Image>*>& rhsImgs,
-            Queue& rhQueue
-        );
-
-        void GenerateBridgeBarriers(
-            std::vector<Resource<Buffer>*>& lhsBuffs, std::vector<Resource<Buffer>*>& rhsBuffs,
-            std::vector<Resource<Image>*>& lhsImgs, std::vector<Resource<Image>*>& rhsImgs,
-            Queue& lhQueue, Queue& rhQueue
-        );
+    //do I do it like this or do I put them directly in the task?
+    //the main thign is that sometimes an affix will be requested without a task
+    struct TaskAffixes{
+        TaskPrefix prefix;
+        TaskSuffix suffix;
     };
 }
