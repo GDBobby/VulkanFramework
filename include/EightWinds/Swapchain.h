@@ -3,16 +3,20 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Window.h"
-#include "EightWinds/PerFlight.h"
+#include "EightWinds/Data/PerFlight.h"
 #include "EightWinds/Backend/Semaphore.h"
 #include "EightWinds/Backend/Fence.h"
 #include "EightWinds/Image.h"
 
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandBuffer.h"
 
 #include <array>
 #include <span>
 #include <vector>
+
+//https://docs.vulkan.org/refpages/latest/refpages/source/VK_NV_low_latency2.html
+//https://docs.vulkan.org/refpages/latest/refpages/source/vkLatencySleepNV.html
+
 
 //https://github.com/karnkaul/LittleEngineVk/blob/levk-23/lib/levk/src/render_device.cpp
 //starting with a straight copy of karnage's swapchain
@@ -44,7 +48,6 @@ namespace EWE{
         uint32_t imageIndex = 0;
         std::vector<Image> images;
 
-        //im not sure what the magic number is
         PerFlight<Semaphore> acquire_semaphores;
         std::vector<Semaphore> present_semaphores;
 

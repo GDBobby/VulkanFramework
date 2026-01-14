@@ -2,6 +2,7 @@
 
 namespace EWE{
 
+    /*
     void TaskSubmissionWorkload::GenerateBridges(){
         
         bridges.clear();
@@ -12,22 +13,14 @@ namespace EWE{
             bridges.emplace_back(*ordered_gpuTasks[i - 1], *ordered_gpuTasks[i]);
         }
     }
+    */
 
-    bool TaskSubmissionWorkload::Execute(CommandBuffer& cmdBuf) {
-        TaskBridge lhBridge{*ordered_gpuTasks.front()};
-        lhBridge.Execute(cmdBuf);
-
-        if(ordered_gpuTasks.size() > 1){
-            for(std::size_t i = 0; i < (ordered_gpuTasks.size() - 1); i++) {
-                ordered_gpuTasks[i]->Execute(cmdBuf);
-                TaskBridge tempBridge{*ordered_gpuTasks[i], *ordered_gpuTasks[i]};
-                tempBridge.RecreateBarriers();
-                tempBridge.Execute(cmdBuf);
-            }
-
-            ordered_gpuTasks.back()->Execute(cmdBuf);
+    bool TaskSubmissionWorkload::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
+        for (auto& package : packaged_tasks) {
+            package(cmdBuf, frameIndex);
         }
-        return ordered_gpuTasks.size() > 0;
+        
+        return packaged_tasks.size() > 0;
     }
 
     SubmissionTask::SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, bool signals, std::string_view name)

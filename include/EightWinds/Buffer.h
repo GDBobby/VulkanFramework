@@ -20,6 +20,8 @@ namespace EWE{
         LogicalDevice& logicalDevice;
         Queue* owningQueue;
 
+        [[nodiscard]] Buffer(LogicalDevice& device); //does not get initialized on the GPU
+        
         [[nodiscard]] explicit Buffer(
             LogicalDevice& logicalDevice, 
             VkDeviceSize instanceSize, uint32_t instanceCount, 
@@ -29,18 +31,18 @@ namespace EWE{
         ~Buffer();
 
         VkDescriptorBufferInfo buffer_info;
+        VkBufferUsageFlags usageFlags;
 
-
-        VkDeviceSize bufferSize;
         VkDeviceSize alignmentSize;
+        VkDeviceSize bufferSize;
         //write the 
         VkDeviceSize minOffsetAlignment = 1;
 
-        VkBufferUsageFlags usageFlags;
 
         VmaMemoryUsage memoryUsage;
         VmaAllocation vmaAlloc{};
 
+        bool existsOnTheGPU;
         void* mapped = nullptr;
         void* GetMapped();
 
@@ -56,6 +58,15 @@ namespace EWE{
         VkDescriptorBufferInfo* DescriptorInfo(VkDeviceSize size, VkDeviceSize offset);
 
         [[nodiscard]] static VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits); 
+
+        void Init(VkDeviceSize instanceSize, uint32_t instanceCount,
+                  VmaAllocationCreateInfo const& vmaAllocCreateInfo,
+                  VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+        );
+    private:
+        void CreateTheVkBuffer(VmaAllocationCreateInfo const& vmaAllocCreateInfo);
+        void DestroyTheVkBuffer();
+    public:
 
 #if EWE_DEBUG_NAMING
         std::string debugName;

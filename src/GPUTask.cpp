@@ -1,22 +1,13 @@
 #include "EightWinds/RenderGraph/GPUTask.h"
 
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandBuffer.h"
 #include "EightWinds/RenderGraph/Command/Record.h"
+
+#include "EightWinds/RenderGraph/Resources.h"
 
 #include <cassert>
 
 namespace EWE{
-
-    PushTracker::PushTracker(GlobalPushConstant* ptr) noexcept
-    : pushAddress{ptr}
-    {
-        for(uint8_t i = 0; i < GlobalPushConstant::buffer_count; i++){
-            buffers[i].buffer = nullptr;
-        }
-        for(uint8_t i = 0; i < GlobalPushConstant::texture_count; i++){
-            textures[i].image = nullptr;
-        }
-    }
 
     GPUTask::GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord, std::string_view name) 
         : logicalDevice{logicalDevice}, 
@@ -29,19 +20,16 @@ namespace EWE{
         const uint64_t full_data_size = cmdRecord.records.back().paramOffset + CommandInstruction::GetParamSize(cmdRecord.records.back().type);
 
         commandExecutor.instructions = cmdRecord.records;
-        commandExecutor.paramPool.resize(full_data_size);
-        const std::size_t param_pool_address = reinterpret_cast<std::size_t>(commandExecutor.paramPool.data());
-        cmdRecord.FixDeferred(param_pool_address);
-        for(auto& push_off : cmdRecord.push_offsets){
-            std::size_t temp_addr = reinterpret_cast<std::size_t>(push_off);
+        PerFlight<std::size_t> param_pool_addresses{};
+        for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+            commandExecutor.paramPool[i].resize(full_data_size);
+            param_pool_addresses[i] = reinterpret_cast<std::size_t>(commandExecutor.paramPool[i].data());
+        }
+        cmdRecord.FixDeferred(param_pool_addresses);
+        //for(auto& push_off : cmdRecord.push_offsets){
+            //std::size_t temp_addr = reinterpret_cast<std::size_t>(push_off);
             //pushTrackers.emplace_back(reinterpret_cast<GlobalPushConstant*>(temp_addr + param_pool_address));
-        }
-        uint64_t blitIndex = 0;
-        for (auto const& inst : cmdRecord.records) {
-            if (inst.type == CommandInstruction::Type::BeginRender) {
-                renderTracker = new RenderTracker();
-            }
-        }
+        //}
 
         //all validations will be here
         //theres some non-validation stuff here, like collapsing empty branches
@@ -58,20 +46,17 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
         printf("need to destruct deferred pointers from CommandRecord, currently memory leak\n");
 #endif
-        if (renderTracker!= nullptr) {
-            delete renderTracker;
-        }
     }
-    void GPUTask::Execute(CommandBuffer& cmdBuf) {
+    void GPUTask::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
         assert(cmdBuf.commandPool.queue == queue);
-        commandExecutor.Execute(cmdBuf);
+        commandExecutor.Execute(cmdBuf, frameIndex);
     }
 
     int GPUTask::AddImagePin(Image* image, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask, VkImageLayout layout){
         explicitImageState.push_back(
             new Resource<Image>{
                 .image = image, 
-                .usage = ImageUsageData{
+                .usage = UsageData<Image>{
                     .stage = stage,
                     .accessMask = accessMask,
                     .layout = layout
@@ -81,7 +66,7 @@ namespace EWE{
 
         return explicitImageState.size() - 1;
     }
-    int GPUTask::AddImagePin(Image* image, ImageUsageData const& usage){
+    int GPUTask::AddImagePin(Image* image, UsageData<Image> const& usage){
         explicitImageState.push_back(
             new Resource<Image>{
                 .image = image, 
@@ -90,7 +75,7 @@ namespace EWE{
         );
         return explicitImageState.size() - 1;
     }
-    int GPUTask::AddBufferPin(Buffer* buffer, BufferUsageData const& usage){
+    int GPUTask::AddBufferPin(Buffer* buffer, UsageData<Buffer> const& usage){
         explicitBufferState.push_back(
             new Resource<Buffer>{
                 .buffer = buffer, 
@@ -103,7 +88,7 @@ namespace EWE{
         explicitBufferState.push_back(
             new Resource<Buffer>{
                 .buffer = buffer, 
-                .usage = BufferUsageData{
+                .usage = UsageData<Buffer>{
                     .stage = stage,
                     .accessMask = accessMask
                 }
@@ -119,6 +104,7 @@ namespace EWE{
         explicitBufferState[pin]->buffer = &buffer;
     }
 
+    /*
     void GPUTask::SetRenderInfo() {
         assert(renderTracker != nullptr);
         renderTracker->compact.Expand(&renderTracker->vk_data);
@@ -138,5 +124,38 @@ namespace EWE{
     }
     void GPUTask::UpdateFrameIndex(uint8_t frameIndex) {
         renderTracker->compact.Update(&renderTracker->vk_data, frameIndex);
+    }
+    */
+
+
+    void GPUTask::GenerateWorkload()
+    {
+        const bool hasPrefix = !prefix.Empty();
+        const bool hasSuffix = !suffix.Empty();
+
+        if (hasPrefix && hasSuffix) {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                prefix.Execute(cmdBuf, frameIndex);
+                Execute(cmdBuf, frameIndex);
+                suffix.Execute(cmdBuf, frameIndex);
+            };
+        }
+        else if (hasPrefix) {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                prefix.Execute(cmdBuf, frameIndex);
+                Execute(cmdBuf, frameIndex);
+            };
+        }
+        else if (hasSuffix) {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                Execute(cmdBuf, frameIndex);
+                suffix.Execute(cmdBuf, frameIndex);
+            };
+        }
+        else {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                Execute(cmdBuf, frameIndex);
+                };
+        }
     }
 } //namespace EWE

@@ -12,72 +12,6 @@
 
 namespace EWE {
 
-	void PipelinePassConfig::SetDefaults() noexcept {
-		viewportCount = 1;
-		scissorCount = 1;
-		rastSamples = VK_SAMPLE_COUNT_1_BIT;
-		enable_sampleShading = false;
-		minSampleShading = 1.f;
-		alphaToCoverageEnable = VK_FALSE;
-		alphaToOneEnable = VK_FALSE;
-
-		dynamicState = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-
-		depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencilInfo.pNext = nullptr;
-		depthStencilInfo.flags = 0;
-		depthStencilInfo.depthTestEnable = VK_TRUE;
-		depthStencilInfo.depthWriteEnable = VK_TRUE;
-		depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
-
-		//need to play with all of this
-		depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-		depthStencilInfo.stencilTestEnable = VK_FALSE;
-		depthStencilInfo.front = {};  // Optional
-		depthStencilInfo.back = {};   // Optional
-		depthStencilInfo.minDepthBounds = 0.0f;  // Optional
-		depthStencilInfo.maxDepthBounds = 1.0f;  // Optional
-
-		//no valid defaults, this needs real data
-		pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-		pipelineRenderingCreateInfo.pNext = nullptr;
-		colorAttachmentFormats.clear();
-		colorAttachmentFormats.push_back(VK_FORMAT_R8G8B8A8_UNORM);
-		pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentFormats.size());
-		pipelineRenderingCreateInfo.pColorAttachmentFormats = colorAttachmentFormats.data();
-		pipelineRenderingCreateInfo.depthAttachmentFormat = VK_FORMAT_D16_UNORM;
-		pipelineRenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-	}
-
-	void PipelineObjectConfig::SetDefaults() noexcept {
-		depthClamp = false;
-		rasterizerDiscard = false;
-		polygonMode = VK_POLYGON_MODE_FILL;
-		cullMode = VK_CULL_MODE_NONE;
-		frontFace = VK_FRONT_FACE_CLOCKWISE;
-		depthBias.enable = VK_FALSE;
-		depthBias.constantFactor = 0.f;
-		depthBias.clamp = 0.f;
-		depthBias.slopeFactor = 0.f;
-
-		topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-		primitiveRestart = VK_FALSE;
-
-		blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		blendAttachment.blendEnable = VK_FALSE;
-		blendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-		blendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-		blendAttachment.colorBlendOp = VK_BLEND_OP_ADD;              // Optional
-		blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-		blendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-		blendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;              // Optional
-
-		blendConstants[0] = 0.f;
-		blendConstants[1] = 0.f;
-		blendConstants[2] = 0.f;
-		blendConstants[3] = 0.f;
-	}
-
 #if PIPELINE_HOT_RELOAD
 	void imgui_vkbool(std::string_view name, VkBool32& vkBool) {
 		bool loe = vkBool;
@@ -313,14 +247,14 @@ namespace EWE {
     */
 
 	void GraphicsPipeline::CreateVkPipeline(
-        PipelinePassConfig const& passConfig, 
-        PipelineObjectConfig const& objectConfig,
+		TaskRasterConfig const& taskConfig,
+		ObjectRasterConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState
     ) noexcept {
 
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-		pipelineCreateInfo.pNext = &passConfig.pipelineRenderingCreateInfo;
+		pipelineCreateInfo.pNext = &taskConfig.pipelineRenderingCreateInfo;
         pipelineCreateInfo.layout = pipeLayout->vkLayout;
         pipelineCreateInfo.renderPass = VK_NULL_HANDLE; //DNI
         pipelineCreateInfo.subpass = 0; //sub render pass, DNI
@@ -400,16 +334,16 @@ namespace EWE {
         msCreateInfo.pNext = nullptr;
 
         msCreateInfo.flags = 0;
-        msCreateInfo.rasterizationSamples = passConfig.rastSamples;
-        msCreateInfo.sampleShadingEnable = passConfig.enable_sampleShading;
-        msCreateInfo.minSampleShading = passConfig.minSampleShading;
+        msCreateInfo.rasterizationSamples = taskConfig.rastSamples;
+        msCreateInfo.sampleShadingEnable = taskConfig.enable_sampleShading;
+        msCreateInfo.minSampleShading = taskConfig.minSampleShading;
         msCreateInfo.pSampleMask = nullptr;
-        msCreateInfo.alphaToCoverageEnable = passConfig.alphaToCoverageEnable;
-        msCreateInfo.alphaToOneEnable = passConfig.alphaToOneEnable;
+        msCreateInfo.alphaToCoverageEnable = taskConfig.alphaToCoverageEnable;
+        msCreateInfo.alphaToOneEnable = taskConfig.alphaToOneEnable;
         pipelineCreateInfo.pMultisampleState = &msCreateInfo;
 
         //const  VkPipelineDepthStencilStateCreateInfo *  pDepthStencilState;
-        pipelineCreateInfo.pDepthStencilState = &passConfig.depthStencilInfo;
+        pipelineCreateInfo.pDepthStencilState = &taskConfig.depthStencilInfo;
         //const  VkPipelineColorBlendStateCreateInfo *  pColorBlendState;
         VkPipelineColorBlendStateCreateInfo blendCreateInfo{};
         blendCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -422,7 +356,7 @@ namespace EWE {
         blendCreateInfo.logicOpEnable = false;//maybe, idk
         blendCreateInfo.logicOp = VK_LOGIC_OP_MAX_ENUM;
 
-		blendCreateInfo.attachmentCount = passConfig.colorAttachmentFormats.size();
+		blendCreateInfo.attachmentCount = taskConfig.colorAttachmentFormats.size();
 		blendCreateInfo.pAttachments = &objectConfig.blendAttachment;
         memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);
 
@@ -434,8 +368,8 @@ namespace EWE {
         dynamicStateCreateInfo.flags = 0;
         dynamicStateCreateInfo.pNext = nullptr;
 
-        dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(passConfig.dynamicState.size());
-        dynamicStateCreateInfo.pDynamicStates = passConfig.dynamicState.data();
+        dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(taskConfig.dynamicState.size());
+        dynamicStateCreateInfo.pDynamicStates = taskConfig.dynamicState.data();
 
         pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
@@ -454,8 +388,8 @@ namespace EWE {
         LogicalDevice& logicalDevice, 
         PipelineID pipeID, 
         PipeLayout* layout, //the layout SHOULD cover the input assembly
-        PipelinePassConfig const& passConfig, 
-        PipelineObjectConfig const& objectConfig,
+		TaskRasterConfig const& passConfig,
+		ObjectRasterConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState//deduced maybe?
     ) noexcept
      : Pipeline{ logicalDevice, pipeID, layout }
@@ -470,8 +404,8 @@ namespace EWE {
         LogicalDevice& logicalDevice, 
         PipelineID pipeID, 
         PipeLayout* layout, //the layout SHOULD cover the input assembly
-        PipelinePassConfig const& passConfig, 
-        PipelineObjectConfig const& objectConfig,
+		TaskRasterConfig const& passConfig,
+        ObjectRasterConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
         std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
     ) noexcept

@@ -2,51 +2,11 @@
 
 #include "EightWinds/VulkanHeader.h"
 
+#include "EightWinds/RenderGraph/Command/ParamPacks.h"
+
 #include <cstdint>
 
 namespace EWE{
-    struct PipelineParamPack{
-        VkPipeline pipe;
-        VkPipelineLayout layout;
-        VkPipelineBindPoint bindPoint;
-    };
-    struct VertexDrawParamPack{
-        uint32_t vertexCount;
-        uint32_t instanceCount;
-        uint32_t firstVertex;
-        uint32_t firstInstance;
-    };
-    struct IndexDrawParamPack{
-        uint32_t indexCount;
-        uint32_t instanceCount;
-        uint32_t firstIndex;
-        uint32_t vertexOffset;
-        uint32_t firstInstance;
-    };
-    struct LabelParamPack{
-        const char* name;
-        float red;
-        float green;
-        float blue;
-    };
-    struct DispatchParamPack{
-        uint32_t x;
-        uint32_t y;
-        uint32_t z;
-    };
-    struct ViewportScissorParamPack{
-        VkViewport viewport;
-        VkRect2D scissor;
-    };
-    struct ViewportScissorWithCountParamPack{
-        static constexpr uint32_t ArbitraryViewportCountLimit = 10;
-        static constexpr uint32_t ArbitraryScissorCountLimit = 10;
-        //lets set an arbitrary limit to 10
-        VkViewport viewports[ArbitraryViewportCountLimit];
-        VkRect2D scissors[ArbitraryScissorCountLimit];
-        uint32_t currentViewportCount = 0;
-        uint32_t currentScissorCount = 0;
-    };
 
     struct CommandInstruction{
         enum class Type : uint8_t {
@@ -63,6 +23,16 @@ namespace EWE{
             Draw,
             DrawIndexed,
             Dispatch,
+            DrawMeshTasks,
+            
+            DrawIndirect,
+            DrawIndexedIndirect,
+            DispatchIndirect,
+            DrawMeshTasksIndirect,
+            
+            DrawIndirectCount,
+            DrawIndexedIndirectCount,
+            DrawMeshTasksIndirectCount,
 
             //present is handled explicitly
             //Present,

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/RenderGraph/Command/Instruction.h"
 
 #include "EightWinds/RenderGraph/GPUTask.h"
+
+#include "EightWinds/RenderGraph/Command/Instruction.h"
+#include "EightWinds/RenderGraph/Command/DeferredReference.h"
 
 #include <array>
 #include <string>
@@ -14,34 +16,9 @@ namespace EWE{
     struct Pipeline;
     struct PipelineBarrier;
     struct CommandBuffer;
-    struct GlobalPushConstant;
+    struct GlobalPushConstant_Raw;
     struct RenderInfo;
     struct LogicalDevice;
-
-    template<typename T>
-    struct DeferredReference{
-    private:
-        T* data;
-        bool adjusted = false;
-    public:
-
-        DeferredReference() : data{ reinterpret_cast<T*>(UINT64_MAX) } {}
-        DeferredReference(void* offset)
-        : data{reinterpret_cast<T*>(offset)}
-        {}
-
-        T& GetRef() {
-#if EWE_DEBUG_BOOL
-            assert(adjusted);
-#endif
-            return *data;
-        }
-    };
-
-    struct DeferredReferenceHelper {
-        std::size_t data;
-        bool adjusted;
-    };
 
     //if i want compile time optimization, i need to change how the data handles are done
     //i dont think DeferredReference is goign to play nicely with constexpr, and
@@ -63,7 +40,7 @@ namespace EWE{
 
         std::vector<CommandInstruction> records{};
         std::vector<DeferredReferenceHelper*> deferred_references{};
-        std::vector<GlobalPushConstant*> push_offsets{};
+        //std::vector<GlobalPushConstant_Raw*> push_offsets{};
 
         //i dont know if i need the Pipeline data for compile time optimization
         DeferredReference<PipelineParamPack>* BindPipeline();
@@ -74,7 +51,7 @@ namespace EWE{
 
         //i need some expanded or manual method to keep track of when buffers are written to in shaders
 
-        DeferredReference<GlobalPushConstant>* Push();
+        GlobalPushConstant_Abstract Push();
 
         //this shouldnt be used directly
         void BeginRender();
@@ -86,11 +63,19 @@ namespace EWE{
         DeferredReference<VertexDrawParamPack>* Draw();
         DeferredReference<IndexDrawParamPack>* DrawIndexed();
         DeferredReference<DispatchParamPack>* Dispatch();
+        DeferredReference<DrawMeshTasksParamPack>* DrawMeshTasks();
+        
+        //DeferredReference<DrawIndirectParamPack>* DrawIndirect();
+        //DeferredReference<DrawMeshTasksIndirectParamPack>* DrawMeshIndirect();
+        //DeferredReference<DispatchIndirectParamPack>* DispatchIndirect();
+        
+        //DeferredReference<DrawIndirectCountParamPack>* DrawIndirectCount();
+        //DeferredReference<DrawMeshTasksIndirectCountParamPack>* DrawMeshIndirect();
 
         DeferredReference<ViewportScissorParamPack>* SetViewportScissor();
         DeferredReference<ViewportScissorWithCountParamPack>* SetViewportScissorWithCount();
 
-        void FixDeferred(const std::size_t pool_address) noexcept;
+        void FixDeferred(const PerFlight<std::size_t> pool_address) noexcept;
 #if EWE_DEBUG_BOOL
         bool ValidateInstructions() const;
 #endif

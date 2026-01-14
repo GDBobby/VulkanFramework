@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EightWinds/PerFlight.h"
+#include "EightWinds/Data/PerFlight.h"
 
 #include <array>
 

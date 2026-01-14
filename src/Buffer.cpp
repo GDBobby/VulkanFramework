@@ -15,29 +15,66 @@ namespace EWE{
         }
     }
 
-    Buffer::Buffer(LogicalDevice& logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags)
-        : logicalDevice{ logicalDevice },
-        usageFlags{ usageFlags } 
-        {
-            
-        alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits);
-        bufferSize = alignmentSize * instanceCount;
-        
-        VkBufferCreateInfo bufferInfo{};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.pNext = nullptr;
-        bufferInfo.size = bufferSize;
-        bufferInfo.usage = usageFlags;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    void Buffer::DestroyTheVkBuffer() {
+        assert(false && "not supported yet");
+    }
+
+    void Buffer::CreateTheVkBuffer(VmaAllocationCreateInfo const& vmaAllocCreateInfo) {
+        VkBufferCreateInfo bufferCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .pNext = nullptr,
+            .size = bufferSize,
+            .usage = usageFlags,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE
+        };
         assert(bufferSize > 0);
 
-        EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
-        
-        VkBufferDeviceAddressInfo bdaInfo{};
-        bdaInfo.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-        bdaInfo.pNext = nullptr;
-        bdaInfo.buffer = buffer_info.buffer;
+        EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
+
+        VkBufferDeviceAddressInfo bdaInfo{
+            .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+            .pNext = nullptr,
+            .buffer = buffer_info.buffer
+        };
         deviceAddress = vkGetBufferDeviceAddress(logicalDevice.device, &bdaInfo);
+    }
+
+    void Buffer::Init(
+        VkDeviceSize instanceSize, uint32_t instanceCount,
+        VmaAllocationCreateInfo const& vmaAllocCreateInfo,
+        VkBufferUsageFlags usageFlags
+    ) {
+        if (existsOnTheGPU) {
+            //deinit on the gpu
+            DestroyTheVkBuffer();
+        }
+        this->usageFlags = usageFlags;
+        alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits);
+        bufferSize = alignmentSize * instanceCount;
+        existsOnTheGPU = true;
+
+        CreateTheVkBuffer(vmaAllocCreateInfo);
+    }
+    
+    Buffer::Buffer(LogicalDevice& logicalDevice)
+        : logicalDevice{ logicalDevice },
+        usageFlags{0},
+        alignmentSize{0},
+        bufferSize{0},
+        existsOnTheGPU{false}
+    {
+        buffer_info.buffer = VK_NULL_HANDLE;
+        vmaAlloc = VK_NULL_HANDLE;
+    }
+
+    Buffer::Buffer(LogicalDevice& logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags)
+        : logicalDevice{ logicalDevice },
+        usageFlags{ usageFlags },
+        alignmentSize{ CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits) },
+        bufferSize{ alignmentSize * instanceCount },
+        existsOnTheGPU{ true }
+    {
+        CreateTheVkBuffer(vmaAllocCreateInfo);
     }
 
     void* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {

@@ -208,11 +208,11 @@ namespace EWE {
         struct FeatureManager {
 
             template <typename T>
-            static void SetFeature_RequestedToAvailable(T& lhs, T const& rhs) noexcept {
+            static void SetFeature_RequestedToAvailable(T& requested, T const& available) noexcept {
                 // skip sType and pNext (the first two pointers)
                 constexpr std::size_t header_size = sizeof(VkBaseInStructure);
-                const std::size_t lhs_addr = reinterpret_cast<std::size_t>(&lhs) + header_size;
-                const std::size_t rhs_addr = reinterpret_cast<std::size_t>(&rhs) + header_size;
+                const std::size_t lhs_addr = reinterpret_cast<std::size_t>(&requested) + header_size;
+                const std::size_t rhs_addr = reinterpret_cast<std::size_t>(&available) + header_size;
                 VkBool32* lhs_bool = reinterpret_cast<VkBool32*>(lhs_addr);
                 VkBool32 const* rhs_bool = reinterpret_cast<VkBool32 const*>(rhs_addr);
 

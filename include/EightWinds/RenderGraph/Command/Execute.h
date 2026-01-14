@@ -4,6 +4,7 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/RenderGraph/Command/Instruction.h"
 
+#include "EightWinds/Data/PerFlight.h"
 
 #include <vector>
 
@@ -26,11 +27,11 @@ namespace EWE{
         CommandExecutor& operator=(CommandExecutor&& moveSrc) = delete;
 
         //i can use templates to make the parampool type aware
-        std::vector<uint8_t> paramPool;
+        PerFlight<std::vector<uint8_t>> paramPool;
         //std::vector<uint8_t> barrierPool;
         std::vector<CommandInstruction> instructions{};
 
-        void Execute(CommandBuffer& cmdBuf) const noexcept;
+        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept;
         void Debug() const noexcept;
     };
 }

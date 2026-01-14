@@ -4,10 +4,12 @@
 
 #include "EightWinds/Backend/RenderInfo.h"
 #include "EightWinds/RenderGraph/Command/Execute.h"
+#include "EightWinds/RenderGraph/Resources.h"
 
-#include "EightWinds/Command/CommandPool.h"
+#include "EightWinds/CommandPool.h"
 
 #include "EightWinds/GlobalPushConstant.h"
+
 
 #include <span>
 
@@ -18,22 +20,14 @@ namespace EWE{
 
     //ok i think i remove the trackers. they just add an intermediary overhead. i can do a direct comparison on the param pool
     struct PushTracker{
-        GlobalPushConstant* pushAddress;
-        Resource<Buffer> buffers[GlobalPushConstant::buffer_count];
-        Resource<Image> textures[GlobalPushConstant::texture_count];
+        GlobalPushConstant_Raw* pushAddress;
+        Resource<Buffer> buffers[GlobalPushConstant_Raw::buffer_count];
+        Resource<Image> textures[GlobalPushConstant_Raw::texture_count];
 
-        [[nodiscard]] PushTracker(GlobalPushConstant* ptr) noexcept;
+        [[nodiscard]] PushTracker(GlobalPushConstant_Raw* ptr) noexcept;
 
         //to simplify usage a bit i could use function pointers here, and let the players mess 
         //with pushtracker directly, instead of going thru GPUTask
-    };
-    struct BlitTracker {
-        Resource<Image> srcImage;
-        Resource<Image> dstImage;
-    };
-    struct RenderTracker {
-        RenderInfo vk_data;
-        RenderInfo2 compact;
     };
     
 
@@ -57,13 +51,20 @@ namespace EWE{
         GPUTask& operator=(GPUTask&&) = delete;
 
         //i need another system wrapping GPUTask to handle how the command buffers are dealt with
-        void Execute(CommandBuffer& cmdBuf);
+        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
+
+        std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
+
+
+        TaskPrefix prefix{logicalDevice, queue};
+        TaskSuffix suffix{logicalDevice, queue};
+        void GenerateWorkload();
 
         //optional, a compute wouldnt use htis
-        RenderTracker* renderTracker = nullptr;
+        //RenderTracker* renderTracker = nullptr;
 
-        void SetRenderInfo(); 
-        void UpdateFrameIndex(uint8_t frameIndex);
+        //void SetRenderInfo(); 
+        //void UpdateFrameIndex(uint8_t frameIndex);
         
         //these are debug helpers, remove for the moment
         //std::vector<PushTracker> pushTrackers{};
@@ -71,8 +72,8 @@ namespace EWE{
 
         //add validation here to make sure each resource is unique
         int AddImagePin(Image* image, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask, VkImageLayout layout);
-        int AddImagePin(Image* image, ImageUsageData const& usage);
-        int AddBufferPin(Buffer* buffer, BufferUsageData const& usage);
+        int AddImagePin(Image* image, UsageData<Image> const& usage);
+        int AddBufferPin(Buffer* buffer, UsageData<Buffer> const& usage);
         int AddBufferPin(Buffer* buffer, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask);
 
         void SetResource(int pin, Image& image);

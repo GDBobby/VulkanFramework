@@ -40,10 +40,9 @@ namespace EWE {
 
 		std::vector<VkPipelineShaderStageCreateInfo> GetStageData() const;
 		std::vector<VkPipelineShaderStageCreateInfo> GetStageData(std::vector<KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>> const& specInfo) const;
+		
 		//this doesnt need to be explicitly called after construction
 		void CreateVkPipeLayout(VkDescriptorSetLayout dsl);
-
-
 
 #if PIPELINE_HOT_RELOAD
 		void HotReload();

@@ -1,6 +1,6 @@
 #include "EightWinds/RenderGraph/Command/Execute.h"
 
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandBuffer.h"
 
 #include "EightWinds/Pipeline/PipelineBase.h"
 
@@ -51,9 +51,21 @@ namespace EWE{
         void Push(ExecContext& ctx);
         void BeginRender(ExecContext& ctx);
         void EndRender(ExecContext& ctx);
+        
         void Draw(ExecContext& ctx);
         void DrawIndexed(ExecContext& ctx);
         void Dispatch(ExecContext& ctx);
+        void DrawMeshTasks(ExecContext& ctx);
+        
+        void DrawIndirect(ExecContext& ctx);
+        void DrawIndexedIndirect(ExecContext& ctx);
+        void DispatchIndirect(ExecContext& ctx);
+        void DrawMeshTasksIndirect(ExecContext& ctx);
+        
+        void DrawIndirectCount(ExecContext& ctx);
+        void DrawIndexedIndirectCount(ExecContext& ctx);
+        void DrawMeshTasksIndirectCount(ExecContext& ctx);
+        
         //void Barrier(ExecContext& ctx);
         void ViewportScissor(ExecContext& ctx);
         void ViewportScissorWithCount(ExecContext& ctx);
@@ -75,9 +87,21 @@ namespace EWE{
         &Exec::Push, 
         &Exec::BeginRender, 
         &Exec::EndRender,
+        
         &Exec::Draw,
         &Exec::DrawIndexed,
         &Exec::Dispatch,
+        &Exec::DrawMeshTasks,
+        
+        &Exec::DrawIndirect,
+        &Exec::DrawIndexedIndirect,
+        &Exec::DispatchIndirect,
+        &Exec::DrawMeshTasksIndirect,
+        
+        &Exec::DrawIndirectCount,
+        &Exec::DrawIndexedIndirectCount,
+        &Exec::DrawMeshTasksIndirectCount,
+        
         //&Exec::Barrier, 
         &Exec::ViewportScissor,
         &Exec::ViewportScissorWithCount,
@@ -141,11 +165,11 @@ namespace EWE{
         }
 
         void Push(ExecContext& ctx){
-            auto* push = reinterpret_cast<GlobalPushConstant const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            auto* push = reinterpret_cast<GlobalPushConstant_Raw const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
 #ifdef EXECUTOR_DEBUGGING
             ctx.Print();
 #endif
-            vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant), push);
+            vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant_Raw), push);
         }
 
 
@@ -166,13 +190,63 @@ namespace EWE{
         }
 
         void Dispatch(ExecContext& ctx){
-            auto* data = reinterpret_cast<uint32_t const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            auto* data = reinterpret_cast<DispatchParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
 #ifdef EXECUTOR_DEBUGGING
             ctx.Print();
 #endif
             //maybe add an if statement here, check if all groups are above 0?
-            vkCmdDispatch(ctx.cmdBuf, data[0], data[1], data[2]);
-            
+            vkCmdDispatch(ctx.cmdBuf, data->x, data->y, data->z);
+        }
+        
+        void DrawMeshTasks(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            auto* data = reinterpret_cast<DrawMeshTasksParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            vkCmdDrawMeshTasksEXT(ctx.cmdBuf, data->x, data->y, data->z);
+        }
+        
+        void DrawIndirect(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            assert(false && "not supported yet");
+        }
+        void DrawIndexedIndirect(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            assert(false && "not supported yet");
+        }
+        void DispatchIndirect(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            assert(false && "not supported yet");
+        }
+        void DrawMeshTasksIndirect(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            assert(false && "not supported yet");
+        }
+        void DrawIndirectCount(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            assert(false && "not supported yet");
+        }
+        void DrawIndexedIndirectCount(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            assert(false && "not supported yet");
+        }
+        void DrawMeshTasksIndirectCount(ExecContext& ctx){
+#ifdef EXECUTOR_DEBUGGING
+            ctx.Print();
+#endif
+            assert(false && "not supported yet");
         }
 
         //void Barrier(ExecContext& ctx){
@@ -277,12 +351,12 @@ namespace EWE{
 
     } //namespace Exec
 
-    void CommandExecutor::Execute(CommandBuffer& cmdBuf) const noexcept {
+    void CommandExecutor::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept {
         Exec::ExecContext ctx{
             .device = logicalDevice, 
             .instructions = instructions, 
             .cmdBuf = cmdBuf, 
-            .paramPool = paramPool,
+            .paramPool = paramPool[frameIndex],
             //.barrierPool = barrierPool,
             .boundPipeline{.pipe = VK_NULL_HANDLE, .layout = VK_NULL_HANDLE,.bindPoint = VK_PIPELINE_BIND_POINT_MAX_ENUM }
         };

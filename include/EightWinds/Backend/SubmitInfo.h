@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandBuffer.h"
 
 namespace EWE{
     struct CommandBuffer;

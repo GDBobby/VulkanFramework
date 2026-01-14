@@ -13,9 +13,9 @@ namespace EWE{
         Sampler* sampler; //optional?
         ImageView& view;
         VkDescriptorImageInfo imageInfo;
-        //im going to guarantee that this index is valid for the lifespan of this object
 
         DescriptorType type;
+        //im going to guarantee that this index is valid for the lifespan of this object
         DescriptorIndex index;
 
         [[nodiscard]] explicit DescriptorImageInfo(LogicalDevice& logicalDevice, ImageView& view, DescriptorType type, VkImageLayout explicitLayout);

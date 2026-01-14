@@ -1,6 +1,6 @@
 #include "EightWinds/Backend/SubmitInfo.h"
 
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandBuffer.h"
 
 #include <iterator>
 

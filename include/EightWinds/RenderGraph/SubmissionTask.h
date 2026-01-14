@@ -2,10 +2,10 @@
 
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Queue.h"
-#include "EightWinds/Command/CommandPool.h"
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandPool.h"
+#include "EightWinds/CommandBuffer.h"
 
-#include "EightWinds/PerFlight.h"
+#include "EightWinds/Data/PerFlight.h"
 
 #include "EightWinds/RenderGraph/GPUTask.h"
 #include "EightWinds/RenderGraph/TaskBridge.h"
@@ -17,19 +17,25 @@
 
 namespace EWE{
     struct TaskSubmissionWorkload {
-
         //i dont know how to handle the bridges yet
         //for the moment im gonna automatically generate them
         std::vector<GPUTask*> ordered_gpuTasks;
-        std::vector<TaskBridge> bridges;
 
-        void GenerateBridges();
+        //could explicitly build this instead of using tasks
+        std::vector<std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)>> packaged_tasks; 
+        
+        //void GenerateBridges(); //bridges are no logner generated
 
-        bool Execute(CommandBuffer& cmdBuf);
+        bool Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
 
         constexpr auto PackIntoTask() {
-            return [this](CommandBuffer& cmdBuf) {
-                return Execute(cmdBuf);
+            for (auto& package : ordered_gpuTasks) {
+                package->GenerateWorkload();
+                packaged_tasks.push_back(package->workload);
+            }
+
+            return [this](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                return this->Execute(cmdBuf, frameIndex);
             };
         }
     };

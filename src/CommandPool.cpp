@@ -1,6 +1,6 @@
-#include "EightWinds/Command/CommandPool.h"
+#include "EightWinds/CommandPool.h"
 
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandBuffer.h"
 
 #include <array>
 

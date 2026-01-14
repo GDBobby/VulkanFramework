@@ -6,6 +6,8 @@
 
 #include "EightWinds/Data/KeyValueContainer.h"
 
+#include "EightWinds/RenderGraph/Command/ParamPacks.h"
+
 #include <unordered_map>
 #include <memory>
 
@@ -25,6 +27,8 @@ namespace EWE {
 		Pipeline(Pipeline&&) = delete;
 		Pipeline& operator=(Pipeline const&) = delete;
 		Pipeline& operator=(Pipeline&&) = delete;
+		
+		void WriteToParamPack(PipelineParamPack& paramPack) const;
 
 #if PIPELINE_HOT_RELOAD
 		uint16_t framesSinceSwap = 0;

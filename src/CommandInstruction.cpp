@@ -9,12 +9,24 @@ namespace EWE{
         switch (type) {
             case Type::BindPipeline: return sizeof(PipelineParamPack);
             case Type::BindDescriptor: return sizeof(VkDescriptorSet);
-            case Type::PushConstant: return sizeof(GlobalPushConstant);
+            case Type::PushConstant: return sizeof(GlobalPushConstant_Raw);
             case Type::BeginRender: return sizeof(VkRenderingInfo*);
             case Type::EndRender: return 0;
+            
             case Type::Draw: return sizeof(VertexDrawParamPack);
             case Type::DrawIndexed: return sizeof(IndexDrawParamPack);
             case Type::Dispatch: return sizeof(DispatchParamPack);
+            case Type::DrawMeshTasks: return sizeof(DrawMeshTasksParamPack);
+            //raytracing here
+            
+            case Type::DrawIndirect: return sizeof(DrawIndirectParamPack);
+            case Type::DrawIndexedIndirect: return sizeof(DrawIndirectParamPack);
+            case Type::DispatchIndirect: return sizeof(DispatchIndirectParamPack);
+            case Type::DrawMeshTasksIndirect: return sizeof(DrawIndirectParamPack);
+            
+            case Type::DrawIndirectCount: return sizeof(DrawIndirectCountParamPack);
+            case Type::DrawIndexedIndirectCount: return sizeof(DrawIndirectCountParamPack);
+            case Type::DrawMeshTasksIndirectCount: return sizeof(DrawIndirectCountParamPack);
             //case Type::PipelineBarrier: return 0;
             case Type::DS_ViewportScissor: return sizeof(ViewportScissorParamPack);
             case Type::DS_ViewportScissorWithCount: return sizeof(ViewportScissorWithCountParamPack);

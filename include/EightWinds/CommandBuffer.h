@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/Command/CommandPool.h"
+#include "EightWinds/CommandPool.h"
 
 namespace EWE{
 

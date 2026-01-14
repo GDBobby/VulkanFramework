@@ -144,7 +144,7 @@ namespace EWE{
 #endif
         }
 
-        present_semaphores.clear();
+        present_semaphores.clear(); //these aren't getting destructed
         present_semaphores.reserve(swapImageCount);
         for (uint8_t i = 0; i < swapImageCount; i++){
             present_semaphores.push_back(Semaphore{ logicalDevice, false });

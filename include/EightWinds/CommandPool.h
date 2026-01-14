@@ -4,7 +4,7 @@
 
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Queue.h"
-#include "EightWinds/PerFlight.h"
+#include "EightWinds/Data/PerFlight.h"
 
 namespace EWE{
     struct CommandBuffer;

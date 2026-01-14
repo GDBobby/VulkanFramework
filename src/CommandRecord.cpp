@@ -15,9 +15,8 @@ namespace EWE{
     //this is not an address, it's an offset into the vector.
     //once compile is called, all of the pointers inside the deferred references will be
     //redirected to point at the real data, within the params pool
-    void* GetCurrentOffset(CommandInstruction const& backInstruction) {
-        std::size_t offset = backInstruction.paramOffset;
-        return reinterpret_cast<void*>(offset);
+    std::size_t GetCurrentOffset(CommandInstruction const& backInstruction) {
+        return backInstruction.paramOffset;
     }
 
 #if EWE_DEBUG_BOOL
@@ -65,12 +64,21 @@ namespace EWE{
                     pipeline_bound = true;
                     break;
 
-                case CommandInstruction::Type::Draw:
-                case CommandInstruction::Type::DrawIndexed:
                 case CommandInstruction::Type::BindDescriptor:
                 case CommandInstruction::Type::PushConstant:
                 case CommandInstruction::Type::DS_ViewportScissor:
                 case CommandInstruction::Type::DS_ViewportScissorWithCount:
+                case CommandInstruction::Type::Draw:
+                case CommandInstruction::Type::DrawIndexed:
+                case CommandInstruction::Type::Dispatch:
+                case CommandInstruction::Type::DrawMeshTasks:
+                case CommandInstruction::Type::DrawIndirect:
+                case CommandInstruction::Type::DrawIndexedIndirect:
+                case CommandInstruction::Type::DispatchIndirect:
+                case CommandInstruction::Type::DrawMeshTasksIndirect:
+                case CommandInstruction::Type::DrawIndirectCount:
+                case CommandInstruction::Type::DrawIndexedIndirectCount:
+                case CommandInstruction::Type::DrawMeshTasksIndirectCount:
 
                     assert(pipeline_bound);
                     break;
@@ -156,13 +164,14 @@ namespace EWE{
     //the plan is to only have the single descriptor set, for all bindless textures
     //void BindDescriptor(VkDescriptorSet set);
     
-    DeferredReference<GlobalPushConstant>* CommandRecord::Push(){
+    GlobalPushConstant_Abstract CommandRecord::Push() {
         //assert a pipeline is binded
         BindCommand(records, CommandInstruction::Type::PushConstant);
-        push_offsets.push_back(reinterpret_cast<GlobalPushConstant*>(GetCurrentOffset(records.back())));
-        auto deferred_ref = new DeferredReference<GlobalPushConstant>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
-        return deferred_ref;
+       // push_offsets.push_back(reinterpret_cast<GlobalPushConstant_Raw*>(GetCurrentOffset(records.back())));
+        GlobalPushConstant_Abstract ret{};
+        ret.deferred_push = new DeferredReference<GlobalPushConstant_Raw>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(ret.deferred_push));
+        return ret;
     }
 
     void CommandRecord::BeginRender(){
@@ -206,13 +215,19 @@ namespace EWE{
         deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
         return deferred_ref;
     }
+    DeferredReference<DrawMeshTasksParamPack>* CommandRecord::DrawMeshTasks() {
+        BindCommand(records, CommandInstruction::Type::DrawMeshTasks);
+        auto deferred_ref = new DeferredReference<DrawMeshTasksParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
 
-
-
-    void CommandRecord::FixDeferred(const std::size_t pool_address) noexcept {
+    void CommandRecord::FixDeferred(const PerFlight<std::size_t> pool_address) noexcept {
 
         for (auto& def_ref : deferred_references) {
-            def_ref->data += pool_address;
+            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                def_ref->data[i] += pool_address[i];
+            }
             def_ref->adjusted = true;
             //we convert the initial offset to a real pointer into the paramPool
         }

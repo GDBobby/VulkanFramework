@@ -5,9 +5,13 @@
 #include "EightWinds/Buffer.h"
 #include "EightWinds/Image.h"
 
+#include "EightWinds/DescriptorImageInfo.h"
+
+#include "EightWinds/RenderGraph/Command/DeferredReference.h"
+
 namespace EWE{
 
-    struct GlobalPushConstant{
+    struct GlobalPushConstant_Raw{
         static constexpr uint8_t buffer_count = 8;
         //for DBAs (device buffer address), 0 is invalid, and means the buffer isn't used
         VkDeviceAddress buffer_addr[buffer_count];
@@ -30,5 +34,15 @@ namespace EWE{
         void Bind(uint8_t slot, Buffer const& buffer) noexcept;
 
         void Reset() noexcept;
+    };
+    
+    struct GlobalPushConstant_Abstract{
+        Buffer* buffers[GlobalPushConstant_Raw::buffer_count];
+        DescriptorImageInfo* textures[GlobalPushConstant_Raw::texture_count];
+        
+        DeferredReference<GlobalPushConstant_Raw>* deferred_push = nullptr;
+        //updates the Execute::ParamPool push constant
+        void UpdateBuffer(uint8_t frameIndex);
+        void UpdateBuffer();
     };
 }

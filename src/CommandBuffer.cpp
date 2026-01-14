@@ -1,4 +1,4 @@
-#include "EightWinds/Command/CommandBuffer.h"
+#include "EightWinds/CommandBuffer.h"
 
 #include <cassert>
 

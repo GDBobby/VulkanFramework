@@ -12,6 +12,13 @@
 #include <unordered_map>
 
 namespace EWE {
+	
+	
+	void Pipeline::WriteToParamPack(PipelineParamPack& paramPack) const{
+		paramPack.pipe = vkPipe;
+		paramPack.layout = pipeLayout->vkLayout;
+		paramPack.bindPoint = pipeLayout->bindPoint;
+	}
 
 
 //#if PIPELINE_HOT_RELOAD

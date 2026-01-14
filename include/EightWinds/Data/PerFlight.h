@@ -29,15 +29,15 @@ namespace EWE{
     struct PerFlight{
         alignas(Resource) unsigned char buffer[max_frames_in_flight * sizeof(Resource)];
 
-        Resource* resources() noexcept {
+        constexpr Resource* resources() noexcept {
             return reinterpret_cast<Resource*>(buffer);
         }
-        Resource const* resources() const noexcept {
+        constexpr Resource const* resources() const noexcept {
             return reinterpret_cast<const Resource*>(buffer);
         }
             
-        Resource& operator[](size_t i) noexcept { return resources()[i]; }
-        Resource const& operator[](size_t i) const noexcept { return resources()[i]; }
+        constexpr Resource& operator[](size_t i) noexcept { return resources()[i]; }
+        constexpr Resource const& operator[](size_t i) const noexcept { return resources()[i]; }
 
         template <typename... Rs>
         requires (sizeof...(Rs) == max_frames_in_flight && (std::constructible_from<Resource, Rs&&> && ...))
