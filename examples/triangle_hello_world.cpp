@@ -432,33 +432,36 @@ int main() {
             current_barrier_index++;
         }
 
-        VkDependencyInfo transition_dependency{};
-        transition_dependency.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-        transition_dependency.pNext = nullptr;
-        transition_dependency.dependencyFlags = 0;
-        transition_dependency.bufferMemoryBarrierCount = 0;
-        transition_dependency.memoryBarrierCount = 0;
-        transition_dependency.imageMemoryBarrierCount = static_cast<uint32_t>(transition_barriers.size());
-        transition_dependency.pImageMemoryBarriers = transition_barriers.data();
+        VkDependencyInfo transition_dependency{
+            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+            .pNext = nullptr;
+            .dependencyFlags = 0;
+            .bufferMemoryBarrierCount = 0;
+            .memoryBarrierCount = 0;
+            .imageMemoryBarrierCount = static_cast<uint32_t>(transition_barriers.size());
+            .pImageMemoryBarriers = transition_barriers.data();
+        };
 
         vkCmdPipelineBarrier2(transition_stc, &transition_dependency);
 
         transition_stc.End();
 
-        VkFenceCreateInfo fenceCreateInfo{};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = nullptr;
-        fenceCreateInfo.flags = 0;
+        VkFenceCreateInfo fenceCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            .pNext = nullptr;
+            .flags = 0;
+        };
         EWE::Fence stc_fence{ logicalDevice, fenceCreateInfo };
 
-        VkSubmitInfo stc_submit_info{};
-        stc_submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        stc_submit_info.pNext = nullptr;
-        stc_submit_info.commandBufferCount = 1;
-        stc_submit_info.pCommandBuffers = &temp_stc_cmdBuf;
-        stc_submit_info.signalSemaphoreCount = 0;
-        stc_submit_info.waitSemaphoreCount = 0;
-        stc_submit_info.pWaitDstStageMask = nullptr;
+        VkSubmitInfo stc_submit_info{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+            .pNext = nullptr;
+            .commandBufferCount = 1;
+            .pCommandBuffers = &temp_stc_cmdBuf;
+            .signalSemaphoreCount = 0;
+            .waitSemaphoreCount = 0;
+            .pWaitDstStageMask = nullptr;
+        };
 
         renderQueue->Submit(1, &stc_submit_info, stc_fence);
 

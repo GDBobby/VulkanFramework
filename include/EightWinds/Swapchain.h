@@ -3,12 +3,17 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Window.h"
-#include "EightWinds/Data/PerFlight.h"
 #include "EightWinds/Backend/Semaphore.h"
 #include "EightWinds/Backend/Fence.h"
 #include "EightWinds/Image.h"
 
 #include "EightWinds/CommandBuffer.h"
+
+#include "EightWinds/Data/RuntimeArray.h"
+#include "EightWinds/Data/PerFlight.h"
+
+#include "EightWinds/Data/HeapBlock.h"
+
 
 #include <array>
 #include <span>
@@ -46,7 +51,7 @@ namespace EWE{
         VkSwapchainKHR activeSwapchain;
 
         uint32_t imageIndex = 0;
-        std::vector<Image> images;
+        HeapBlock<Image> images;
 
         PerFlight<Semaphore> acquire_semaphores;
         std::vector<Semaphore> present_semaphores;

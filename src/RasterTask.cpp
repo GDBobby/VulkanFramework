@@ -3,6 +3,13 @@
 #include "EightWinds/Pipeline/Graphics.h"
 
 namespace EWE{
+	
+	
+    void RenderTracker::SetRenderInfo() {
+        renderTracker.compact.Expand(&deferred_render_info.GetRef());
+    }
+	
+	
 	DeferredPipelineExecute::DeferredPipelineExecute(
 		LogicalDevice& logicalDevice, 
 		TaskRasterConfig& taskConfig,
@@ -43,6 +50,8 @@ namespace EWE{
 	{
 		
 	}
+	
+	
 		
 	void RasterTask::Record_Vertices(CommandRecord& record) {
 		std::unordered_set<ObjectRasterData>& unique_configs_vertex{};

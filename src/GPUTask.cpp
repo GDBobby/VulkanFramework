@@ -52,58 +52,6 @@ namespace EWE{
         commandExecutor.Execute(cmdBuf, frameIndex);
     }
 
-    int GPUTask::AddImagePin(Image* image, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask, VkImageLayout layout){
-        explicitImageState.push_back(
-            new Resource<Image>{
-                .image = image, 
-                .usage = UsageData<Image>{
-                    .stage = stage,
-                    .accessMask = accessMask,
-                    .layout = layout
-                }
-            }
-        );
-
-        return explicitImageState.size() - 1;
-    }
-    int GPUTask::AddImagePin(Image* image, UsageData<Image> const& usage){
-        explicitImageState.push_back(
-            new Resource<Image>{
-                .image = image, 
-                .usage = usage
-            }
-        );
-        return explicitImageState.size() - 1;
-    }
-    int GPUTask::AddBufferPin(Buffer* buffer, UsageData<Buffer> const& usage){
-        explicitBufferState.push_back(
-            new Resource<Buffer>{
-                .buffer = buffer, 
-                .usage = usage
-            }
-        );
-        return explicitBufferState.size() - 1;
-    }
-    int GPUTask::AddBufferPin(Buffer* buffer, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask) {
-        explicitBufferState.push_back(
-            new Resource<Buffer>{
-                .buffer = buffer, 
-                .usage = UsageData<Buffer>{
-                    .stage = stage,
-                    .accessMask = accessMask
-                }
-            }
-        );
-        return explicitBufferState.size() - 1;
-    }
-
-    void GPUTask::SetResource(int pin, Image& image) {
-        explicitImageState[pin]->image = &image;
-    }
-    void GPUTask::SetResource(int pin, Buffer& buffer) {
-        explicitBufferState[pin]->buffer = &buffer;
-    }
-
     /*
     void GPUTask::SetRenderInfo() {
         assert(renderTracker != nullptr);

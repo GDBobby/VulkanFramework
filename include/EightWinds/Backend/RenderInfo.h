@@ -4,7 +4,7 @@
 
 //#include "EightWinds/ImageView.h"
 
-#include <array>
+#include <EightWinds/Data/PerFlight.h>
 
 
 namespace EWE{
@@ -25,12 +25,15 @@ namespace EWE{
         }
     };
 
-    //temporarily just going to pretend like resolve doesnt exist
-    struct SimplifiedAttachment {
-        std::array<ImageView*, max_frames_in_flight>   imageView; //i dont know if i want ownership or view here
+    struct AttachmentInfo {
         VkAttachmentLoadOp      loadOp;
         VkAttachmentStoreOp     storeOp;
         VkClearValue            clearValue;
+    };
+    //temporarily just going to pretend like resolve doesnt exist
+    struct SimplifiedAttachment {
+        PerFlight<ImageView*> imageView{ nullptr }; //i dont know if i want ownership or view here
+        AttachmentInfo info;
     };
     struct RenderInfo2 {
         VkRenderingFlags flags;

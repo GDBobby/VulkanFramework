@@ -16,6 +16,11 @@ namespace EWE{
         LogicalDevice& logicalDevice;
         VkImage image;
         [[nodiscard]] explicit Image(LogicalDevice& logicalDevice) noexcept;
+        
+        Image(Image const& copySrc) = delete;
+        Image& operator=(Image const& copySrc) = delete;
+        //moving is ok, but i need to make sure it's not double destructed
+        
         operator VkImage() const {
             return image;
         }

@@ -8,8 +8,6 @@ namespace EWE{
 
     struct Queue;
     
-    template<typename T>
-    struct Resource{};
 
     template<typename T>
     struct UsageData;
@@ -26,15 +24,10 @@ namespace EWE{
         VkImageLayout layout;
     };
 
-    template<>
-    struct Resource<Buffer> {
-        Buffer* buffer;
-        UsageData<Buffer> usage;
-    };
-    template<>
-    struct Resource<Image> {
-        Image* image;
-        UsageData<Image> usage;
+    template<typename T>
+    struct Resource {
+        T* resource;
+        UsageData<T> usage;
     };
 
     struct TaskResourceUsage{
@@ -77,30 +70,23 @@ namespace EWE{
 
     };
 
-    template<typename T>
-    struct BarrierResource {
-        T* resource;
-    };
-    template<>
-    struct BarrierResource<Buffer> {
-        Buffer* resource;//the ownign queue might change
-    };
-    template<>
-    struct BarrierResource<Image> {
-        Image* resource; //need to change the layout
-        VkImageLayout finalLayout;
-    };
-
     template<typename Res>
     struct ResourceTransition{
-        Resource<Res>* lhs;
-        Resource<Res>* rhs;
+        PerFlight<Resource<Res>*> lhs;
+        PerFlight<Resource<Res>*> rhs;
     };
 
     //first time in use of frame
     template<typename Res>
     struct ResourceAcquisition{
-        Resource<Res>* rhs;
+        PerFlight<Resource<Res>> rhs; //its fine to make a copy of Resource and UsageData, they're light weight
+
+        ResourceAcquisition(PerFlight<Res>& base_resource, UsageData<Res> const& usage) {
+            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                rhs[i].resource = &base_resource[i];
+                rhs[i].usage = usage;
+            }
+        }
 
         //pass in the same queue if it's not a queue transfer
         //this will also compare the layout 

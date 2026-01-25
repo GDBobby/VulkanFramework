@@ -8,24 +8,32 @@
 namespace EWE{
 
     VkFenceCreateInfo GetFenceCreateInfo() {
-        VkFenceCreateInfo fenceCreateInfo{};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = nullptr;
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-        return fenceCreateInfo;
+        return VkFenceCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT
+        };
     }
 
     Swapchain::Swapchain(LogicalDevice& logicalDevice, Window& window, Queue& presentQueue) noexcept
         : logicalDevice{logicalDevice},
         window{window},
         presentQueue{presentQueue},
-        swapCreateInfo{},
+        swapCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, 
+            .pNext = nullptr,
+            .flags = 0,
+            .surface = window.surface,
+            .imageArrayLayers = 1,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .queueFamilyIndexCount = 1,
+            .pQueueFamilyIndices = &presentQueue.family.index
+        },
         activeSwapchain{VK_NULL_HANDLE},
+        images{0},
         acquire_semaphores{logicalDevice, false},
         inFlightFences{logicalDevice, GetFenceCreateInfo()}
     {
-        swapCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        swapCreateInfo.pNext = nullptr;
         CreateSwapchain();
 #if EWE_DEBUG_NAMING
         for (uint8_t i = 0; i < max_frames_in_flight; i++) {
@@ -49,9 +57,7 @@ namespace EWE{
 
         swapCreateInfo.imageColorSpace = surface_format.colorSpace;
         swapCreateInfo.imageFormat = surface_format.format;
-        swapCreateInfo.surface = window.surface;
         swapCreateInfo.presentMode = GetOptimalPresentMode();
-        swapCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
         /*
         theres 2 strategies available here
@@ -65,14 +71,12 @@ namespace EWE{
         i think im gonna do 2
         */
 
-        swapCreateInfo.queueFamilyIndexCount = 1;
-        swapCreateInfo.pQueueFamilyIndices = &presentQueue.family.index;
-        swapCreateInfo.imageArrayLayers = 1;
 
-        VkSemaphoreCreateInfo semCreateInfo{};
-        semCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-        semCreateInfo.pNext = nullptr;
-        semCreateInfo.flags = 0;
+        VkSemaphoreCreateInfo semCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+        };
 
         return RecreateSwapchain();
     }
@@ -88,18 +92,19 @@ namespace EWE{
         };
 
         //look at vkGetPhysicalDeviceSurfaceCapabilities2KHR as well
-        VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo2;
-        surfaceInfo2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
-        surfaceInfo2.pNext = nullptr;
-        //fullscreen ext would be put in the pnext
-        surfaceInfo2.surface = window.surface;
-        VkSurfaceCapabilities2KHR surfaceCapabilities2{};
-        surfaceCapabilities2.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
-        surfaceCapabilities2.pNext = nullptr;
+        VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo2{
+            .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+            .pNext = nullptr,
+            //fullscreen ext would be put in the pnext
+            .surface = window.surface
+        };
+        VkSurfaceCapabilities2KHR surfaceCapabilities2{
+            .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
+            .pNext = nullptr
+        };
         vkGetPhysicalDeviceSurfaceCapabilities2KHR(logicalDevice.physicalDevice.device, &surfaceInfo2, &surfaceCapabilities2);
 
 
-        swapCreateInfo.flags = 0;
         swapCreateInfo.compositeAlpha = Swapchain::GetCompositeAlpha(surfaceCapabilities2.surfaceCapabilities);
         swapCreateInfo.imageExtent = Swapchain::GetImageExtent(surfaceCapabilities2.surfaceCapabilities, framebufferExtent);
 
@@ -123,10 +128,11 @@ namespace EWE{
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, nullptr);
         std::vector<VkImage> raw_images(swapImageCount);
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, raw_images.data());
-
-        images.clear();
+        images.DestroyAll();
+        images.Resize(swapImageCount);
+        images.ConstructAll(logicalDevice);
         for (uint8_t i = 0; i < swapImageCount; i++) {
-            auto& backImage = images.emplace_back(logicalDevice);
+            auto& backImage = images[i];
 
             backImage.image = raw_images[i];
             backImage.layout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -188,8 +194,6 @@ namespace EWE{
         static constexpr uint64_t fence_timeout_v = static_cast<uint64_t>(2.0e9);
         EWE_VK(vkWaitForFences, logicalDevice.device, 1, &inFlightFences[frameIndex].vkFence, VK_TRUE, fence_timeout_v);
         EWE_VK(vkResetFences, logicalDevice.device, 1, &inFlightFences[frameIndex].vkFence);
-        //fence.Wait(fence_timeout_v);
-        //fence.Reset();
 
         uint32_t image_index;
 
@@ -238,7 +242,7 @@ namespace EWE{
         if (caps.currentExtent.width < limitless_v && caps.currentExtent.height < limitless_v) { return caps.currentExtent; }
         auto const x = std::clamp(framebuffer.width, caps.minImageExtent.width, caps.maxImageExtent.width);
         auto const y = std::clamp(framebuffer.height, caps.minImageExtent.height, caps.maxImageExtent.height);
-        return VkExtent2D{x, y};
+        return VkExtent2D{.width = x, .height = y};
     }
     
     uint32_t Swapchain::GetImageCount(VkSurfaceCapabilitiesKHR const& caps) noexcept {

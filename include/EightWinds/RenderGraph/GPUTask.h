@@ -30,7 +30,6 @@ namespace EWE{
         //with pushtracker directly, instead of going thru GPUTask
     };
     
-
     //the id of this task is its address
     //GPUTask is intended to be used in a single thread.
     //if its desired to multi-thread within a single task, sync needs to be external
@@ -55,29 +54,9 @@ namespace EWE{
 
         std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
 
-
         TaskPrefix prefix{logicalDevice, queue};
         TaskSuffix suffix{logicalDevice, queue};
         void GenerateWorkload();
-
-        //optional, a compute wouldnt use htis
-        //RenderTracker* renderTracker = nullptr;
-
-        //void SetRenderInfo(); 
-        //void UpdateFrameIndex(uint8_t frameIndex);
-        
-        //these are debug helpers, remove for the moment
-        //std::vector<PushTracker> pushTrackers{};
-        //std::vector<BlitTracker> blitTrackers{};
-
-        //add validation here to make sure each resource is unique
-        int AddImagePin(Image* image, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask, VkImageLayout layout);
-        int AddImagePin(Image* image, UsageData<Image> const& usage);
-        int AddBufferPin(Buffer* buffer, UsageData<Buffer> const& usage);
-        int AddBufferPin(Buffer* buffer, VkPipelineStageFlags2 stage, VkAccessFlags2 accessMask);
-
-        void SetResource(int pin, Image& image);
-        void SetResource(int pin, Buffer& buffer);
 
         std::vector<Resource<Image>*> explicitImageState;
         std::vector<Resource<Buffer>*> explicitBufferState;

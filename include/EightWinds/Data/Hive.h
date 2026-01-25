@@ -2,6 +2,9 @@
 
 #include "EightWinds/Preprocessor.h"
 
+#include "EightWinds/Data/StackBlock.h"
+#include "EightWinds/Data/HeapBlock.h"
+
 #include <cstdint>
 #include <type_traits>
 #include <concepts>
@@ -12,23 +15,18 @@
 
 namespace EWE{
     //based on a very cursory glance at std::hive (P0447R21)
-    template<typename T, uint8_t RowWidth = 16>
+    template<typename T, std::size_t RowWidth = 16>
     struct Hive{
-        static constexpr std::size_t RowSize = sizeof(T) * RowWidth;
 
         //uint8 just so i can move bytewise thru the memory
         struct Comb{
-            uint8_t* memory;
+            StackBlock<T, RowWidth>* memory;
             std::bitset<RowWidth> occupancy;
 
             [[nodiscard]] Comb()
-            : memory{reinterpret_cast<uint8_t*>(malloc(RowSize))},
+            : memory{},
                 occupancy{}
-            {
-                if (memory == nullptr) {
-                    throw std::runtime_error("failed to malloc in hive");
-                }
-            }
+            {}
             ~Comb(){
 #if 0//EWE_DEBUG_BOOL //idk if i want this, maybe just destruct
                 if(occupancy[rowIndex].any()){
@@ -37,27 +35,26 @@ namespace EWE{
 #else
                 for(std::size_t i = 0; i < RowWidth; i++){
                     if(occupancy[i]){
-                        std::destroy_at(reinterpret_cast<T*>(memory + (sizeof(T) * i)));
+                        memory.DestroyAt(i);
                     }
                 }
 #endif
-                if(memory != nullptr){
-                    free(memory);
-                }
             }
 
             Comb(Comb const& copySrc) = delete;
             Comb& operator=(Comb const& copySrc) = delete;
-            Comb& operator=(Comb&& moveSrc) = delete;
+            Comb& operator=(Comb&& moveSrc) noexcept = delete;
 
-            Comb(Comb&& moveSrc) noexcept
+            Comb(Comb&& moveSrc) noexcept = delete;
+            /*
             : memory{moveSrc.memory}, 
                 occupancy{moveSrc.occupancy}
             {   
                 moveSrc.memory = nullptr;
             }
+            */
         };
-        std::vector<Comb> combs;
+        std::vector<Comb*> combs;
 
         [[nodiscard]] explicit Hive()
             : combs {}
@@ -79,7 +76,7 @@ namespace EWE{
             AddRow();
             auto& combBack = combs.back();
             combBack.occupancy.set(0, true);
-            return reinterpret_cast<T*>(combBack.memory);
+            return combBack.memory.GetMemory();
         }
 
         template<typename... Args>
@@ -93,7 +90,7 @@ namespace EWE{
             std::destroy_at<T>(element);
 
             for(auto& comb : combs){
-                const std::size_t comb_begin = reinterpret_cast<std::size_t>(comb.memory);
+                const std::size_t comb_begin = reinterpret_cast<std::size_t>(comb.memory.memory);
                 const bool lessThan = elementAddr < comb_begin;
                 const bool greaterThan = (comb_begin - elementAddr) > RowWidth;
                 if(lessThan || greaterThan){
@@ -111,9 +108,10 @@ namespace EWE{
         }
         
         void AddRow() {
-            combs.emplace_back();
+            combs.push_back(new Comb());
         }
         void EraseRow(std::size_t combIndex) {
+            delete combs[combIndex];
             combs.erase(combs.begin() + combIndex);
         }
 

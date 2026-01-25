@@ -174,10 +174,12 @@ namespace EWE{
         return ret;
     }
 
-    void CommandRecord::BeginRender(){
+    DeferredReference<VkRenderingInfo>* CommandRecord::BeginRender(){
         BindCommand(records, CommandInstruction::Type::BeginRender);
-        //this doesnt return a deferredreference because the pointer is scanned for later
-        //it still uses an offset of 8
+        auto deferred_ref = new DeferredReference<VkRenderingInfo>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+        
     }
     void CommandRecord::EndRender(){
         BindCommand(records, CommandInstruction::Type::EndRender);

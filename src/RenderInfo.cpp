@@ -56,9 +56,9 @@ namespace EWE{
             backAtt.resolveImageView = VK_NULL_HANDLE;
             backAtt.resolveMode = VK_RESOLVE_MODE_NONE;
 
-            backAtt.clearValue = att.clearValue;
-            backAtt.loadOp = att.loadOp;
-            backAtt.storeOp = att.storeOp;
+            backAtt.clearValue = att.info.clearValue;
+            backAtt.loadOp = att.info.loadOp;
+            backAtt.storeOp = att.info.storeOp;
 
             backAtt.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         }
@@ -74,9 +74,9 @@ namespace EWE{
         ret.depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
         ret.depthAttachmentInfo.resolveMode = VK_RESOLVE_MODE_NONE;
 
-        ret.depthAttachmentInfo.clearValue = depth_attachment.clearValue;
-        ret.depthAttachmentInfo.loadOp = depth_attachment.loadOp;
-        ret.depthAttachmentInfo.storeOp = depth_attachment.storeOp;
+        ret.depthAttachmentInfo.clearValue = depth_attachment.info.clearValue;
+        ret.depthAttachmentInfo.loadOp = depth_attachment.info.loadOp;
+        ret.depthAttachmentInfo.storeOp = depth_attachment.info.storeOp;
         ret.depthAttachmentInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 
 

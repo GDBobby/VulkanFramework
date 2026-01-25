@@ -3,7 +3,7 @@
 //i dont need vulkan, i just need max_frames_in_flight on a wider scale than here
 #include "EightWinds/VulkanHeader.h"
 
-#include <array>
+#include "EightWinds/Data/ForwardArgConstructionHelper.h"
 
 
 #include <cstdint>
@@ -22,12 +22,11 @@
 
 //if i make it template specialized, it'll DESTROY compile times. i'll have to compile the buffers and images with specialized templates
 //and whatever owns those resources will have to be header only
-
 namespace EWE{
 
     template<typename Resource>
     struct PerFlight{
-        alignas(Resource) unsigned char buffer[max_frames_in_flight * sizeof(Resource)];
+        alignas(Resource) uint8_t buffer[max_frames_in_flight * sizeof(Resource)];
 
         constexpr Resource* resources() noexcept {
             return reinterpret_cast<Resource*>(buffer);
@@ -65,25 +64,15 @@ namespace EWE{
             }
         }
 
-        //Factory is a function that will construct Resource at the given address
-        template <std::invocable<Resource*> Factory>
-        PerFlight(Factory&& factory) {
-            for (size_t i = 0; i < max_frames_in_flight; ++i) {
-                std::invoke(factory, &resources()[i]);
-            }
-        }
+        template<std::size_t ArgsForFirstObject, typename... Args>
+            requires (ArgsForFirstObject <= sizeof...(Args)) && (max_frames_in_flight == 2) //max_fif == 3 will need to be addressed separately
+        PerFlight(ArgumentPack_ConstructionHelper<ArgsForFirstObject> helper, Args&&... args) {
 
-        /*
-        i'd like another function that takes full argument lists to construct each Resource, like so
-        it might be a tuple thing
+            constexpr std::size_t remaining_args = sizeof...(Args) - ArgsForFirstObject;
 
-        template <typename... Args[max_frames_in_flight]>
-        requires std::constructible_from<Resource, Args...>
-        PerFlight(std::array<Args&&..., max_frames_in_flight> argList) {
-        for(uint8_t i = 0; i < max_frames_in_flight; i++){
-            std::construct_at(&resources()[i], argList[i]);
+            ConstructFrom_ForwardedArgumentPackSlice<0, ArgsForFirstObject>(resources(), std::forward<Args>(args)...);
+            ConstructFrom_ForwardedArgumentPackSlice<ArgsForFirstObject, remaining_args>(resources() + 1, std::forward<Args>(args)...);
         }
-        */
 
         ~PerFlight() {
             for (size_t i = 0; i < max_frames_in_flight; ++i) {

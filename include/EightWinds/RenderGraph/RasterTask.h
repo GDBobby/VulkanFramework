@@ -4,6 +4,8 @@
 
 
 #include "EightWinds/RenderGraph/GPUTask.h"
+#include "EightWinds/RenderGraph/Command/DeferredReference.h"
+
 #include "EightWinds/Pipeline/TaskRasterConfig.h"
 #include "EightWinds/ObjectRasterConfig.h"
 
@@ -17,14 +19,24 @@
 #include "EightWinds/Pipeline/Layout.h"
 #include "EightWinds/Pipeline/PipelineBase.h"
 
+#include "EightWinds/Data/PerFlight.h"
+
+#include "EightWinds/Backend/RenderInfo3.h"
+
 #include <unordered_set>
 
 namespace EWE{
 
+	
 	struct RenderTracker {
-		RenderInfo vk_data;
 		RenderInfo2 compact;
+		RenderInfo3 full;
+		
+		void SetRenderInfo();
+		
+		DeferredReference<VkRenderingInfo> deferred_render_info;
 	};
+	
 	
 	using DrawBase = GlobalPushConstant_Abstract;
 	
@@ -115,7 +127,6 @@ namespace EWE{
 
 		RenderTracker renderTracker;
 		bool ownsAttachmentLifetime = true;
-		
 
 		[[nodiscard]] explicit RasterTask(std::string_view name, LogicalDevice& logicalDevice, Queue& graphicsQueue, TaskRasterConfig const& config, bool createAttachments);
 		

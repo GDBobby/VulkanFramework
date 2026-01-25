@@ -54,7 +54,7 @@ namespace EWE{
         GlobalPushConstant_Abstract Push();
 
         //this shouldnt be used directly
-        void BeginRender();
+        DeferredReference<VkRenderingInfo>* BeginRender();
         void EndRender();
 
         DeferredReference<LabelParamPack>* BeginLabel() noexcept;
