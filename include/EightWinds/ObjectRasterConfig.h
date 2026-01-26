@@ -1,8 +1,10 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
+#include "EightWinds/VulkanHash.h"
 
 namespace EWE{
+
 	
 	struct DepthBias {
 		bool  enable;
@@ -17,7 +19,11 @@ namespace EWE{
 				slopeFactor == other.slopeFactor;
 		}
 	};
+
 	//how each object is configured
+		//i think im only going to allow 1 blend attachment max
+		//if its disabled, blendAttachment.blendEnabled, it wont be added to blendStateCreateInfo
+		//i think this is per object but im not sure
 	struct ObjectRasterConfig{
 		bool depthClamp;
 		bool rasterizerDiscard;
@@ -28,13 +34,9 @@ namespace EWE{
 		VkPrimitiveTopology topology;
 		bool primitiveRestart;
 
-		//i think im only going to allow 1 blend attachment max
-		//if its disabled, blendAttachment.blendEnabled, it wont be added to blendStateCreateInfo
-		//i think this is per object but im not sure
 		VkPipelineColorBlendAttachmentState blendAttachment;
-
-		//i need to mess with this
-		float blendConstants[4];
+		
+		float blendConstants[4]; //i need to mess with this
 
 		bool operator==(ObjectRasterConfig const& other) const noexcept {
 			return
@@ -68,4 +70,37 @@ namespace EWE{
 		//VkLogicOp blendLogicOp; //need to play iwth this
 	};
 
-}
+} //namespace EWE
+
+template<>
+struct std::hash<EWE::DepthBias> {
+	std::size_t operator()(EWE::DepthBias const& d) const noexcept {
+		EWE::HashCombiner hashCombiner{};
+		hashCombiner.Combine(std::hash<bool>{}(d.enable))
+			.Combine(std::hash<float>{}(d.constantFactor))
+			.Combine(std::hash<float>{}(d.clamp))
+			.Combine(std::hash<float>{}(d.slopeFactor));
+		return hashCombiner.seed;
+	}
+};
+template<>
+struct std::hash<EWE::ObjectRasterConfig> {
+	std::size_t operator()(EWE::ObjectRasterConfig const& c) const noexcept {
+		EWE::HashCombiner hashCombiner{};
+		hashCombiner.Combine(std::hash<bool>{}(c.depthClamp))
+					.Combine(std::hash<bool>{}(c.rasterizerDiscard))
+					.Combine(std::hash<int>{}(c.polygonMode))
+					.Combine(std::hash<int>{}(c.cullMode))
+					.Combine(std::hash<int>{}(c.frontFace))
+					.Combine(std::hash<EWE::DepthBias>{}(c.depthBias))
+					.Combine(std::hash<int>{}(c.topology))
+					.Combine(std::hash<bool>{}(c.primitiveRestart))
+					.Combine(std::hash<VkPipelineColorBlendAttachmentState>{}(c.blendAttachment))
+		;
+
+		for (float f : c.blendConstants) {
+			hashCombiner.Combine(std::hash<float>{}(f));
+		}
+		return hashCombiner.seed;
+	}
+};

@@ -4,6 +4,8 @@
 #include "EightWinds/Image.h"
 #include "EightWinds/ImageView.h"
 
+#include "EightWinds/Backend/RenderInfo.h"
+
 #include "EightWinds/DescriptorImageInfo.h"
 
 #include "EightWinds/Data/PerFlight.h"
@@ -14,6 +16,12 @@
 
 namespace EWE{
 	
+
+	struct AttachmentConstructionInfo {
+		VkFormat format;
+		AttachmentInfo info;
+	};
+
 	struct RenderInfo3 {
 		LogicalDevice& logicalDevice;
 		Queue& graphicsQueue;
@@ -25,8 +33,8 @@ namespace EWE{
 			LogicalDevice& logicalDevice,
 			Queue& graphicsQueue,
 			uint32_t width, uint32_t height,
-			std::vector<VkFormat> const& color_formats,
-			VkFormat depth_format
+			std::vector<AttachmentConstructionInfo> const& color_infos,
+			AttachmentConstructionInfo depth_info
 		);
 		
 		//if i make this perflight<array< then i can easily get the full image data, 
@@ -47,7 +55,7 @@ namespace EWE{
 
 		//other stuff should be put here
 
-		void CreateImages(std::string_view name, uint32_t width, uint32_t height, std::vector<VkFormat> const& color_formats);
+		void CreateImages(std::string_view name, uint32_t width, uint32_t height, std::vector<AttachmentConstructionInfo> const& color_infos);
 		
 		//void ApplyToParamBuffer(DeferredReference<VkRenderingInfo>& buffer);
 

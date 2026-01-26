@@ -356,7 +356,7 @@ namespace EWE {
         blendCreateInfo.logicOpEnable = false;//maybe, idk
         blendCreateInfo.logicOp = VK_LOGIC_OP_MAX_ENUM;
 
-		blendCreateInfo.attachmentCount = taskConfig.colorAttachmentFormats.size();
+		blendCreateInfo.attachmentCount = taskConfig.color_att_info.size();
 		blendCreateInfo.pAttachments = &objectConfig.blendAttachment;
         memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);
 

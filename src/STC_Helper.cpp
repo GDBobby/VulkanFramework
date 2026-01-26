@@ -1,17 +1,25 @@
 #include "EightWinds/Backend/STC_Helper.h"
 
-#include "EightWinds/CommandBuffer.h
+#include "EightWinds/CommandBuffer.h"
 #include "EightWinds/CommandPool.h"
+#include "EightWinds/Image.h"
+#include "EightWinds/Buffer.h"
+
+#include "EightWinds/Backend/Fence.h"
 
 
 namespace EWE{
 	
 	struct STC_Helper{
+		LogicalDevice& logicalDevice;
+		Queue& queue;
 		EWE::CommandPool cmdPool;
 		EWE::CommandBuffer cmdBuf;
 		
 		STC_Helper(LogicalDevice& logicalDevice, Queue& queue)
-		: cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+		: logicalDevice{logicalDevice},
+			queue{queue},
+			cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
 			cmdBuf{cmdPool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY)}
 		{
 			VkCommandBufferBeginInfo beginSTCInfo{
@@ -41,7 +49,7 @@ namespace EWE{
 				.commandBufferInfoCount = 1,
 				.pCommandBufferInfos = &cmdBufSubmitInfo,
 				.signalSemaphoreInfoCount = 0,
-				.pSignalSemaphoreInfos
+				.pSignalSemaphoreInfos = nullptr
 			};
 			
 			if(wait){
@@ -64,9 +72,10 @@ namespace EWE{
 	};
 	
 	
-	void Command_Helper::Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait){
+	void Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait){
         STC_Helper stc_Helper(logicalDevice, queue);
-		vkCmdBindPipelineBarrier(stc_Helper.cmdBuf, dependencyInfo);
+
+		vkCmdPipelineBarrier2(stc_Helper.cmdBuf, &dependencyInfo);
 		
 		stc_Helper.Submit(wait);
 		

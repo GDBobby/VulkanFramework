@@ -1,9 +1,9 @@
 #pragma once
 
-#include "EightWinds/CommandBuffer.h"
+#include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/Image.h"
-#include "EightWinds/Buffer.h"
+#include "EightWinds/LogicalDevice.h"
+#include "EightWinds/Queue.h"
 
 namespace EWE{
 	namespace Command_Helper{

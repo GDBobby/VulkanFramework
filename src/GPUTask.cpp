@@ -15,7 +15,9 @@ namespace EWE{
         commandExecutor{logicalDevice},
         name{name}
     {
+#if EWE_DEBUG_BOOL
         assert(!cmdRecord.hasBeenCompiled);
+#endif
         //cmdRecord.Optimize(); <--- EVENTUALLY
         const uint64_t full_data_size = cmdRecord.records.back().paramOffset + CommandInstruction::GetParamSize(cmdRecord.records.back().type);
 
@@ -38,8 +40,15 @@ namespace EWE{
         assert(cmdRecord.ValidateInstructions());
 #endif
        cmdRecord.hasBeenCompiled = true;
-    
+    }
 
+
+    GPUTask::GPUTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name)
+        : logicalDevice{ logicalDevice },
+        queue{ queue },
+        commandExecutor{ logicalDevice },
+        name{ name }
+    {
     }
 
     GPUTask::~GPUTask(){
@@ -76,14 +85,27 @@ namespace EWE{
     */
 
 
-    void GPUTask::GenerateWorkload()
-    {
+    void GPUTask::GenerateWorkload() {
         const bool hasPrefix = !prefix.Empty();
         const bool hasSuffix = !suffix.Empty();
+
+        if (hasPrefix) {
+            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                prefix.barriers[i] = prefix.CreateBarrierObject(i);
+            }
+        }
+        if (hasSuffix) {
+            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                suffix.barriers[i] = suffix.CreateBarrierObject(i);
+            }
+        }
 
         if (hasPrefix && hasSuffix) {
             workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
                 prefix.Execute(cmdBuf, frameIndex);
+                for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                    prefix.barriers[i] = prefix.CreateBarrierObject(i);
+                }
                 Execute(cmdBuf, frameIndex);
                 suffix.Execute(cmdBuf, frameIndex);
             };
@@ -103,7 +125,36 @@ namespace EWE{
         else {
             workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
                 Execute(cmdBuf, frameIndex);
-                };
+            };
+        }
+    }
+    void GPUTask::GenerateExternalWorkload(std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload) {
+        const bool hasPrefix = !prefix.Empty();
+        const bool hasSuffix = !suffix.Empty();
+
+        if (hasPrefix && hasSuffix) {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                prefix.Execute(cmdBuf, frameIndex);
+                external_workload(cmdBuf, frameIndex);
+                suffix.Execute(cmdBuf, frameIndex);
+            };
+        }
+        else if (hasPrefix) {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                prefix.Execute(cmdBuf, frameIndex);
+                external_workload(cmdBuf, frameIndex);
+            };
+        }
+        else if (hasSuffix) {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                external_workload(cmdBuf, frameIndex);
+                suffix.Execute(cmdBuf, frameIndex);
+            };
+        }
+        else {
+            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+                external_workload(cmdBuf, frameIndex);
+            };
         }
     }
 } //namespace EWE

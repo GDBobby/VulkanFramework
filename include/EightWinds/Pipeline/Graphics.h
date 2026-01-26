@@ -46,8 +46,7 @@ namespace EWE {
 			LogicalDevice& logicalDevice, 
 			PipelineID pipeID, 
 			PipeLayout* layout, //the layout SHOULD cover the input assembly
-			TaskRasterConfig const& passConfig,
-			ObjectRasterConfig const& objectConfig,
+			TaskRasterConfig const& passConfig, ObjectRasterConfig const& objectConfig,
             std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
 			std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
 		) noexcept;
@@ -56,8 +55,7 @@ namespace EWE {
 			LogicalDevice& logicalDevice, 
 			PipelineID pipeID, 
             PipeLayout* layout, 
-			TaskRasterConfig const& taskConfig,
-			ObjectRasterConfig const& objectConfig,
+			TaskRasterConfig const& taskConfig, ObjectRasterConfig const& objectConfig,
             std::vector<VkDynamicState> const& dynamicState //deduced maybe?
 		) noexcept;
 

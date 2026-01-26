@@ -44,19 +44,22 @@ namespace EWE{
 		static constexpr std::size_t offsets[sizeof...(Offsets)] = {Offsets...};
 		static constexpr std::size_t object_count = sizeof...(Offsets) + 1;
 		
-		
 		template<typename T, typename... Args>
-		void ConstructContiguous(T* uninitialized_memory, Args&&... args){
+		static void ConstructContiguous(T* uninitialized_memory, Args&&... args){
 			
 			static constexpr std::size_t offset_count = sizeof...(Offsets);
 			
 			for(std::size_t i = 0; i < (offset_count - 1); i++){
-				ConstructFrom_ForwardedArgumentPackSlice<offsets[i], offsets[i + 1], T, Args>(std::forward<Args>(args)...);
+				ConstructFrom_ForwardedArgumentPackSlice<offsets[i], offsets[i + 1], T, Args...>(uninitialized_memory + i, std::forward<Args>(args)...);
 			}
 			
 			static constexpr std::size_t total_arg_count = sizeof...(Args);
-			ConstructFrom_ForwardedArgumentPackSlice<offsets[offset_count - 1], total_arg_count, T, Args>(std::forward<Args>(args)...);
+			ConstructFrom_ForwardedArgumentPackSlice<offsets[offset_count - 1], total_arg_count, T, Args...>(uninitialized_memory + offset_count, std::forward<Args>(args)...);
 		}
 	};
+
+    struct OnlyConstructOneObject_Helper {
+        //wild that i need this
+    };
 	
 }

@@ -164,13 +164,13 @@ namespace EWE{
     //the plan is to only have the single descriptor set, for all bindless textures
     //void BindDescriptor(VkDescriptorSet set);
     
-    GlobalPushConstant_Abstract CommandRecord::Push() {
+    DeferredReference<GlobalPushConstant_Raw>* CommandRecord::Push() {
         //assert a pipeline is binded
         BindCommand(records, CommandInstruction::Type::PushConstant);
        // push_offsets.push_back(reinterpret_cast<GlobalPushConstant_Raw*>(GetCurrentOffset(records.back())));
-        GlobalPushConstant_Abstract ret{};
-        ret.deferred_push = new DeferredReference<GlobalPushConstant_Raw>(GetCurrentOffset(records.back()));
-        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(ret.deferred_push));
+        DeferredReference<GlobalPushConstant_Raw>* ret{};
+        ret = new DeferredReference<GlobalPushConstant_Raw>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(ret));
         return ret;
     }
 

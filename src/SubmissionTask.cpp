@@ -67,7 +67,7 @@ namespace EWE{
             logicalDevice.BeginLabel(cmdBuffers[frameIndex], &labelUtil);
 #endif
 
-            ret = full_workload(cmdBuffers[frameIndex]);
+            ret = full_workload(cmdBuffers[frameIndex], frameIndex);
 
 #if EWE_DEBUG_NAMING
             logicalDevice.EndLabel(cmdBuffers[frameIndex]);

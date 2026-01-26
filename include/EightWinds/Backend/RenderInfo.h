@@ -14,11 +14,10 @@ namespace EWE{
     struct RenderInfo {
         //i could make this an array of 4 or some arbitrary number, so that the attachments are cache local
         //idk if it matters?
-        std::vector<VkRenderingAttachmentInfo> colorAttachmentInfo;
+        std::vector<VkRenderingAttachmentInfo> colorAttachmentInfo{};
         VkRenderingAttachmentInfo depthAttachmentInfo;
-        VkRenderingInfo renderingInfo{};
 
-        void FixPointers() {
+        void FixPointers(VkRenderingInfo& renderingInfo) {
             renderingInfo.pColorAttachments = colorAttachmentInfo.data();
             renderingInfo.pDepthAttachment = &depthAttachmentInfo;
             renderingInfo.pStencilAttachment = nullptr; //idk
@@ -43,11 +42,7 @@ namespace EWE{
         //if resolve.size() > color_attachments.size(), then resolve.back() would be for depth
         //std::vector<Resolve> resolves{};
 
-        //call RenderInfo::FixPointers after constructing RenderInfo with Expand()
-        RenderInfo Expand() const;
-        //Expand(RenderInfo* out) fixes the pointers in place since it wont potentially be moved on return
-        void Expand(RenderInfo* out) const;
-        void Update(RenderInfo* out, uint8_t frameIndex) const;
+        void Expand(PerFlight<RenderInfo>& renderInfo, PerFlight<VkRenderingInfo>& renderingInfo) const;
         //all sizes must be uniform at the moment, i dont know if i ever want it different
         VkRect2D CalculateRenderArea() const noexcept;
     };

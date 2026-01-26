@@ -1,5 +1,6 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
+#include "EightWinds/Backend/RenderInfo3.h"
 
 namespace EWE{
 
@@ -21,8 +22,9 @@ namespace EWE{
 		bool alphaToOneEnable;
 		std::vector<VkDynamicState> dynamicState{};
 
-		std::vector<VkFormat> colorAttachmentFormats{};
-		
+		std::vector<AttachmentConstructionInfo> color_att_info{};
+		AttachmentConstructionInfo depth_att_info{};
+
 		//VkPipelineViewportStateCreateInfo viewportInfo{}; //condensed to just vp/scissor count
 		
 		//this can be reduced to MSAA, pNext and flags are useless (nvidia has some extensions)

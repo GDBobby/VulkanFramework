@@ -20,7 +20,7 @@ namespace EWE{
 
         //uint8 just so i can move bytewise thru the memory
         struct Comb{
-            StackBlock<T, RowWidth>* memory;
+            StackBlock<T, RowWidth> memory;
             std::bitset<RowWidth> occupancy;
 
             [[nodiscard]] Comb()
@@ -64,19 +64,19 @@ namespace EWE{
 
         T* GetAConstructionPointer(){
             for(auto& comb : combs){
-                if(!comb.occupancy.all()){
+                if(!comb->occupancy.all()){
                     for(std::size_t i = 0; i < RowWidth; i++){
-                        if(!comb.occupancy[i]){
-                            comb.occupancy.set(i, true);
-                            return reinterpret_cast<T*>(comb.memory + (sizeof(T) * i));
+                        if(!comb->occupancy[i]){
+                            comb->occupancy.set(i, true);
+                            return reinterpret_cast<T*>(comb->memory.GetMemory() + (sizeof(T) * i));
                         }
                     }
                 }
             }
             AddRow();
             auto& combBack = combs.back();
-            combBack.occupancy.set(0, true);
-            return combBack.memory.GetMemory();
+            combBack->occupancy.set(0, true);
+            return combBack->memory.GetMemory();
         }
 
         template<typename... Args>
@@ -90,17 +90,17 @@ namespace EWE{
             std::destroy_at<T>(element);
 
             for(auto& comb : combs){
-                const std::size_t comb_begin = reinterpret_cast<std::size_t>(comb.memory.memory);
+                const std::size_t comb_begin = reinterpret_cast<std::size_t>(comb->memory.GetMemory());
                 const bool lessThan = elementAddr < comb_begin;
                 const bool greaterThan = (comb_begin - elementAddr) > RowWidth;
                 if(lessThan || greaterThan){
                     continue;
                 }
                 const std::size_t index_into_comb = (elementAddr - comb_begin) / sizeof(T);
-                if(!comb.occupancy[index_into_comb]){
+                if(!comb->occupancy[index_into_comb]){
                     throw std::logic_error("the hive did not construct this pointer");
                 }
-                comb.occupancy.set(index_into_comb, false);
+                comb->occupancy.set(index_into_comb, false);
                 return;
             }
 

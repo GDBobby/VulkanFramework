@@ -5,6 +5,7 @@
 #include "EightWinds/Backend/RenderInfo.h"
 #include "EightWinds/RenderGraph/Command/Execute.h"
 #include "EightWinds/RenderGraph/Resources.h"
+#include "EightWinds/RenderGraph/TaskAffix.h"
 
 #include "EightWinds/CommandPool.h"
 
@@ -17,18 +18,6 @@
 
 namespace EWE{
     struct CommandRecord;
-
-    //ok i think i remove the trackers. they just add an intermediary overhead. i can do a direct comparison on the param pool
-    struct PushTracker{
-        GlobalPushConstant_Raw* pushAddress;
-        Resource<Buffer> buffers[GlobalPushConstant_Raw::buffer_count];
-        Resource<Image> textures[GlobalPushConstant_Raw::texture_count];
-
-        [[nodiscard]] PushTracker(GlobalPushConstant_Raw* ptr) noexcept;
-
-        //to simplify usage a bit i could use function pointers here, and let the players mess 
-        //with pushtracker directly, instead of going thru GPUTask
-    };
     
     //the id of this task is its address
     //GPUTask is intended to be used in a single thread.
@@ -41,8 +30,9 @@ namespace EWE{
 
         std::string name;
         CommandExecutor commandExecutor;
-        
+
         [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord, std::string_view name);
+        [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask& operator=(GPUTask const&) = delete;
@@ -53,12 +43,14 @@ namespace EWE{
         void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
 
         std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
+        
+        TaskResourceUsage resources;
 
         TaskPrefix prefix{logicalDevice, queue};
         TaskSuffix suffix{logicalDevice, queue};
         void GenerateWorkload();
-
-        std::vector<Resource<Image>*> explicitImageState;
-        std::vector<Resource<Buffer>*> explicitBufferState;
+        void GenerateExternalWorkload(std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload);
     };
+
+
 }

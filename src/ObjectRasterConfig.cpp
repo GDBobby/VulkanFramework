@@ -1,10 +1,11 @@
 #include "EightWinds/ObjectRasterConfig.h"
 
 namespace EWE{
+
+
 	void ObjectRasterConfig::SetDefaults() noexcept {
 		depthClamp = false;
 		rasterizerDiscard = false;
-		polygonMode = VK_POLYGON_MODE_FILL;
 		cullMode = VK_CULL_MODE_NONE;
 		frontFace = VK_FRONT_FACE_CLOCKWISE;
 		depthBias.enable = VK_FALSE;

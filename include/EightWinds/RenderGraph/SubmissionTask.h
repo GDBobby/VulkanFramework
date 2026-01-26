@@ -8,7 +8,6 @@
 #include "EightWinds/Data/PerFlight.h"
 
 #include "EightWinds/RenderGraph/GPUTask.h"
-#include "EightWinds/RenderGraph/TaskBridge.h"
 #include "EightWinds/Backend/Semaphore.h"
 
 #include "EightWinds/Backend/SubmitInfo.h"
@@ -55,7 +54,7 @@ namespace EWE{
 
         //im abstracting the workload, so that the programmer isn't forced into using GPUTask.
         //the particular situation i have in mind is imgui, in which there is already a substantial existing workload
-        std::function<bool(CommandBuffer&)> full_workload;
+        std::function<bool(CommandBuffer&, uint8_t)> full_workload;
         //do i need to give the command buffer at all? or can i make it always explicit
         //for the moment i think i just take the L on the branch
         //this forces the user to define submitInfo before the render loop is initiated, or per frame

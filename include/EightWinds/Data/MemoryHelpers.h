@@ -84,7 +84,7 @@ namespace EWE{
 		
 		template<std::size_t... Offsets, typename... Args>
 		void ConstructAll(ArgumentPack_ConstructionHelper<Offsets...> helper, Args&&... args) {
-			using arg_helper = ArgumentPack_ConstructionHelper<Offsets>;
+			using arg_helper = ArgumentPack_ConstructionHelper<Offsets...>;
 			arg_helper::ConstructContiguous(this->GetMemory());
 		}
 

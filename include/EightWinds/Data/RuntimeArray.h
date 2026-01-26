@@ -86,7 +86,7 @@ namespace EWE{
 		//we would prefer if helper got optimized away. potentially worth taking a micro-optimization glance at
 		template<std::size_t... Offsets, typename... Args>
 		[[nodiscard]] explicit RuntimeArray(ArgumentPack_ConstructionHelper<Offsets...> helper, Args&&... args)
-		: heap{ ArgumentPack_ConstructionHelper<Offsets>::object_count}
+		: heap{ ArgumentPack_ConstructionHelper<Offsets...>::object_count}
 		{
 			heap.ConstructAll(helper, std::forward<Args>(args)...);
 		}

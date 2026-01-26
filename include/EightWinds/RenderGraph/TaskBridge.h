@@ -9,31 +9,6 @@
 
 namespace EWE{
 
-    std::function<void(CommandBuffer& cmdBuf)> task_bridge{};
-
-    template<
-        typename PrefixT = std::nullptr_t,
-        typename SuffixT = std::nullptr_t
-    >
-    std::function<void(CommandBuffer&, uint8_t)> GenerateBridge(
-            PrefixT* prefix,
-            GPUTask& task,
-            SuffixT* suffix
-    ) {
-        return [&](CommandBuffer& cmdBuf, uint8_t frameIndex)
-            {
-                if constexpr (!std::is_same_v<PrefixT, std::nullptr_t>) {
-                    prefix->Execute(cmdBuf, frameIndex);
-                }
-
-                task.Execute(cmdBuf, frameIndex);
-
-                if constexpr (!std::is_same_v<SuffixT, std::nullptr_t>) {
-                    suffix->Execute(cmdBuf, frameIndex);
-                }
-            };
-    }
-
     /*
     so we can go prefix -> prefix
     OR we can go suffix -> prefix

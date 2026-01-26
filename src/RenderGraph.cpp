@@ -3,6 +3,72 @@
 #include "EightWinds/Backend/PerFlightDebugViewer.h"
 
 namespace EWE{
+
+    void SynchronizationManager::AddTransition_Buffer(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index) {
+        buffer_transitions.emplace_back(
+            TransitionObjects<Buffer>{
+                .lhs = &lhs,
+                .lh_index = lh_index,
+                .rhs = &rhs,
+                .rh_index = rh_index
+            }
+        );
+    }
+
+    void SynchronizationManager::AddTransition_Image(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index) {
+        image_transitions.emplace_back(
+            TransitionObjects<Image>{
+                .lhs = &lhs,
+                .lh_index = lh_index,
+                .rhs = &rhs,
+                .rh_index = rh_index
+            }
+        );
+    }
+    void SynchronizationManager::AddAcquisition_Buffer(GPUTask& rhs, uint32_t rh_index) {
+        buffer_acquisitions.emplace_back(
+            AcquireObjects<Buffer>{
+                .rhs = &rhs,
+                .rh_index = rh_index
+            }
+        );
+    }
+    void SynchronizationManager::AddAcquisition_Image(GPUTask& rhs, uint32_t rh_index) {
+        image_acquisitions.emplace_back(
+            AcquireObjects<Image>{
+                .rhs = &rhs,
+                .rh_index = rh_index
+            }
+        );
+    }
+
+    void SynchronizationManager::PopulateTasks(){
+        for (auto& trans : buffer_transitions) {
+            if (trans.lhs->queue != trans.rhs->queue) {
+                //put a suffix on lhs
+                trans.lhs->suffix.bufferTransitions.emplace_back(trans.lhs->resources, trans.lh_index, trans.rhs->resources, trans.rh_index);
+            }
+
+            trans.rhs->prefix.bufferTransitions.emplace_back(trans.lhs->resources, trans.lh_index, trans.rhs->resources, trans.rh_index);
+        }
+        for (auto& trans : image_transitions) {
+            if (trans.lhs->queue != trans.rhs->queue) {
+                //put a suffix on lhs
+                trans.lhs->suffix.imageTransitions.emplace_back(trans.lhs->resources, trans.lh_index, trans.rhs->resources, trans.rh_index);
+            }
+
+            trans.rhs->prefix.imageTransitions.emplace_back(trans.lhs->resources, trans.lh_index, trans.rhs->resources, trans.rh_index);
+
+        }
+        for (auto& acq : buffer_acquisitions) {
+            acq.rhs->prefix.bufferAcquisitions.emplace_back(acq.rhs->resources, acq.rh_index);
+        }
+        for (auto& acq : image_acquisitions) {
+            acq.rhs->prefix.imageAcquisitions.emplace_back(acq.rhs->resources, acq.rh_index);
+        }
+    }
+
+
     RenderGraph::RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain)
         : logicalDevice{logicalDevice},
         swapchain{swapchain},

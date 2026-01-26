@@ -9,7 +9,6 @@
 #include "EightWinds/Queue.h"
 
 #include "EightWinds/RenderGraph/GPUTask.h"
-#include "EightWinds/RenderGraph/TaskBridge.h"
 #include "EightWinds/RenderGraph/PresentSubmission.h"
 #include "EightWinds/RenderGraph/SubmissionTask.h"
 #include "EightWinds/RenderGraph/PresentBridge.h"
@@ -19,6 +18,37 @@
 #include <span>
 
 namespace EWE{
+
+
+    struct SynchronizationManager {
+        template<typename Resource>
+        struct TransitionObjects {
+            GPUTask* lhs;
+            uint32_t lh_index;
+            GPUTask* rhs;
+            uint32_t rh_index;
+        };
+        template<typename Resource>
+        struct AcquireObjects{
+            GPUTask* rhs;
+            uint32_t rh_index;
+        };
+
+        std::vector<TransitionObjects<Buffer>> buffer_transitions;
+        std::vector<TransitionObjects<Image>> image_transitions;
+        std::vector<AcquireObjects<Buffer>> buffer_acquisitions;
+        std::vector<AcquireObjects<Image>> image_acquisitions;
+
+        void AddTransition_Buffer(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
+        void AddTransition_Image(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
+        void AddAcquisition_Buffer(GPUTask& rhs, uint32_t rh_index);
+        void AddAcquisition_Image(GPUTask& rhs, uint32_t rh_index);
+
+        void PopulateTasks();
+
+    };
+
+
     struct RenderGraph{
         [[nodiscard]] explicit RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain); //this cant be noexcept because Hive can throw if malloc fails
         RenderGraph(RenderGraph const& copySrc) = delete;
@@ -35,14 +65,12 @@ namespace EWE{
         //its important that task dont get moved or copied
         Hive<GPUTask> tasks;
         
-        //links in the visual graph. if i change the task references to pointers, i can use this directly in a rendergraph without an intermediary
-        //moving doesnt matter much, i just want stable references
-        //Hive<TaskBridge> bridges;
-
         Hive<SubmissionTask> submissions;
         PresentSubmission presentSubmission;
 
         PresentBridge presentBridge;
+
+        SynchronizationManager syncManager;
 
         //each inner vector needs to use only one queue
         std::vector<std::vector<SubmissionTask*>> execution_order;

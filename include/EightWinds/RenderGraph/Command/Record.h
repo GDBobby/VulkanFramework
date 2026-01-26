@@ -51,7 +51,7 @@ namespace EWE{
 
         //i need some expanded or manual method to keep track of when buffers are written to in shaders
 
-        GlobalPushConstant_Abstract Push();
+        DeferredReference<GlobalPushConstant_Raw>* Push();
 
         //this shouldnt be used directly
         DeferredReference<VkRenderingInfo>* BeginRender();

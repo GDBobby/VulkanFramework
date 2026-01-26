@@ -24,8 +24,8 @@ namespace EWE{
 		LogicalDevice& logicalDevice,
 		Queue& graphicsQueue,
 		uint32_t width, uint32_t height,
-		std::vector<VkFormat> const& color_formats,
-		VkFormat depth_format
+		std::vector<AttachmentConstructionInfo> const& color_infos,
+		AttachmentConstructionInfo depth_info
 	)
 	: name{name},
 		logicalDevice{logicalDevice},
@@ -33,14 +33,18 @@ namespace EWE{
 		//this should pass args to PerFlight
 		//which puts the args to each (per frame in flight) RuntimeArray
 		//which will construct a color_formats.size() amount of images with the argument, logicalDevice
-		color_images{color_formats.size(), logicalDevice},
-		color_views{ ArgumentPack_ConstructionHelper<1>{}, color_images[0], color_images[1] },
+		color_images{ color_infos.size(), logicalDevice},
+		color_views{ color_images},
 		depth_images{logicalDevice},
 		depth_views{depth_images},
-		color_formats{color_formats},
-		depth_format{depth_format}
+		depth_format{depth_info.format}
 	{
-		CreateImages(name, width, height, color_formats);
+		color_formats.resize(color_infos.size());
+		for (uint8_t i = 0; i < color_formats.size(); i++) {
+			color_formats[i] = color_infos[i].format;
+		}
+
+		CreateImages(name, width, height, color_infos);
 
 		InitialTransition();
 	}
@@ -107,7 +111,7 @@ namespace EWE{
 	}
 	
 	
-	void RenderInfo3::CreateImages(std::string_view name, uint32_t width, uint32_t height, std::vector<VkFormat> const& color_formats){
+	void RenderInfo3::CreateImages(std::string_view name, uint32_t width, uint32_t height, std::vector<AttachmentConstructionInfo> const& color_infos){
 		VmaAllocationCreateInfo vmaAllocCreateInfo{
 		//if(imageCreateInfo.width * height > some amount){
 			.flags = static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) |
@@ -118,7 +122,7 @@ namespace EWE{
 		
 		for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
 			for(uint8_t i = 0; i < color_images.Size(); i++){
-				SetImageData(color_images[frame][i], graphicsQueue, width, height, color_formats[i], VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vmaAllocCreateInfo);
+				SetImageData(color_images[frame][i], graphicsQueue, width, height, color_infos[i].format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vmaAllocCreateInfo);
 #if EWE_DEBUG_NAMING
 				const std::string resource_name = "color[" + std::to_string(frame) + "][" + std::to_string(i) + "]";
 				color_images[i][frame].SetName(resource_name);

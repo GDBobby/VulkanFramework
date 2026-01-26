@@ -30,8 +30,8 @@ namespace EWE{
 		dependencyInfo.pBufferMemoryBarriers = nullptr;
     }
     
-    void PresentBridge::UpdateSrcData(Queue* lhsQueue, Resource<Image>* resource) {
-        imageBarrier.image = *resource->image;
+    void PresentBridge::UpdateSrcData(Queue* lhsQueue, Resource<Image>* resource, uint8_t frameIndex) {
+        imageBarrier.image = *resource->resource[frameIndex];
         imageBarrier.srcQueueFamilyIndex = lhsQueue->family.index;
         imageBarrier.srcAccessMask = resource->usage.accessMask; //idk what to put here
         imageBarrier.srcStageMask = resource->usage.stage;

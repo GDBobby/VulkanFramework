@@ -27,12 +27,25 @@
 
 namespace EWE{
 
+
 	
 	struct RenderTracker {
-		RenderInfo2 compact;
 		RenderInfo3 full;
+		RenderInfo2 compact;
+		PerFlight<RenderInfo> vk_data;
+		PerFlight<VkRenderingInfo> vk_info;
 		
-		void SetRenderInfo();
+		[[nodiscard]] explicit RenderTracker(
+			std::string_view name,
+			LogicalDevice& logicalDevice,
+			Queue& graphicsQueue,
+			uint32_t width, uint32_t height,
+			std::vector<AttachmentConstructionInfo> const& color_att_info,
+			AttachmentConstructionInfo depth_info,
+			VkRenderingFlags flags
+		);
+		
+		void CascadeFull();
 		
 		DeferredReference<VkRenderingInfo> deferred_render_info;
 	};
@@ -51,14 +64,14 @@ namespace EWE{
 		DeferredReference<DrawMeshTasksParamPack>* paramPack = nullptr;
 	};
 	
-	
-	struct ObjectRasterData{
+
 		//i should do validaiton to ensure this layout is only used with vert draws or mesh draws appropriately
-		PipeLayout* layout; //the fragment shader, specifically
-		ObjectRasterConfig config;
-			
+	struct ObjectRasterData{
 		//the layout is guaranteed to eb unique per engine instance
 		//so the address can be used as a direct identifier
+		PipeLayout* layout;
+		ObjectRasterConfig config;
+			
 		bool operator==(ObjectRasterData const& other) const {
 			return layout == other.layout && config == other.config;
 		}
@@ -81,27 +94,18 @@ namespace EWE{
 		Pipeline* pipeline; //needs to be deleted
 		//ObjectRasterData rasterData;//i dont really care about keeping the data, besides viewing in debug
 
-		DeferredReference<PipelineParamPack>* paramPack;
+		DeferredReference<PipelineParamPack>* pipe_paramPack;
 		DeferredReference<ViewportScissorParamPack>* vp_s_paramPack;
 
 		[[nodiscard]] explicit DeferredPipelineExecute(
-			LogicalDevice& logicalDevice, 
-			TaskRasterConfig& taskConfig,
-			ObjectRasterData const& rasterData,
-			DeferredReference<PipelineParamPack>* paramPack
+			LogicalDevice& logicalDevice,
+			TaskRasterConfig& taskConfig, ObjectRasterData const& rasterData,
+			DeferredReference<PipelineParamPack>* pipe_params,
+			DeferredReference<ViewportScissorParamPack>* vp_params
 		);
-		~DeferredPipelineExecute() {
-			delete pipeline;
-			//could delete the paramPack too potentially (they're currently a mem leak)
-		}
+		~DeferredPipelineExecute();
 		
-		void UndeferPipeline(VkViewport const& viewport, VkRect2D const& scissor) {
-			for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-				pipeline->WriteToParamPack(paramPack->GetRef(i));
-				vp_s_paramPack->GetRef(i).viewport = viewport;
-				vp_s_paramPack->GetRef(i).scissor = scissor;
-			}
-		}
+		void UndeferPipeline(VkViewport const& viewport, VkRect2D const& scissor);
 	};
 
 	//a single Raster task will use one set of attachments (no swapping)
@@ -125,7 +129,7 @@ namespace EWE{
 		std::vector<Image> color_attachments{};
 		std::vector<Image> depth_attachments{};
 
-		RenderTracker renderTracker;
+		RenderTracker* renderTracker;
 		bool ownsAttachmentLifetime = true;
 
 		[[nodiscard]] explicit RasterTask(std::string_view name, LogicalDevice& logicalDevice, Queue& graphicsQueue, TaskRasterConfig const& config, bool createAttachments);
@@ -168,12 +172,18 @@ namespace EWE{
 		void Record_Mesh(CommandRecord& record);
 
 		void Record(CommandRecord& record);
-		GPUTask Record();
 		
-		void AdjustPipelines(){	
-			for(auto& pipe : deferred_pipelines){
-				pipe.UndeferPipeline(viewport, scissor);
-			}
-		}
+		void AdjustPipelines();
 	};
-}
+} //namespace EWE
+
+
+template<>
+struct std::hash<EWE::ObjectRasterData> {
+	size_t operator()(EWE::ObjectRasterData const& d) const noexcept {
+		EWE::HashCombiner hashCombiner{};
+		hashCombiner.Combine(std::hash<std::size_t>{}(reinterpret_cast<std::size_t>(d.layout)));
+		hashCombiner.Combine(std::hash<EWE::ObjectRasterConfig>{}(d.config));
+		return hashCombiner.seed;
+	}
+};

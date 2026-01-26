@@ -5,8 +5,6 @@
 namespace EWE{
     struct Buffer;
     struct Image;
-
-    struct Queue;
     
 
     template<typename T>
@@ -26,110 +24,152 @@ namespace EWE{
 
     template<typename T>
     struct Resource {
-        T* resource;
+        PerFlight<T*> resource;
         UsageData<T> usage;
+
+        [[nodiscard]] explicit Resource(UsageData<T> const& usage)
+            :resource{nullptr},
+            usage{usage}
+        {}
+        [[nodiscard]] explicit Resource(T& resource, UsageData<T> const& usage)
+            : resource{ &resource },
+            usage{ usage }
+        {}
+        [[nodiscard]] explicit Resource(PerFlight<T>& resource, UsageData<T> const& usage)
+        :resource{&resource[0], &resource[1]},
+            usage{ usage }
+        {}
     };
 
     struct TaskResourceUsage{
-        Queue& queue;
-
-        std::vector<Resource<Image>> images;
-        std::vector<Resource<Buffer>> buffers;
-        
-        std::vector<PerFlight<Resource<Image>>> images_perFlight;
-        std::vector<PerFlight<Resource<Buffer>>> buffers_perFlight;
+        std::vector<Resource<Image>> images{};
+        std::vector<Resource<Buffer>> buffers{};
 
         template<typename Res>
-        void AddResource(Res& res, UsageData<Res> const& usage){
+        uint32_t AddResource(UsageData<Res> const& usage) {
+            if constexpr (std::is_same_v<Res, Buffer>) {
+                buffers.push_back(
+                    Resource<Buffer>{usage}
+                );
+                return buffers.size() - 1;
+            }
+            else if constexpr (std::is_same_v<Res, Image>) {
+                images.push_back(
+                    Resource<Image>{usage}
+                );
+                return images.size() - 1;
+            }
+            else {
+                assert(false && "invalid resource type");
+                //static_assert(false && "invalid resource type");
+            }
+            return 69420;
+        }
+
+        template<typename Res>
+        uint32_t AddResource(Res& res, UsageData<Res> const& usage){
             if constexpr (std::is_same_v<Res, Buffer>){
-                buffers.push_back(Resource<Buffer>{.buffer = &res, .usage = usage});
-            }
-            else if constexpr (std::is_same_v<Res, Image>){
-                images.push_back(Resource<Image>{.image = &res, .usage = usage});
-            }
-            else if constexpr (std::is_same_v<Res, PerFlight<Buffer>>){
-                buffers_perFlight.push_back(
-                    PerFlight<Resource<Buffer>>{
-                        Resource<Buffer>{.buffer = &res[0], .usage = usage},
-                        Resource<Buffer>{.buffer = &res[1], .usage = usage}
-                    }
+                buffers.push_back(
+                    Resource<Buffer>{res, usage}
                 );
+                return buffers.size() - 1;
             }
-            else if constexpr (std::is_same_v<Res, PerFlight<Image>>){
-                images_perFlight.push_back(
-                    PerFlight<Resource<Image>>{
-                        Resource<Image>{.image = &res[0], .usage = usage},
-                        Resource<Image>{.image = &res[1], .usage = usage}
-                    }
+            else if constexpr (std::is_same_v<Res, Image>) {
+                images.push_back(
+                    Resource<Image>{res, usage}
                 );
+                return images.size() - 1;
             }
             else{
-                static_assert(false && "invalid resource type");
+                assert(false && "invalid resource type");
+                //static_assert(false && "invalid resource type");
             }
+            return 69420;
         }
-
+        template<typename Res>
+        uint32_t AddResource(PerFlight<Res>& res, UsageData<Res> const& usage) {
+            if constexpr (std::is_same_v<Res, PerFlight<Buffer>>) {
+                buffers.push_back(
+                    PerFlight<Resource<Buffer>>{
+                        Resource<Buffer>{res, usage},
+                    }
+                );
+                return buffers.size() - 1;
+            }
+            else if constexpr (std::is_same_v<Res, PerFlight<Image>>) {
+                images.push_back(
+                    PerFlight<Resource<Image>>{
+                        Resource<Image>{res, usage}
+                    }
+                );
+                return images.size() - 1;
+            }
+            else {
+                assert(false && "invalid resource type");
+                //static_assert(false && "invalid resource type");
+            }
+            return 69420;
+        }
     };
 
+    //transition and acquisition are created from something else, not directly constructed by the programmer
     template<typename Res>
     struct ResourceTransition{
-        PerFlight<Resource<Res>*> lhs;
-        PerFlight<Resource<Res>*> rhs;
-    };
+        Resource<Res>* lhs;
+        Resource<Res>* rhs;
 
-    //first time in use of frame
-    template<typename Res>
-    struct ResourceAcquisition{
-        PerFlight<Resource<Res>> rhs; //its fine to make a copy of Resource and UsageData, they're light weight
-
-        ResourceAcquisition(PerFlight<Res>& base_resource, UsageData<Res> const& usage) {
-            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                rhs[i].resource = &base_resource[i];
-                rhs[i].usage = usage;
+        ResourceTransition(TaskResourceUsage& lhs, uint32_t lh_index, TaskResourceUsage& rhs, uint32_t rh_index)
+        {
+            if constexpr (std::is_same_v<Res, Buffer>) {
+#if EWE_DEBUG_BOOL
+                for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                    assert(lhs.buffers[lh_index].resource[i] == rhs.buffers[rh_index].resource[i]);
+                }
+#endif 
+                this->lhs = &lhs.buffers[lh_index];
+                this->rhs = &rhs.buffers[rh_index];
+            }
+            else if constexpr (std::is_same_v<Res, Image>) {
+#if EWE_DEBUG_BOOL
+                for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                    assert(lhs.images[lh_index].resource[i] == rhs.images[rh_index].resource[i]);
+                }
+#endif
+                this->lhs = &lhs.images[lh_index];
+                this->rhs = &rhs.images[rh_index];
+            }
+            else {
+  //              static_assert(false);
             }
         }
 
-        //pass in the same queue if it's not a queue transfer
-        //this will also compare the layout 
-        void Acquire(Queue& lhsQueue); 
-    };
-
-    struct TaskPrefix{
-        LogicalDevice& logicalDevice;
-        Queue& queue;
-        [[nodiscard]] explicit TaskPrefix(LogicalDevice& logicalDevice, Queue& queue) 
-            : logicalDevice{ logicalDevice }, queue{ queue } 
+        [[nodiscard]] ResourceTransition(ResourceTransition&& moveSrc) noexcept
+        : lhs{moveSrc.lhs},
+            rhs{moveSrc.rhs}
         {}
 
-        std::vector<PerFlight<ResourceTransition<Image>>> imageTransitions;
-        std::vector<PerFlight<ResourceAcquisition<Image>>> imageAcquisitions;
-
-        std::vector<PerFlight<ResourceTransition<Buffer>>> bufferTransitions;
-        std::vector<PerFlight<ResourceAcquisition<Buffer>>> bufferAcquisitions;
-
-        inline bool Empty() const noexcept {
-            return (imageTransitions.size() + imageAcquisitions.size() + bufferTransitions.size() + bufferAcquisitions.size()) == 0;
-        }
-
-        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
+        ResourceTransition(ResourceTransition const& copySrc) = delete;
+        ResourceTransition& operator=(ResourceTransition&& moveSrc) = delete;
+        ResourceTransition& operator=(ResourceTransition const& copySrc) = delete;
     };
 
-    //these suffixes are ONLY for queue transfers
-    //if it's not a queue transfer, it ONLY needs to be put in the prefix
-    //the suffix transition NEEDS to PERFECTLY MATCH the partner prefix transition
-    struct TaskSuffix{
-        LogicalDevice& logicalDevice;
-        Queue& queue;
-        [[nodiscard]] explicit TaskSuffix(LogicalDevice& logicalDevice, Queue& queue)
-            : logicalDevice{ logicalDevice }, queue{ queue }
-        {}
+    //first time in use of frame, queue transfers aren't allowed here
+    template<typename Res>
+    struct ResourceAcquisition{
+        Resource<Res>* rhs;
 
-        std::vector<ResourceTransition<Image>> imageTransitions;
-        std::vector<ResourceTransition<Buffer>> bufferTransitions;
-
-        inline bool Empty() const noexcept {
-            return (imageTransitions.size() + bufferTransitions.size()) == 0;
+        ResourceAcquisition(TaskResourceUsage& rhs, uint32_t rh_index) {
+            if constexpr (std::is_same_v<Res, Buffer>) {
+                this->rhs = &rhs.buffers[rh_index];
+            }
+            else if constexpr (std::is_same_v<Res, Image>) {
+                this->rhs = &rhs.images[rh_index];
+            }
+            else {
+  //              static_assert(false);
+            }
         }
-
-        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
     };
+
+
 }
