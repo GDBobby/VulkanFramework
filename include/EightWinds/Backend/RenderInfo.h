@@ -2,48 +2,94 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-//#include "EightWinds/ImageView.h"
+#include "EightWinds/Data/PerFlight.h"
+#include "EightWinds/Data/RuntimeArray.h"
+#include "EightWinds/RenderGraph/Command/DeferredReference.h"
+#include "EightWinds/Image.h"
+#include "EightWinds/ImageView.h"
 
-#include <EightWinds/Data/PerFlight.h>
+#include "EightWinds/Backend/RenderInfo.h"
+
+#include "EightWinds/DescriptorImageInfo.h"
+
+
+#include <vector>
 
 
 namespace EWE{
 
-    struct ImageView;
+	struct RenderAttachments;
 
-    struct RenderInfo {
-        //i could make this an array of 4 or some arbitrary number, so that the attachments are cache local
-        //idk if it matters?
-        std::vector<VkRenderingAttachmentInfo> colorAttachmentInfo{};
-        VkRenderingAttachmentInfo depthAttachmentInfo;
+	struct RenderInfo {
+		std::vector<VkRenderingAttachmentInfo> colors;
+		VkRenderingAttachmentInfo depth;
 
-        void FixPointers(VkRenderingInfo& renderingInfo) {
-            renderingInfo.pColorAttachments = colorAttachmentInfo.data();
-            renderingInfo.pDepthAttachment = &depthAttachmentInfo;
-            renderingInfo.pStencilAttachment = nullptr; //idk
-        }
-    };
+		[[nodiscard]] explicit RenderInfo(RenderAttachments const& attachments, uint8_t frameIndex);
+	};
+
+	struct Render_Vk_Data {
+		PerFlight<RenderInfo> vk_data;
+		PerFlight<VkRenderingInfo> vk_info;
+
+		[[nodiscard]] explicit Render_Vk_Data(RenderAttachments const& attachments, VkRenderingFlags renderingFlags);
+	};
 
     struct AttachmentInfo {
+        VkFormat                format;
         VkAttachmentLoadOp      loadOp;
         VkAttachmentStoreOp     storeOp;
         VkClearValue            clearValue;
     };
-    //temporarily just going to pretend like resolve doesnt exist
-    struct SimplifiedAttachment {
-        PerFlight<ImageView*> imageView{ nullptr }; //i dont know if i want ownership or view here
-        AttachmentInfo info;
-    };
-    struct RenderInfo2 {
-        VkRenderingFlags flags;
-        std::vector<SimplifiedAttachment> color_attachments;
-        SimplifiedAttachment depth_attachment;  //if the image is nullptr, it's not in use.
 
-        //if resolve.size() > color_attachments.size(), then resolve.back() would be for depth
-        //std::vector<Resolve> resolves{};
+    struct AttachmentSetInfo {
+        uint32_t width;
+        uint32_t height;
+		VkRenderingFlags renderingFlags{ 0 };
+        std::vector<AttachmentInfo> colors;
+        AttachmentInfo depth; //should be optional
 
-        void Expand(PerFlight<RenderInfo>& renderInfo, PerFlight<VkRenderingInfo>& renderingInfo) const;
-        //all sizes must be uniform at the moment, i dont know if i ever want it different
-        VkRect2D CalculateRenderArea() const noexcept;
+		VkRect2D CalculateRenderArea() const;
     };
+
+	struct RenderAttachments {
+		LogicalDevice& logicalDevice;
+		Queue& graphicsQueue;
+		const std::string name;
+
+		[[nodiscard]] explicit RenderAttachments(
+			std::string_view name,
+			LogicalDevice& logicalDevice,
+			Queue& graphicsQueue,
+			AttachmentSetInfo const& setInfo
+		);
+
+		RuntimeArray<PerFlight<Image>> color_images;
+		HeapBlock<PerFlight<ImageView>> color_views; //i want this to be a runtimearray but i need to delay the construction
+		//these should be optional
+		PerFlight<Image> depth_images;
+		HeapBlock<PerFlight<ImageView>> depth_views; //singular, but the alternative is to just use a pointer which is somewhat misleading
+
+		AttachmentSetInfo setInfo; //do I even need this here?
+
+		void CreateImages(std::string_view name, uint32_t width, uint32_t height, AttachmentSetInfo const& setInfo);
+		void CreateImageViews();
+		void InitialTransition();
+	};
+
+
+	struct FullRenderInfo {
+		RenderAttachments full;
+		Render_Vk_Data render_data;
+
+		[[nodiscard]] explicit FullRenderInfo(
+			std::string_view name,
+			LogicalDevice& logicalDevice,
+			Queue& graphicsQueue,
+			AttachmentSetInfo const& setInfo
+		);
+
+		DeferredReference<VkRenderingInfo> deferred_render_info;
+
+		void Undefer();
+	};
 } //namespace EWE

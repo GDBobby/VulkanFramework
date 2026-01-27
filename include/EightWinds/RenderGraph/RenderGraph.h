@@ -12,6 +12,7 @@
 #include "EightWinds/RenderGraph/PresentSubmission.h"
 #include "EightWinds/RenderGraph/SubmissionTask.h"
 #include "EightWinds/RenderGraph/PresentBridge.h"
+#include "EightWinds/RenderGraph/SynchronizationManager.h"
 
 #include "EightWinds/Data/Hive.h"
 
@@ -20,33 +21,6 @@
 namespace EWE{
 
 
-    struct SynchronizationManager {
-        template<typename Resource>
-        struct TransitionObjects {
-            GPUTask* lhs;
-            uint32_t lh_index;
-            GPUTask* rhs;
-            uint32_t rh_index;
-        };
-        template<typename Resource>
-        struct AcquireObjects{
-            GPUTask* rhs;
-            uint32_t rh_index;
-        };
-
-        std::vector<TransitionObjects<Buffer>> buffer_transitions;
-        std::vector<TransitionObjects<Image>> image_transitions;
-        std::vector<AcquireObjects<Buffer>> buffer_acquisitions;
-        std::vector<AcquireObjects<Image>> image_acquisitions;
-
-        void AddTransition_Buffer(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
-        void AddTransition_Image(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
-        void AddAcquisition_Buffer(GPUTask& rhs, uint32_t rh_index);
-        void AddAcquisition_Image(GPUTask& rhs, uint32_t rh_index);
-
-        void PopulateTasks();
-
-    };
 
 
     struct RenderGraph{
@@ -79,5 +53,19 @@ namespace EWE{
         VkPresentInfoKHR presentInfo{};
 
         void Execute(uint8_t frameIndex);
+
+        void ClearAllBarriers(uint8_t frameIndex);
+        void RecreateBarriers(uint8_t frameIndex);
+
+        template<typename T>
+        void ChangeResource(GPUTask& task, uint32_t res_index, T* resource, uint8_t frameIndex) {
+            if constexpr (std::is_same_v<T, Image>) {
+                task.resources.images[res_index].resource[frameIndex] = resource;
+            }
+            else if constexpr (std::is_same_v<T, Buffer>) {
+                task.resources.buffers[res_index].resource[frameIndex] = resource;
+            }
+
+        }
     };
 }//namespace EWE

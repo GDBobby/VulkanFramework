@@ -14,6 +14,7 @@ namespace EWE{
 		depthBias.slopeFactor = 0.f;
 
 		topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		polygonMode = VK_POLYGON_MODE_FILL;
 		primitiveRestart = VK_FALSE;
 
 		blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;

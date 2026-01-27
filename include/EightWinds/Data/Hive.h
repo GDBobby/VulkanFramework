@@ -18,7 +18,6 @@ namespace EWE{
     template<typename T, std::size_t RowWidth = 16>
     struct Hive{
 
-        //uint8 just so i can move bytewise thru the memory
         struct Comb{
             StackBlock<T, RowWidth> memory;
             std::bitset<RowWidth> occupancy;
@@ -116,5 +115,120 @@ namespace EWE{
         }
 
         //add a begin and end for iteration
+        struct iterator {
+            Hive* hive = nullptr;
+            std::size_t combIndex = 0;
+            std::size_t slotIndex = 0;
+
+            iterator(Hive* hive, std::size_t combIndex, std::size_t slotIndex)
+                : hive(hive), combIndex(combIndex), slotIndex(slotIndex) {
+                advance_to_valid();
+            }
+
+            void advance_to_valid() {
+                while (combIndex < hive->combs.size()) {
+                    auto& comb = *hive->combs[combIndex];
+                    while (slotIndex < RowWidth) {
+                        if (comb.occupancy.test(slotIndex))
+                            return;
+                        ++slotIndex;
+                    }
+                    slotIndex = 0;
+                    ++combIndex;
+                }
+            }
+
+            T& operator*() const {
+                return hive->combs[combIndex]->memory[slotIndex];
+            }
+
+            T* operator->() const {
+                return &(**this);
+            }
+
+            iterator& operator++() {
+                ++slotIndex;
+                advance_to_valid();
+                return *this;
+            }
+
+            bool operator==(iterator const& other) const {
+                return hive == other.hive &&
+                    combIndex == other.combIndex &&
+                    slotIndex == other.slotIndex;
+            }
+
+            bool operator!=(iterator const& other) const {
+                return !(*this == other);
+            }
+        };
+
+        struct const_iterator {
+            const Hive* hive = nullptr;
+            std::size_t combIndex = 0;
+            std::size_t slotIndex = 0;
+
+            const_iterator(const Hive* hive, std::size_t combIndex, std::size_t slotIndex)
+                : hive(hive), combIndex(combIndex), slotIndex(slotIndex) {
+                advance_to_valid();
+            }
+
+            void advance_to_valid() {
+                while (combIndex < hive->combs.size()) {
+                    const auto& comb = *hive->combs[combIndex];
+                    while (slotIndex < RowWidth) {
+                        if (comb.occupancy.test(slotIndex))
+                            return;
+                        ++slotIndex;
+                    }
+                    slotIndex = 0;
+                    ++combIndex;
+                }
+            }
+
+            const T& operator*() const {
+                return hive->combs[combIndex]->memory[slotIndex];
+            }
+
+            const_iterator& operator++() {
+                ++slotIndex;
+                advance_to_valid();
+                return *this;
+            }
+
+            bool operator==(const_iterator const& other) const {
+                return hive == other.hive &&
+                    combIndex == other.combIndex &&
+                    slotIndex == other.slotIndex;
+            }
+
+            bool operator!=(const_iterator const& other) const {
+                return !(*this == other);
+            }
+        };
+
+        iterator begin() {
+            return iterator(this, 0, 0);
+        }
+
+        iterator end() {
+            return iterator(this, combs.size(), 0);
+        }
+
+        const_iterator begin() const {
+            return const_iterator(this, 0, 0);
+        }
+
+        const_iterator end() const {
+            return const_iterator(this, combs.size(), 0);
+        }
+
+        const_iterator cbegin() const {
+            return begin();
+        }
+
+        const_iterator cend() const {
+            return end();
+        }
     };
 }

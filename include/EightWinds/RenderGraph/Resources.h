@@ -1,6 +1,8 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
+#include "EightWinds/Data/PerFlight.h"
+
 
 namespace EWE{
     struct Buffer;
@@ -45,18 +47,17 @@ namespace EWE{
         std::vector<Resource<Image>> images{};
         std::vector<Resource<Buffer>> buffers{};
 
+        template<class>
+        static constexpr bool invalid_type_debugging_helper = false;
+
         template<typename Res>
         uint32_t AddResource(UsageData<Res> const& usage) {
             if constexpr (std::is_same_v<Res, Buffer>) {
-                buffers.push_back(
-                    Resource<Buffer>{usage}
-                );
+                buffers.emplace_back(usage);
                 return buffers.size() - 1;
             }
             else if constexpr (std::is_same_v<Res, Image>) {
-                images.push_back(
-                    Resource<Image>{usage}
-                );
+                images.emplace_back(usage);
                 return images.size() - 1;
             }
             else {
@@ -69,44 +70,32 @@ namespace EWE{
         template<typename Res>
         uint32_t AddResource(Res& res, UsageData<Res> const& usage){
             if constexpr (std::is_same_v<Res, Buffer>){
-                buffers.push_back(
-                    Resource<Buffer>{res, usage}
-                );
+                buffers.emplace_back(res, usage);
                 return buffers.size() - 1;
             }
             else if constexpr (std::is_same_v<Res, Image>) {
-                images.push_back(
-                    Resource<Image>{res, usage}
-                );
+                images.emplace_back(res, usage);
                 return images.size() - 1;
             }
             else{
-                assert(false && "invalid resource type");
-                //static_assert(false && "invalid resource type");
+                //assert(invalid_type_debugging_helper<Res> && "invalid resource type");
+                static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
             }
             return 69420;
         }
         template<typename Res>
         uint32_t AddResource(PerFlight<Res>& res, UsageData<Res> const& usage) {
-            if constexpr (std::is_same_v<Res, PerFlight<Buffer>>) {
-                buffers.push_back(
-                    PerFlight<Resource<Buffer>>{
-                        Resource<Buffer>{res, usage},
-                    }
-                );
+            if constexpr (std::is_same_v<Res, Buffer>) {
+                buffers.emplace_back(res, usage);
                 return buffers.size() - 1;
             }
-            else if constexpr (std::is_same_v<Res, PerFlight<Image>>) {
-                images.push_back(
-                    PerFlight<Resource<Image>>{
-                        Resource<Image>{res, usage}
-                    }
-                );
+            else if constexpr (std::is_same_v<Res, Image>) {
+                images.emplace_back(res, usage);
                 return images.size() - 1;
             }
             else {
-                assert(false && "invalid resource type");
-                //static_assert(false && "invalid resource type");
+                //assert(invalid_type_debugging_helper<Res> && "invalid resource type");
+                static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
             }
             return 69420;
         }

@@ -124,14 +124,18 @@ namespace EWE{
         EndLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT"));
         debugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT"));
 #endif
+        cmdDrawMeshTasks = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksEXT"));
+        cmdDrawMeshTasksIndirect = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectEXT"));
+        cmdDrawMeshTasksIndirectCount = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectCountEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectCountEXT"));
 
-        VmaAllocatorCreateInfo allocatorCreateInfo{};
-        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
-        allocatorCreateInfo.vulkanApiVersion = api_version;
-        allocatorCreateInfo.physicalDevice = physicalDevice.device;
-        allocatorCreateInfo.device = device;
-        allocatorCreateInfo.instance = instance.instance;
-        allocatorCreateInfo.pVulkanFunctions = nullptr;
+        VmaAllocatorCreateInfo allocatorCreateInfo{
+            .flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+            .physicalDevice = physicalDevice.device,
+            .device = device,
+            .pVulkanFunctions = nullptr,
+            .instance = instance.instance,
+            .vulkanApiVersion = api_version
+        };
         VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
         EWE_VK_RESULT(result);
     }

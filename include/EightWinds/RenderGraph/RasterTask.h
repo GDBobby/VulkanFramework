@@ -26,29 +26,7 @@
 #include <unordered_set>
 
 namespace EWE{
-
-
 	
-	struct RenderTracker {
-		RenderInfo3 full;
-		RenderInfo2 compact;
-		PerFlight<RenderInfo> vk_data;
-		PerFlight<VkRenderingInfo> vk_info;
-		
-		[[nodiscard]] explicit RenderTracker(
-			std::string_view name,
-			LogicalDevice& logicalDevice,
-			Queue& graphicsQueue,
-			uint32_t width, uint32_t height,
-			std::vector<AttachmentConstructionInfo> const& color_att_info,
-			AttachmentConstructionInfo depth_info,
-			VkRenderingFlags flags
-		);
-		
-		void CascadeFull();
-		
-		DeferredReference<VkRenderingInfo> deferred_render_info;
-	};
 	
 	
 	using DrawBase = GlobalPushConstant_Abstract;
@@ -99,11 +77,29 @@ namespace EWE{
 
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
-			TaskRasterConfig& taskConfig, ObjectRasterData const& rasterData,
+			TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
 			DeferredReference<PipelineParamPack>* pipe_params,
 			DeferredReference<ViewportScissorParamPack>* vp_params
 		);
+		[[nodiscard]] explicit DeferredPipelineExecute(
+			LogicalDevice& logicalDevice,
+			TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
+			CommandRecord& record
+		);
+
 		~DeferredPipelineExecute();
+		DeferredPipelineExecute(DeferredPipelineExecute const& copySrc) = delete;
+		DeferredPipelineExecute& operator=(DeferredPipelineExecute&& moveSrc) = delete;
+		DeferredPipelineExecute(DeferredPipelineExecute&& moveSrc) noexcept
+			: pipeline{moveSrc.pipeline},
+				pipe_paramPack{moveSrc.pipe_paramPack},
+				vp_s_paramPack{moveSrc.vp_s_paramPack}
+		{
+			moveSrc.pipeline = nullptr;
+			moveSrc.pipe_paramPack = nullptr;
+			moveSrc.vp_s_paramPack = nullptr;
+		}
+		DeferredPipelineExecute& operator=(DeferredPipelineExecute const& copySrc) = delete;
 		
 		void UndeferPipeline(VkViewport const& viewport, VkRect2D const& scissor);
 	};
@@ -120,7 +116,7 @@ namespace EWE{
 		TaskRasterConfig config; //temp rename
 		//i need a better way to handle dynamic state
 
-		VkViewport viewport;
+		VkViewport viewport; //is viewport x/y going to be permanently tied to attachment width/height?
 		VkRect2D scissor;
 
 		//i need to figure out the attachments as well
@@ -129,14 +125,16 @@ namespace EWE{
 		std::vector<Image> color_attachments{};
 		std::vector<Image> depth_attachments{};
 
-		RenderTracker* renderTracker;
+		FullRenderInfo* renderInfo;
 		bool ownsAttachmentLifetime = true;
 
-		[[nodiscard]] explicit RasterTask(std::string_view name, LogicalDevice& logicalDevice, Queue& graphicsQueue, TaskRasterConfig const& config, bool createAttachments);
+		[[nodiscard]] explicit RasterTask(std::string_view name, LogicalDevice& logicalDevice, Queue& graphicsQueue, TaskRasterConfig const& config, FullRenderInfo* renderInfo);
 		
 		//fully polymorhpism, with dynamic dispatch. woudl need a virtual Draw() = 0;
 		//KeyValueContainer<ObjectRasterConfig, std::vector<DrawBase*>> draws;
 		//if i made it so that the user is in charge of condensing pipelines, i wouldnt' have to store these
+		
+		//i could template these to make it MUCH more convenient/clean but idk if its worth the effort
 		KeyValueContainer<ObjectRasterData, std::vector<VertexDrawData*>> vert_draws;
 		KeyValueContainer<ObjectRasterData, std::vector<IndexedDrawData*>> indexed_draws;
 		KeyValueContainer<ObjectRasterData, std::vector<MeshDrawData*>> mesh_draws;
@@ -145,23 +143,33 @@ namespace EWE{
 		KeyValueContainer<ObjectRasterData, std::vector<IndexDrawCount*>> index_draw_counts;
 		KeyValueContainer<ObjectRasterData, std::vector<MeshDrawCount*>> mesh_draw_counts;
 		
+		template<typename T>
+		void AddHelper(KeyValueContainer<ObjectRasterData, std::vector<T*>>& kv_container, ObjectRasterData const& config, T& draw) {
+			if (!kv_container.Contains(config)) {
+				kv_container.push_back(config).push_back(&draw);
+			}
+			else {
+				kv_container.at(config).value.push_back(&draw);
+			}
+		}
+
 		void AddDraw(ObjectRasterData const& config, VertexDrawData& draw) {
-			vert_draws.at(config).value.push_back(&draw);
+			AddHelper(vert_draws, config, draw);
 		}
 		void AddDraw(ObjectRasterData const& config, IndexedDrawData& draw) {
-			indexed_draws.at(config).value.push_back(&draw);
+			AddHelper(indexed_draws, config, draw);
 		}
 		void AddDraw(ObjectRasterData const& config, MeshDrawData& draw) {
-			mesh_draws.at(config).value.push_back(&draw);
+			AddHelper(mesh_draws, config, draw);
 		}
 		void AddDraw(ObjectRasterData const& config, VertexDrawCount& draw) {
-			vert_draw_counts.at(config).value.push_back(&draw);
+			AddHelper(vert_draw_counts, config, draw);
 		}
 		void AddDraw(ObjectRasterData const& config, IndexDrawCount& draw) {
-			index_draw_counts.at(config).value.push_back(&draw);
+			AddHelper(index_draw_counts, config, draw);
 		}
 		void AddDraw(ObjectRasterData const& config, MeshDrawCount& draw) {
-			mesh_draw_counts.at(config).value.push_back(&draw);
+			AddHelper(mesh_draw_counts, config, draw);
 		}
 
 		//this needs to stay alive as long as these objects are used in a task

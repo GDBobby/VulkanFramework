@@ -203,7 +203,8 @@ namespace EWE{
             ctx.Print();
 #endif
             auto* data = reinterpret_cast<DrawMeshTasksParamPack const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-            vkCmdDrawMeshTasksEXT(ctx.cmdBuf, data->x, data->y, data->z);
+
+            ctx.device.cmdDrawMeshTasks(ctx.cmdBuf, data->x, data->y, data->z);
         }
         
         void DrawIndirect(ExecContext& ctx){

@@ -42,14 +42,14 @@ namespace EWE{
         //i need another system wrapping GPUTask to handle how the command buffers are dealt with
         void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
 
-        std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
+        std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
         
         TaskResourceUsage resources;
 
-        TaskPrefix prefix{logicalDevice, queue};
-        TaskSuffix suffix{logicalDevice, queue};
+        TaskAffix prefix{};
+        TaskAffix suffix{};
         void GenerateWorkload();
-        void GenerateExternalWorkload(std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload);
+        void GenerateExternalWorkload(std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload);
     };
 
 

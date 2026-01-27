@@ -61,6 +61,10 @@ namespace EWE{
         PFN_vkSetDebugUtilsObjectNameEXT debugUtilsObjectName = nullptr;
         void SetObjectName(void* objectHandle, VkObjectType objectType, std::string_view name) const;
 #endif
+        PFN_vkCmdDrawMeshTasksEXT cmdDrawMeshTasks;
+        PFN_vkCmdDrawMeshTasksIndirectEXT cmdDrawMeshTasksIndirect;
+        PFN_vkCmdDrawMeshTasksIndirectCountEXT cmdDrawMeshTasksIndirectCount;
+
     private:
         //just so i can force construction order. also creates queues
         VkDevice CreateDevice(VkDeviceCreateInfo& deviceCreateInfo);

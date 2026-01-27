@@ -31,19 +31,18 @@ namespace EWE{
 		//no valid defaults, this needs real data
 		pipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
 		pipelineRenderingCreateInfo.pNext = nullptr;
-		color_att_info.clear();
-		color_att_info.push_back(
-			AttachmentConstructionInfo{ 
+		attachment_set_info.colors.clear();
+		attachment_set_info.colors.push_back(
+			AttachmentInfo{ 
 				.format = VK_FORMAT_R8G8B8A8_UNORM, 
-				.info = AttachmentInfo{
-					.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-					.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-					.clearValue = {0.f, 0.f, 0.f, 0.f}
-				} 
+				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+				.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.clearValue = {0.f, 0.f, 0.f, 0.f}
+				 
 			}
 		);
-		pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(color_att_info.size());
-		pipelineRenderingCreateInfo.depthAttachmentFormat = depth_att_info.format;
+		pipelineRenderingCreateInfo.colorAttachmentCount = static_cast<uint32_t>(attachment_set_info.colors.size());
+		pipelineRenderingCreateInfo.depthAttachmentFormat = attachment_set_info.depth.format;
 		pipelineRenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 	}
 

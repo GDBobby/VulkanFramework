@@ -37,10 +37,16 @@ namespace EWE{
     };
     
     struct GlobalPushConstant_Abstract{
-        Buffer* buffers[GlobalPushConstant_Raw::buffer_count];
-        DescriptorImageInfo* textures[GlobalPushConstant_Raw::texture_count];
+        std::array<Buffer*, GlobalPushConstant_Raw::buffer_count> buffers;
+        std::array<DescriptorImageInfo*, GlobalPushConstant_Raw::texture_count> textures;
         
         DeferredReference<GlobalPushConstant_Raw>* deferred_push = nullptr;
+
+        [[nodiscard]] GlobalPushConstant_Abstract() {
+            buffers.fill(nullptr);
+            textures.fill(nullptr);
+        }
+
         //updates the Execute::ParamPool push constant
         void UpdateBuffer(uint8_t frameIndex);
         void UpdateBuffer();

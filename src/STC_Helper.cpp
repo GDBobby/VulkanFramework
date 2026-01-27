@@ -71,13 +71,14 @@ namespace EWE{
 		}
 	};
 	
-	
-	void Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait){
-        STC_Helper stc_Helper(logicalDevice, queue);
+	namespace Command_Helper {
+		void Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait) {
+			STC_Helper stc_Helper(logicalDevice, queue);
 
-		vkCmdPipelineBarrier2(stc_Helper.cmdBuf, &dependencyInfo);
-		
-		stc_Helper.Submit(wait);
-		
+			vkCmdPipelineBarrier2(stc_Helper.cmdBuf, &dependencyInfo);
+
+			stc_Helper.Submit(wait);
+
+		}
 	}
 }

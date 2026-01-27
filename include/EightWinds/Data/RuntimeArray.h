@@ -116,8 +116,18 @@ namespace EWE{
 
 		RuntimeArray& operator=(RuntimeArray&& moveSrc) noexcept = delete;
 		
-        T& operator[](size_t i) noexcept { return heap[i]; }
-        T const& operator[](size_t i) const noexcept { return heap[i]; }
+		T& operator[](std::size_t i) noexcept { 
+#if EWE_DEBUG_BOOL
+			assert(i < Size());
+#endif
+			return heap[i]; 
+		}
+        T const& operator[](std::size_t i) const noexcept {
+#if EWE_DEBUG_BOOL
+			assert(i < Size());
+#endif
+			return heap[i]; 
+		}
 		
 		T* begin() noexcept {return heap.begin();}
 		T* end() noexcept {return heap.end();}

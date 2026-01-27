@@ -8,50 +8,51 @@ namespace EWE{
     }
 
     bool Image::Create(VmaAllocationCreateInfo const& allocCreateInfo){
-        VkImageCreateInfo imgCreateInfo{};
-        imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imgCreateInfo.pNext = nullptr;
-        imgCreateInfo.flags = 0;
-        imgCreateInfo.extent = extent;
-        imgCreateInfo.format = format;
-        imgCreateInfo.arrayLayers = arrayLayers;
-        imgCreateInfo.mipLevels = mipLevels;
-        imgCreateInfo.usage = usage;
-        imgCreateInfo.tiling = tiling;
-        imgCreateInfo.samples = samples;
-        imgCreateInfo.imageType = type;
-        
-        //use preinitialized if its going to be copied to
-        imgCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageCreateInfo imgCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .imageType = type,
+            .format = format,
+            .extent = extent,
+            .mipLevels = mipLevels,
+            .arrayLayers = arrayLayers,
+            .samples = samples,
+            .tiling = tiling,
+            .usage = usage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 
-        imgCreateInfo.queueFamilyIndexCount = 1;
-        imgCreateInfo.pQueueFamilyIndices = &owningQueue->family.index;
-        imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            .queueFamilyIndexCount = 1,
+            .pQueueFamilyIndices = &owningQueue->family.index,
+        //use preinitialized if its going to be copied to
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+
+        };
 
         EWE_VK(vmaCreateImage, logicalDevice.vmaAllocator, &imgCreateInfo, &allocCreateInfo, &image, &memory, nullptr);
         return true;
     }
     bool Image::Create(VmaAllocationCreateInfo const& allocCreateInfo, StagingBuffer* stagedPixelData){
-        VkImageCreateInfo imgCreateInfo{};
-        imgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        imgCreateInfo.pNext = nullptr;
-        imgCreateInfo.flags = 0;
-        imgCreateInfo.extent = extent;
-        imgCreateInfo.format = format;
-        imgCreateInfo.arrayLayers = arrayLayers;
-        imgCreateInfo.mipLevels = mipLevels;
-        imgCreateInfo.usage = usage;
-        imgCreateInfo.tiling = tiling;
-        imgCreateInfo.samples = samples;
-        imgCreateInfo.imageType = type;
-        
+        VkImageCreateInfo imgCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .imageType = type,
+            .format = format,
+            .extent = extent,
+            .mipLevels = mipLevels,
+            .arrayLayers = arrayLayers,
+            .samples = samples,
+            .tiling = tiling,
+            .usage = usage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+
         //use preinitialized if its going to be copied to
-        imgCreateInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 
-        imgCreateInfo.queueFamilyIndexCount = 1;
-        imgCreateInfo.pQueueFamilyIndices = &owningQueue->family.index;
-        imgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
+            .queueFamilyIndexCount = 1,
+            .pQueueFamilyIndices = &owningQueue->family.index,
+            .initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED
+        };
 #if EWE_DEBUG_BOOL
         assert(false && "not readyy yet");
 #endif
