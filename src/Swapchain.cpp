@@ -31,6 +31,7 @@ namespace EWE{
         },
         activeSwapchain{VK_NULL_HANDLE},
         images{0},
+        imageViews{0},
         acquire_semaphores{logicalDevice, false},
         inFlightFences{logicalDevice, GetFenceCreateInfo()}
     {
@@ -115,8 +116,8 @@ namespace EWE{
 
         //wait for each fence
         std::vector<VkFence> fences{};
-        for(auto& fence : inFlightFences){
-            fences.push_back(fence.vkFence);
+        for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+            fences.push_back(inFlightFences[i].vkFence);
         }
         //timeout is not an accepted result here
         EWE_VK(vkWaitForFences, logicalDevice.device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX);
@@ -128,9 +129,14 @@ namespace EWE{
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, nullptr);
         std::vector<VkImage> raw_images(swapImageCount);
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, raw_images.data());
-        images.DestroyAll();
+        if (images.Size() > 0) {
+            images.DestroyAll();
+            imageViews.DestroyAll();
+        }
         images.Resize(swapImageCount);
         images.ConstructAll(logicalDevice);
+        imageViews.Resize(swapImageCount);
+
         for (uint8_t i = 0; i < swapImageCount; i++) {
             auto& backImage = images[i];
 
@@ -148,6 +154,9 @@ namespace EWE{
             std::string imageIndexStr = std::string("swap chain image [") + std::to_string(i) + ']';
             backImage.SetName(imageIndexStr.c_str());
 #endif
+        }
+        for (uint8_t i = 0; i < swapImageCount; i++) {
+            imageViews.ConstructAt(i, images[i]);
         }
 
         present_semaphores.clear(); //these aren't getting destructed
@@ -277,5 +286,8 @@ namespace EWE{
 
     Image& Swapchain::GetCurrentImage() {
         return images[imageIndex];
+    }
+    ImageView& Swapchain::GetCurrentImageView() {
+        return imageViews[imageIndex];
     }
 }

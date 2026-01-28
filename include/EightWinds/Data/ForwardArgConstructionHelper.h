@@ -20,10 +20,7 @@ namespace EWE{
     }
 
     template<std::size_t Begin, std::size_t Length, typename T, typename... Args>
-    static void ConstructFrom_ForwardedArgumentPackSlice(
-        T* construction_address,
-        Args&&... args
-    ) {
+    static void ConstructFrom_ForwardedArgumentPackSlice(T* construction_address, Args&&... args) {
         auto forwarded_as_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
 
         auto sliced_tuple = tuple_slice_index_creator<Begin, Length>(forwarded_as_tuple);
@@ -34,6 +31,19 @@ namespace EWE{
                     construction_address,
                     std::forward<decltype(slice_args)>(slice_args)...
                 );
+            },
+            sliced_tuple
+        );
+    }
+    template<std::size_t Begin, std::size_t Length, typename T, typename... Args>
+    static T ConstructFrom_ForwardedArgumentPackSlice(Args&&... args) {
+        auto forwarded_as_tuple = std::forward_as_tuple(std::forward<Args>(args)...);
+
+        auto sliced_tuple = tuple_slice_index_creator<Begin, Length>(forwarded_as_tuple);
+
+        return std::apply(
+            [](auto&&... slice_args) -> T {
+                return T{ std::forward<decltype(slice_args)>(slice_args)... };
             },
             sliced_tuple
         );

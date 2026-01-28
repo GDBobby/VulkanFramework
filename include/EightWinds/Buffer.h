@@ -46,7 +46,7 @@ namespace EWE{
         void* mapped = nullptr;
         void* GetMapped();
 
-        VkDeviceAddress deviceAddress;
+        VkDeviceAddress deviceAddress = 0;
 
         void* Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
         void Unmap() noexcept;

@@ -23,10 +23,14 @@ namespace EWE{
         VkBufferCreateInfo bufferCreateInfo{
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
+#if EWE_DEBUG_BOOL
+            .flags = VK_BUFFER_CREATE_DEVICE_ADDRESS_CAPTURE_REPLAY_BIT,
+#endif
             .size = bufferSize,
             .usage = usageFlags,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE
         };
+
         assert(bufferSize > 0);
 
         EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);

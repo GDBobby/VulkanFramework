@@ -10,7 +10,7 @@ namespace EWE{
             case Type::BindPipeline: return sizeof(PipelineParamPack);
             case Type::BindDescriptor: return sizeof(VkDescriptorSet);
             case Type::PushConstant: return sizeof(GlobalPushConstant_Raw);
-            case Type::BeginRender: return sizeof(VkRenderingInfo*);
+            case Type::BeginRender: return sizeof(VkRenderingInfo);
             case Type::EndRender: return 0;
             
             case Type::Draw: return sizeof(VertexDrawParamPack);

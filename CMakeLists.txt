@@ -51,19 +51,35 @@ set(GLFW_VULKAN_STATIC ON CACHE BOOL "")
 
 add_subdirectory(external/glfw)
 
-option(USING_NVIDIA_AFTERMATH, "Nvidia Aftermath" OFF)
-if(USING_NVIDIA_AFTERMATH)
-	message(STATUS "including 64 bit Aftermath")
-    set(AFTERMATH_LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/explicit_external/Aftermath/lib/x64/")
-    
-    set(AFTERMATH_LIBS
-        GFSDK_Aftermath_Lib.x64
+option(ENABLE_AFTERMATH "Enable NVIDIA NSight aftermath" ON)
+if (DEFINED NVIDIA_AFTERMATH_PATH AND ENABLE_AFTERMATH)
+    message(STATUS "Including NVIDIA Nsight Aftermath - ${NVIDIA_AFTERMATH_PATH}")
+
+    add_library(nvidia_aftermath INTERFACE)
+
+    target_include_directories(nvidia_aftermath INTERFACE
+        "${NVIDIA_AFTERMATH_PATH}/include"
     )
+
+    target_link_libraries(nvidia_aftermath INTERFACE
+        "${NVIDIA_AFTERMATH_PATH}/lib/x64/GFSDK_Aftermath_Lib.x64.lib"
+    )
+
+    target_compile_definitions(nvidia_aftermath INTERFACE
+        USING_NVIDIA_AFTERMATH=1
+    )
+
+    # Set the global big bool
+    set(GLOBAL_USING_AFTERMATH ON CACHE INTERNAL "Whether Aftermath is actually enabled")
+else()
+    if(ENABLE_AFTERMATH)
+        message(WARNING "Attempted to enable Nsight Aftermath but failed to find NVIDIA_AFTERMATH_PATH. Check .env.cmake")
+    endif()
 endif()
 
-
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADER_FILES})
+
+
 
 option(USING_ASAN "address sanitizer" OFF)
 if(USING_ASAN)
@@ -109,10 +125,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/external
 	${LinearAlgebra_SOURCE_DIR}
 )
-#set(EWENGINE_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE INTERNAL "Build directory for EWEngine")
-
-
-message(STATUS "linking directories")
 
 target_link_directories(${PROJECT_NAME} PUBLIC
 	${Vulkan_LIB_DIR}
@@ -129,9 +141,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 	spirv-cross-reflect
 	glfw
 	${Vulkan_LIBRARY}
-	#$<$<CONFIG:Debug>:${AFTERMATH_LIBS}>
-  	#LinearAlgebra::LinearAlgebra-compile-options
 )
+if(GLOBAL_USING_AFTERMATH)
+    target_include_directories(${PROJECT_NAME} PUBLIC
+        "${NVIDIA_AFTERMATH_PATH}/include"
+    )
+    target_link_libraries(${PROJECT_NAME} PUBLIC nvidia_aftermath)
+endif()
 
 # Create source groups to maintain file structure in Visual Studio
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})

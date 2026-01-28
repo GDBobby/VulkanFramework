@@ -6,6 +6,7 @@
 #include "EightWinds/Backend/Semaphore.h"
 #include "EightWinds/Backend/Fence.h"
 #include "EightWinds/Image.h"
+#include "EightWinds/ImageView.h"
 
 #include "EightWinds/CommandBuffer.h"
 
@@ -52,6 +53,7 @@ namespace EWE{
 
         uint32_t imageIndex = 0;
         HeapBlock<Image> images;
+        HeapBlock<ImageView> imageViews;
 
         PerFlight<Semaphore> acquire_semaphores;
         std::vector<Semaphore> present_semaphores;
@@ -76,6 +78,7 @@ namespace EWE{
         bool AcquireNextImage(uint8_t frameIndex);
 
         [[nodiscard]] Image& GetCurrentImage();
+        [[nodiscard]] ImageView& GetCurrentImageView();
 
         [[nodiscard]] VkPresentModeKHR GetOptimalPresentMode() const;
         

@@ -16,6 +16,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if (renderExcept.result == VK_ERROR_DEVICE_LOST) {
+            printf("ERROR : device was lost\n");
             PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfo = nullptr;
             GetDeviceFaultInfo = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(logicalDevice.device, "vkGetDeviceFaultInfoEXT"));
             if (GetDeviceFaultInfo == nullptr) {

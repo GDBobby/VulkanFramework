@@ -22,7 +22,8 @@ namespace EWE{
 		},
 		pipe_paramPack{pipe_params},
 		vp_s_paramPack{vp_params}
-	{}
+	{
+	}
 	DeferredPipelineExecute::DeferredPipelineExecute(
 		LogicalDevice& logicalDevice,
 		TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
@@ -38,7 +39,8 @@ namespace EWE{
 		},
 		pipe_paramPack{ record.BindPipeline() },
 		vp_s_paramPack{ record.SetViewportScissor() }
-	{}
+	{
+	}
 
 
 	DeferredPipelineExecute::~DeferredPipelineExecute() {
@@ -97,18 +99,37 @@ namespace EWE{
 				config, obj_config, 
 				pipelineBind, vpBind
 			);
+			if (vert_ex_back.pipeline->pipeLayout->descriptorSets.sets.size() > 0) {
+				record.BindDescriptor();
+			}
 
 			if (vert_draws.Contains(obj_config)) {
 				for (auto* draw : vert_draws.at(obj_config).value) {
-					draw->deferred_push = record.Push();
-					draw->paramPack = record.Draw();
+					if (draw->use_labelPack) {
+						draw->deferred_label = record.BeginLabel();
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.Draw();
+						record.EndLabel();
+					}
+					else {
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.Draw();
+					}
 				}
 			}
 
 			if (indexed_draws.Contains(obj_config)) {
 				for (auto* draw : indexed_draws.at(obj_config).value) {
-					draw->deferred_push = record.Push();
-					draw->paramPack = record.DrawIndexed();
+					if (draw->use_labelPack) {
+						draw->deferred_label = record.BeginLabel();
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndexed();
+						record.EndLabel();
+					}
+					else {
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndexed();
+					}
 				}
 			}
 			if (vert_draw_counts.Contains(obj_config)) {
@@ -141,6 +162,9 @@ namespace EWE{
 				config, obj_config, 
 				pipelineBind, vpBind
 			);
+			if (mesh_ex_back.pipeline->pipeLayout->descriptorSets.sets.size() > 0) {
+				record.BindDescriptor();
+			}
 
 			if (mesh_draws.Contains(obj_config)) {
 				for (auto* draw : mesh_draws.at(obj_config).value) {
@@ -168,12 +192,16 @@ namespace EWE{
 		}
 		config.pipelineRenderingCreateInfo.pColorAttachmentFormats = formats.data();
 		//^pipelines will be constructed before this goes out of scope
+		deferred_vk_render_info = record.BeginRender();
 		Record_Vertices(record);
 		Record_Mesh(record);
+		record.EndRender();
 
 		//after compiling, go abck thru and write all the pipeline params
 	}
 	void RasterTask::AdjustPipelines() {
+		renderInfo->Undefer(deferred_vk_render_info);
+
 		for (auto& pipe : deferred_pipelines) {
 			pipe.UndeferPipeline(viewport, scissor);
 		}

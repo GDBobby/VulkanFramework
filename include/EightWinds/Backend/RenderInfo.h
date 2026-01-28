@@ -88,8 +88,6 @@ namespace EWE{
 			AttachmentSetInfo const& setInfo
 		);
 
-		DeferredReference<VkRenderingInfo> deferred_render_info;
-
-		void Undefer();
+		void Undefer(DeferredReference<VkRenderingInfo>* deferred_render_info);
 	};
 } //namespace EWE

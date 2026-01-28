@@ -71,6 +71,7 @@ namespace EWE{
             auto& sem0 = swapchain.acquire_semaphores[0];
             auto& sem1 = swapchain.acquire_semaphores[1];
             std::vector<VkSemaphoreSubmitInfo> waitInfos{};
+            waitInfos.clear();
             for (uint32_t i = 0; i < subInfos[0].waitSemaphoreInfoCount; i++) {
                 waitInfos.push_back(subInfos[0].pWaitSemaphoreInfos[i]);
             }
@@ -94,5 +95,12 @@ namespace EWE{
     void RenderGraph::RecreateBarriers(uint8_t frameIndex) {
         ClearAllBarriers(frameIndex);
         syncManager.PopulateAffixes(frameIndex);
+
+        for (auto& task : tasks) {
+            auto& pref_barr = task.prefix.barriers[frameIndex];
+            pref_barr.FixPointers();
+            auto& suff_barr = task.suffix.barriers[frameIndex];
+            suff_barr.FixPointers();
+        }
     }
 }

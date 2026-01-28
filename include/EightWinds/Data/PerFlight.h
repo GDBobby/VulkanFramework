@@ -27,6 +27,10 @@ namespace EWE{
     template<typename Resource>
     struct PerFlight{
         alignas(Resource) uint8_t buffer[max_frames_in_flight * sizeof(Resource)];
+#if EWE_DEBUG_BOOL
+        Resource* firstPtr_debug;
+        Resource* secondPtr_debug; 
+#endif
 
         constexpr Resource* resources() noexcept {
             return reinterpret_cast<Resource*>(buffer);
@@ -43,6 +47,10 @@ namespace EWE{
         [[nodiscard]] explicit PerFlight(Rs&&... rs) {
             size_t i = 0;
             (std::construct_at(&resources()[i++], std::forward<Rs>(rs)), ...);
+#if EWE_DEBUG_BOOL
+            firstPtr_debug = &resources()[0];
+            secondPtr_debug = &resources()[1];
+#endif
         }
         //this function constructs every resource in the buffer with the same arguments
         template <typename... Args>
@@ -51,6 +59,10 @@ namespace EWE{
             for (size_t i = 0; i < max_frames_in_flight; ++i) {
                 std::construct_at(&resources()[i], std::forward<Args>(args)...);
             }
+#if EWE_DEBUG_BOOL
+            firstPtr_debug = &resources()[0];
+            secondPtr_debug = &resources()[1];
+#endif
         }
 
 
@@ -62,6 +74,10 @@ namespace EWE{
             for (std::size_t i = 0; i < max_frames_in_flight; ++i) {
                 std::construct_at(&resources()[i], other.resources()[i]);
             }
+#if EWE_DEBUG_BOOL
+            firstPtr_debug = &resources()[0];
+            secondPtr_debug = &resources()[1];
+#endif
         }
 
         template<std::size_t ArgsForFirstObject, typename... Args>
@@ -72,6 +88,10 @@ namespace EWE{
 
             ConstructFrom_ForwardedArgumentPackSlice<0, ArgsForFirstObject>(resources(), std::forward<Args>(args)...);
             ConstructFrom_ForwardedArgumentPackSlice<ArgsForFirstObject, remaining_args>(resources() + 1, std::forward<Args>(args)...);
+#if EWE_DEBUG_BOOL
+            firstPtr_debug = &resources()[0];
+            secondPtr_debug = &resources()[1];
+#endif
         }
 
         ~PerFlight() {

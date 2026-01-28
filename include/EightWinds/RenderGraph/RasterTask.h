@@ -24,12 +24,14 @@
 #include "EightWinds/Backend/RenderInfo3.h"
 
 #include <unordered_set>
+#include <optional>
 
 namespace EWE{
 	
-	
-	
-	using DrawBase = GlobalPushConstant_Abstract;
+	struct DrawBase : public GlobalPushConstant_Abstract {
+		bool use_labelPack = false;
+		DeferredReference<LabelParamPack>* deferred_label = nullptr;
+	};
 	
 	struct VertexDrawData : public DrawBase {
 		DeferredReference<VertexDrawParamPack>* paramPack = nullptr;
@@ -119,13 +121,9 @@ namespace EWE{
 		VkViewport viewport; //is viewport x/y going to be permanently tied to attachment width/height?
 		VkRect2D scissor;
 
-		//i need to figure out the attachments as well
-		//this object should be capable of constructing the attachments, based on the config, 
-		//or borrow the configs with asserts (based on the config)
-		std::vector<Image> color_attachments{};
-		std::vector<Image> depth_attachments{};
-
 		FullRenderInfo* renderInfo;
+		DeferredReference<VkRenderingInfo>* deferred_vk_render_info{ nullptr };
+
 		bool ownsAttachmentLifetime = true;
 
 		[[nodiscard]] explicit RasterTask(std::string_view name, LogicalDevice& logicalDevice, Queue& graphicsQueue, TaskRasterConfig const& config, FullRenderInfo* renderInfo);

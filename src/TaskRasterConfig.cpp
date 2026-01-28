@@ -36,7 +36,7 @@ namespace EWE{
 			AttachmentInfo{ 
 				.format = VK_FORMAT_R8G8B8A8_UNORM, 
 				.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-				.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				.storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 				.clearValue = {0.f, 0.f, 0.f, 0.f}
 				 
 			}

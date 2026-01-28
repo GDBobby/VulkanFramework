@@ -117,14 +117,14 @@ namespace EWE{
     namespace Exec{
         //define command functions here
         void BeginRender(ExecContext& ctx) {
-            auto* data = reinterpret_cast<VkRenderingInfo* const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
+            auto* data = reinterpret_cast<VkRenderingInfo const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
 #ifdef EXECUTOR_DEBUGGING
             ctx.Print();
 #endif
 #if EWE_DEBUG_BOOL
             ctx.cmdBuf.debug_currentlyRendering = true;
 #endif
-            vkCmdBeginRendering(ctx.cmdBuf, *data);
+            vkCmdBeginRendering(ctx.cmdBuf, data);
         }
         void EndRender(ExecContext& ctx) {
 #ifdef EXECUTOR_DEBUGGING

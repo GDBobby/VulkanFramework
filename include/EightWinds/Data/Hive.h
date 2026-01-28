@@ -67,7 +67,7 @@ namespace EWE{
                     for(std::size_t i = 0; i < RowWidth; i++){
                         if(!comb->occupancy[i]){
                             comb->occupancy.set(i, true);
-                            return reinterpret_cast<T*>(comb->memory.GetMemory() + (sizeof(T) * i));
+                            return reinterpret_cast<T*>(comb->memory.GetMemory() + i);
                         }
                     }
                 }
@@ -85,22 +85,20 @@ namespace EWE{
         }
 
         void DestroyElement(T* element) {
-            const std::size_t elementAddr = reinterpret_cast<std::size_t>(element);
             std::destroy_at<T>(element);
 
-            for(auto& comb : combs){
-                const std::size_t comb_begin = reinterpret_cast<std::size_t>(comb->memory.GetMemory());
-                const bool lessThan = elementAddr < comb_begin;
-                const bool greaterThan = (comb_begin - elementAddr) > RowWidth;
-                if(lessThan || greaterThan){
-                    continue;
+            for (auto& comb : combs) {
+                T* combStart = comb->memory.GetMemory();
+                T* combEnd = combStart + RowWidth;
+
+                if (element >= combStart && element < combEnd) {
+                    std::size_t index = element - combStart;
+                    if (!comb->occupancy[index]) {
+                        throw std::logic_error("the hive did not construct this pointer");
+                    }
+                    comb->occupancy.set(index, false);
+                    return;
                 }
-                const std::size_t index_into_comb = (elementAddr - comb_begin) / sizeof(T);
-                if(!comb->occupancy[index_into_comb]){
-                    throw std::logic_error("the hive did not construct this pointer");
-                }
-                comb->occupancy.set(index_into_comb, false);
-                return;
             }
 
             throw std::out_of_range("trying to destroy an element not contained within the hive");
@@ -114,7 +112,6 @@ namespace EWE{
             combs.erase(combs.begin() + combIndex);
         }
 
-        //add a begin and end for iteration
         struct iterator {
             Hive* hive = nullptr;
             std::size_t combIndex = 0;
@@ -122,15 +119,17 @@ namespace EWE{
 
             iterator(Hive* hive, std::size_t combIndex, std::size_t slotIndex)
                 : hive(hive), combIndex(combIndex), slotIndex(slotIndex) {
-                advance_to_valid();
+                if (combIndex < hive->combs.size())
+                    advance_to_valid();
             }
 
             void advance_to_valid() {
                 while (combIndex < hive->combs.size()) {
                     auto& comb = *hive->combs[combIndex];
                     while (slotIndex < RowWidth) {
-                        if (comb.occupancy.test(slotIndex))
+                        if (comb.occupancy.test(slotIndex)) {
                             return;
+                        }
                         ++slotIndex;
                     }
                     slotIndex = 0;
@@ -139,11 +138,11 @@ namespace EWE{
             }
 
             T& operator*() const {
-                return hive->combs[combIndex]->memory[slotIndex];
+                return hive->combs[combIndex]->memory.GetMemory()[slotIndex];
             }
 
             T* operator->() const {
-                return &(**this);
+                return hive->combs[combIndex]->memory.GetMemory() + slotIndex;
             }
 
             iterator& operator++() {
@@ -164,21 +163,23 @@ namespace EWE{
         };
 
         struct const_iterator {
-            const Hive* hive = nullptr;
+            Hive const* hive = nullptr;
             std::size_t combIndex = 0;
             std::size_t slotIndex = 0;
 
-            const_iterator(const Hive* hive, std::size_t combIndex, std::size_t slotIndex)
+            const_iterator(Hive const* hive, std::size_t combIndex, std::size_t slotIndex)
                 : hive(hive), combIndex(combIndex), slotIndex(slotIndex) {
-                advance_to_valid();
+                if (combIndex < hive->combs.size())
+                    advance_to_valid();
             }
 
             void advance_to_valid() {
                 while (combIndex < hive->combs.size()) {
                     const auto& comb = *hive->combs[combIndex];
                     while (slotIndex < RowWidth) {
-                        if (comb.occupancy.test(slotIndex))
+                        if (comb.occupancy.test(slotIndex)) {
                             return;
+                        }
                         ++slotIndex;
                     }
                     slotIndex = 0;
@@ -186,8 +187,12 @@ namespace EWE{
                 }
             }
 
-            const T& operator*() const {
-                return hive->combs[combIndex]->memory[slotIndex];
+            T const& operator*() const {
+                return hive->combs[combIndex]->memory.GetMemory()[slotIndex];
+            }
+
+            T const* operator->() const {
+                return hive->combs[combIndex]->memory.GetMemory() + slotIndex;
             }
 
             const_iterator& operator++() {

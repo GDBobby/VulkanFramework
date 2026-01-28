@@ -66,10 +66,9 @@ namespace EWE{
 			requires std::is_default_constructible_v<T>
 			: heap{elementCount}
 		{
-#if EWE_DEBUG_BOOL
-			assert(elementCount > 0);
-#endif
-			heap.ConstructAll();
+			if (elementCount > 0) {
+				heap.ConstructAll();
+			}
 		}
 		
 		template<typename... Args>
@@ -77,10 +76,9 @@ namespace EWE{
 		[[nodiscard]] explicit RuntimeArray(std::size_t elementCount, Args&&... args)
 			: heap{elementCount}
 		{
-#if EWE_DEBUG_BOOL
-			assert(elementCount > 0);
-#endif
-			heap.ConstructAll(std::forward<Args>(args)...);
+			if (elementCount > 0) {
+				heap.ConstructAll(std::forward<Args>(args)...);
+			}
 		}
 		
 		//we would prefer if helper got optimized away. potentially worth taking a micro-optimization glance at

@@ -24,15 +24,15 @@ namespace EWE{
     //if its desired to multi-thread within a single task, sync needs to be external
     //i need to be able to insert barriers
     struct GPUTask{
+        std::string name;
         LogicalDevice& logicalDevice;
         //i think i define a command pool here, or at least a queue
         Queue& queue;
 
-        std::string name;
         CommandExecutor commandExecutor;
 
-        [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord, std::string_view name);
-        [[nodiscard]] explicit GPUTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask& operator=(GPUTask const&) = delete;
@@ -43,13 +43,15 @@ namespace EWE{
         void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
 
         std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
+        std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload = nullptr;
+        std::function<bool(uint8_t frameIndex)> independent_workload = nullptr;
         
         TaskResourceUsage resources;
 
         TaskAffix prefix{};
         TaskAffix suffix{};
         void GenerateWorkload();
-        void GenerateExternalWorkload(std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload);
+        void GenerateExternalWorkload();
     };
 
 

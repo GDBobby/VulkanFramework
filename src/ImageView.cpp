@@ -62,33 +62,32 @@ namespace EWE{
     }
 
     VkImageViewCreateInfo ImageView::GetDefaultFullImageViewCreateInfo(Image& image) noexcept {
-        VkImageViewCreateInfo viewCreateInfo{};
-        viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        viewCreateInfo.pNext = nullptr;
-        /*
-        VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DYNAMIC_BIT_EXT = 0x00000001,
-        // Provided by VK_EXT_descriptor_buffer
-        VK_IMAGE_VIEW_CREATE_DESCRIPTOR_BUFFER_CAPTURE_REPLAY_BIT_EXT = 0x00000004,
-        // Provided by VK_EXT_fragment_density_map2
-        VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DEFERRED_BIT_EXT = 0x00000002,
-        */
-        viewCreateInfo.flags = 0;
-        viewCreateInfo.image = image.image;
+        return VkImageViewCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = nullptr,
+            /*
+            VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DYNAMIC_BIT_EXT = 0x00000001,
+            // Provided by VK_EXT_descriptor_buffer
+            VK_IMAGE_VIEW_CREATE_DESCRIPTOR_BUFFER_CAPTURE_REPLAY_BIT_EXT = 0x00000004,
+            // Provided by VK_EXT_fragment_density_map2
+            VK_IMAGE_VIEW_CREATE_FRAGMENT_DENSITY_MAP_DEFERRED_BIT_EXT = 0x00000002,
+            */
+            .flags = 0,
+            .image = image.image,
 
-        //i think i need a function converting the type, but its simple
-        //theres a conversion chart on that page
-        viewCreateInfo.viewType = ImageTypeToViewType(image.type, image.arrayLayers);
-        viewCreateInfo.format = image.format;
-        viewCreateInfo.components = VkComponentMapping{
+            //i think i need a function converting the type, but its simple
+            //theres a conversion chart on that page
+            .viewType = ImageTypeToViewType(image.type, image.arrayLayers),
+            .format = image.format,
+            .components = VkComponentMapping{
                                         .r = VK_COMPONENT_SWIZZLE_IDENTITY,
                                         .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                                         .b = VK_COMPONENT_SWIZZLE_IDENTITY,
                                         .a = VK_COMPONENT_SWIZZLE_IDENTITY
+            },
+
+            .subresourceRange = GetDefaultSubresource(image)
         };
-
-        viewCreateInfo.subresourceRange = GetDefaultSubresource(image);
-
-        return viewCreateInfo;
     }
 
     ImageView::ImageView(Image& image, VkImageViewCreateInfo const& createInfo) noexcept

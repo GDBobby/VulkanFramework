@@ -9,11 +9,11 @@
 
 namespace EWE{
 
-    GPUTask::GPUTask(LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord, std::string_view name) 
-        : logicalDevice{logicalDevice}, 
+    GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord)
+    : name{ name },
+        logicalDevice{logicalDevice},
         queue{queue},
-        commandExecutor{logicalDevice},
-        name{name}
+        commandExecutor{logicalDevice}
     {
 #if EWE_DEBUG_BOOL
         assert(!cmdRecord.hasBeenCompiled);
@@ -43,11 +43,11 @@ namespace EWE{
     }
 
 
-    GPUTask::GPUTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name)
-        : logicalDevice{ logicalDevice },
+    GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue)
+    : name{ name },
+        logicalDevice{ logicalDevice },
         queue{ queue },
-        commandExecutor{ logicalDevice },
-        name{ name }
+        commandExecutor{ logicalDevice }
     {
     }
 
@@ -86,69 +86,32 @@ namespace EWE{
 
 
     void GPUTask::GenerateWorkload() {
-        const bool hasPrefix = !prefix.Empty();
-        const bool hasSuffix = !suffix.Empty();
+        if (external_workload != nullptr) {
+            GenerateExternalWorkload();
+            return;
+        }
 
-        if (hasPrefix && hasSuffix) {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                prefix.Execute(cmdBuf, frameIndex);
-                Execute(cmdBuf, frameIndex);
-                suffix.Execute(cmdBuf, frameIndex);
-                return true;
-            };
-        }
-        else if (hasPrefix) {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                prefix.Execute(cmdBuf, frameIndex);
-                Execute(cmdBuf, frameIndex);
-                return true;
-            };
-        }
-        else if (hasSuffix) {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                Execute(cmdBuf, frameIndex);
-                suffix.Execute(cmdBuf, frameIndex);
-                return true;
-            };
-        }
-        else {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                Execute(cmdBuf, frameIndex);
-                return true;
-            };
-        }
+        workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+            prefix.Execute(cmdBuf, frameIndex);
+            Execute(cmdBuf, frameIndex);
+            suffix.Execute(cmdBuf, frameIndex);
+            return true;
+        };
     }
-    void GPUTask::GenerateExternalWorkload(std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload) {
-        const bool hasPrefix = !prefix.Empty();
-        const bool hasSuffix = !suffix.Empty();
+    void GPUTask::GenerateExternalWorkload() {
 
-        if (hasPrefix && hasSuffix) {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                prefix.Execute(cmdBuf, frameIndex);
-                external_workload(cmdBuf, frameIndex);
-                suffix.Execute(cmdBuf, frameIndex);
-                return true;
-            };
+
+#if EWE_DEBUG_BOOL
+        //assert(external_workload != nullptr);
+        if (commandExecutor.instructions.size() > 0) {
+            printf("warning : ignoring the command executor\n");
         }
-        else if (hasPrefix) {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                prefix.Execute(cmdBuf, frameIndex);
-                external_workload(cmdBuf, frameIndex);
-                return true;
-            };
-        }
-        else if (hasSuffix) {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                external_workload(cmdBuf, frameIndex);
-                suffix.Execute(cmdBuf, frameIndex);
-                return true;
-            };
-        }
-        else {
-            workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                external_workload(cmdBuf, frameIndex);
-                return true;
-            };
-        }
+#endif
+        workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+            prefix.Execute(cmdBuf, frameIndex);
+            external_workload(cmdBuf, frameIndex);
+            suffix.Execute(cmdBuf, frameIndex);
+            return true;
+        };
     }
 } //namespace EWE
