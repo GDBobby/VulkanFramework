@@ -40,4 +40,25 @@
     #else
         #define EWE_UNREACHABLE throw std::runtime_error("unreachable code")
     #endif
+
+    static inline void EWE_Debug_Breakpoint() {
+        #if defined(_MSC_VER)
+            __debugbreak();
+
+        #elif defined(__clang__)
+            #if __has_builtin(__builtin_debugtrap)
+                __builtin_debugtrap();
+            #else
+                __builtin_trap();
+            #endif
+        #elif defined(__GNUC__) || defined(__GNUG__)
+            #if defined(__i386__) || defined(__x86_64__)
+                __asm__ volatile("int $3");
+            #else
+                __builtin_trap();
+            #endif
+        #endif
+    }
+
+
 #endif

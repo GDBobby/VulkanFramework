@@ -182,7 +182,7 @@ namespace EWE{
 		}
 	}
 	
-	void RasterTask::Record(CommandRecord& record) {
+	void RasterTask::Record(CommandRecord& record, bool labeled) {
 
 		deferred_pipelines.clear();
 
@@ -192,10 +192,20 @@ namespace EWE{
 		}
 		config.pipelineRenderingCreateInfo.pColorAttachmentFormats = formats.data();
 		//^pipelines will be constructed before this goes out of scope
+#if EWE_DEBUG_NAMING
+		if (labeled) {
+			deferred_label = record.BeginLabel();
+		}
+#endif
 		deferred_vk_render_info = record.BeginRender();
 		Record_Vertices(record);
 		Record_Mesh(record);
 		record.EndRender();
+#if EWE_DEBUG_NAMING
+		if (labeled) {
+			record.EndLabel();
+		}
+#endif
 
 		//after compiling, go abck thru and write all the pipeline params
 	}
@@ -204,6 +214,14 @@ namespace EWE{
 
 		for (auto& pipe : deferred_pipelines) {
 			pipe.UndeferPipeline(viewport, scissor);
+		}
+		if (deferred_label != nullptr) {
+			for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+				deferred_label->GetRef(i).name = name.c_str();
+				deferred_label->GetRef(i).red = 1.f;
+				deferred_label->GetRef(i).green = 0.f;
+				deferred_label->GetRef(i).blue = 0.f;
+			}
 		}
 	}
 }

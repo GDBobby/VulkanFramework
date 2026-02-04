@@ -71,4 +71,11 @@ namespace EWE{
         uint32_t currentViewportCount = 0;
         uint32_t currentScissorCount = 0;
     };
+
+    struct ForLoopParamPack { //i assume this would need to be used with indirect commands
+        int begin; 
+        int comparison;
+        int increment;
+        //for (int i = begin; i < comparison; i += increment)
+    };
 }

@@ -11,7 +11,8 @@ namespace EWE{
 
     template<typename T>
     struct UsageData;
-
+    //https://vulkan.lunarg.com/doc/view/1.4.328.1/windows/antora/spec/latest/chapters/synchronization.html#synchronization-access-types-supported
+    //some accessmask are only allowed within some pipeline stages, use the above link ^ to reference
     template<>
     struct UsageData<Buffer> {
         VkPipelineStageFlags2 stage;

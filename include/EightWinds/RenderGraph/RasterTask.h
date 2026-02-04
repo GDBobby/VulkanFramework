@@ -171,13 +171,14 @@ namespace EWE{
 		}
 
 		//this needs to stay alive as long as these objects are used in a task
-		std::vector<DeferredPipelineExecute> deferred_pipelines{}; 
+		std::vector<DeferredPipelineExecute> deferred_pipelines{};
+		DeferredReference<LabelParamPack>* deferred_label = nullptr;
 		
 		//the pipelines are unique between vertices and mesh
 		void Record_Vertices(CommandRecord& record);
 		void Record_Mesh(CommandRecord& record);
 
-		void Record(CommandRecord& record);
+		void Record(CommandRecord& record, bool labeled = false);
 		
 		void AdjustPipelines();
 	};

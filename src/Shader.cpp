@@ -379,12 +379,20 @@ namespace EWE {
 		std::vector<char> shaderData = ReadShaderFile(fileLocation);
 		ReadReflection(shaderData.size(), shaderData.data());
 		CompileModule(shaderData.size(), shaderData.data());
+#if EWE_DEBUG_NAMING
+		SetDebugName(fileLocation);
+#endif
+
 	}
 
 	Shader::Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data) 
-    : logicalDevice{logicalDevice}, filepath{ fileLocation.data() }, descriptorSets{} {
+    : logicalDevice{logicalDevice}, filepath{ fileLocation.data() }, descriptorSets{} 
+	{
 		ReadReflection(dataSize, data);
 		CompileModule(dataSize, data);
+#if EWE_DEBUG_NAMING
+		SetDebugName(fileLocation);
+#endif
 	}
 
 	Shader::Shader(LogicalDevice& logicalDevice) 
@@ -477,4 +485,12 @@ namespace EWE {
 			free(reinterpret_cast<void*>(memPtr));
 		}
 	}
+
+#if EWE_DEBUG_NAMING
+	void Shader::SetDebugName(std::string_view name) {
+		this->name = name;
+		logicalDevice.SetObjectName(shaderStageCreateInfo.module, VK_OBJECT_TYPE_SHADER_MODULE, name);
+	}
+#endif
+
 } //namespace EWE

@@ -140,6 +140,10 @@ namespace EWE {
 #if PIPELINE_HOT_RELOAD
         void HotReload();
 #endif
+#if EWE_DEBUG_NAMING
+        std::string name;
+        void SetDebugName(std::string_view name);
+#endif
 
 	//protected:
 		void CompileModule(const std::size_t dataSize, const void* data);

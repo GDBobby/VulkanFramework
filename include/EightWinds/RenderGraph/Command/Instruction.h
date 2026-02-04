@@ -50,13 +50,13 @@ namespace EWE{
             If,
 
             //im not sure if i want to do more advanced control flow yet
-            LoopBegin,
+            LoopBegin, //using this as a for loop right now. POTENTIALLY use a while loop for conditionals, but idk
 
             Switch,
             Case,
             Default,
 
-            //these 3 dont have any independent functionality
+            //these 3 dont have any independent functionality. do i even need each control flow type to have it's own unique footer, or can I use one for all?
             EndIf,
             LoopEnd,
             SwitchEnd,
