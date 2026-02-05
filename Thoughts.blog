@@ -129,3 +129,6 @@ which will then be interpreted by TaskBridge when the barriers are generated
 I think GPUTask should be changed. From the current TaskBridge system, to a Prefix, Body, and Suffix system. 
 Prefix will replace TaskBridge, basically a rename. Suffix will be used to facilitate queue ownership transfers.
 I don't think Submission Task will be need Prefix and Suffix, but they might use a Header and Footer GPUTask for inserting barriers for queue transfers.
+
+## 2/5/2026
+i can use imgui and the param pool to edit the command buffer params without any other context

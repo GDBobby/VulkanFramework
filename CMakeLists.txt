@@ -35,6 +35,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}/${CMAKE_BUILD_TYPE}")
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.c)
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
+message(STATUS "Found sources: ${SOURCES}")
+
 include(FetchContent)
 if(POLICY CMP0077)
 	cmake_policy(SET CMP0077 NEW)

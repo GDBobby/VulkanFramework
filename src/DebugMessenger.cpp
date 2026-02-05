@@ -55,18 +55,14 @@ namespace EWE {
 #endif
 
 #if defined(_MSC_VER)
-            // Microsoft Visual C++
     #define DEBUG_BREAK() __debugbreak()
 #elif defined(__clang__)
-            // Clang (Check for builtin support)
     #if __has_builtin(__builtin_debugtrap)
         #define DEBUG_BREAK() __builtin_debugtrap()
     #else
         #define DEBUG_BREAK() __builtin_trap()
      #endif
 #elif defined(__GNUC__) || defined(__GNUG__)
-            // GCC (GNU Compiler Collection)
-            // There is no specific intrinsic, so we use an inline assembly interrupt
     #if defined(__i386__) || defined(__x86_64__)
         #define DEBUG_BREAK() __asm__ volatile("int $3")
     #else

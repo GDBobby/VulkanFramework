@@ -50,18 +50,15 @@ namespace EWE{
 
     VkInstance CreateInstance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
 
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pNext = nullptr;
-        appInfo.pApplicationName = "Eight Winds";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.pEngineName = "Eight Winds Engine";
-        appInfo.engineVersion = VK_MAKE_API_VERSION(0, 2, 0, 0);
-        appInfo.apiVersion = api_version;
-
-        VkInstanceCreateInfo instanceCreateInfo = {};
-        instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        instanceCreateInfo.pApplicationInfo = &appInfo;
+        VkApplicationInfo appInfo{
+            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .pNext = nullptr,
+            .pApplicationName = "Eight Winds",
+            .applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+            .pEngineName = "Eight Winds Engine",
+            .engineVersion = VK_MAKE_API_VERSION(0, 2, 0, 0),
+            .apiVersion = api_version
+        };
 
         std::vector<const char*> all_extensions{};
         all_extensions.reserve(requiredExtensions.size() + optionalExtensions.size());
@@ -80,9 +77,17 @@ namespace EWE{
                 all_extensions.push_back(opt.first.c_str());
             }
         }
+        
+        VkInstanceCreateInfo instanceCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .pApplicationInfo = &appInfo,
+            .enabledExtensionCount = static_cast<uint32_t>(all_extensions.size()),
+            .ppEnabledExtensionNames = all_extensions.data(),
+            .enabledLayerCount = 0,
+            .pNext = nullptr
+        };
 
-        instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(all_extensions.size());
-        instanceCreateInfo.ppEnabledExtensionNames = all_extensions.data();
+
 
 #if EWE_DEBUG_BOOL
         if (!DebugMessenger::CheckValidationLayerSupport()) {
@@ -95,9 +100,6 @@ namespace EWE{
         instanceCreateInfo.enabledLayerCount = 1;
         instanceCreateInfo.ppEnabledLayerNames = validationLayers;
         instanceCreateInfo.pNext = &debugCreateInfo;
-#else
-        instanceCreateInfo.enabledLayerCount = 0;
-        instanceCreateInfo.pNext = nullptr;
 #endif
         VkInstance instance;
         EWE_VK(vkCreateInstance, &instanceCreateInfo, nullptr, &instance);
