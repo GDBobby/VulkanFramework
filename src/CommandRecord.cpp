@@ -224,6 +224,38 @@ namespace EWE{
         return deferred_ref;
     }
 
+    DeferredReference<DrawIndirectParamPack>* CommandRecord::DrawIndirect() {
+        BindCommand(records, CommandInstruction::Type::DrawIndirect);
+        auto deferred_ref = new DeferredReference<DrawIndirectParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
+    DeferredReference<DrawIndexedIndirectParamPack>* CommandRecord::DrawIndexedIndirect() {
+        BindCommand(records, CommandInstruction::Type::DrawIndexedIndirect);
+        auto deferred_ref = new DeferredReference<DrawIndexedIndirectParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
+
+    DeferredReference<DrawMeshTasksIndirectParamPack>* CommandRecord::DrawMeshTasksIndirect() {
+        BindCommand(records, CommandInstruction::Type::DrawMeshTasksIndirect);
+        auto deferred_ref = new DeferredReference<DrawMeshTasksIndirectParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
+    DeferredReference<DrawIndirectCountParamPack>* CommandRecord::DrawIndirectCount() {
+        BindCommand(records, CommandInstruction::Type::DrawIndirectCount);
+        auto deferred_ref = new DeferredReference<DrawIndirectCountParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
+    DeferredReference<DrawIndexedIndirectCountParamPack>* CommandRecord::DrawIndexedIndirectCount() {
+        BindCommand(records, CommandInstruction::Type::DrawIndexedIndirectCount);
+        auto deferred_ref = new DeferredReference<DrawIndexedIndirectCountParamPack>(GetCurrentOffset(records.back()));
+        deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+        return deferred_ref;
+    }
+
     void CommandRecord::FixDeferred(const PerFlight<std::size_t> pool_address) noexcept {
 
         for (auto& def_ref : deferred_references) {

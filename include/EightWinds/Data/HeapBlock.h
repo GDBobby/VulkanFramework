@@ -22,6 +22,11 @@ namespace EWE{
         std::allocator<T> allocator{};
 
 	public:
+	
+		[[nodiscard]] HeapBlock() 
+		: memory{nullptr}, size{0}
+		
+		{}
 
         [[nodiscard]] explicit HeapBlock(std::size_t size) : size{size}{
 			if(size == 0){

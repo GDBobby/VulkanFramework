@@ -56,20 +56,20 @@ namespace EWE{
 			vp_s_paramPack->GetRef(i).scissor = scissor;
 		}
 	}
-	
-	
+
+
 	RasterTask::RasterTask(
-		std::string_view name, 
-		LogicalDevice& logicalDevice, 
-		Queue& graphicsQueue, 
-		TaskRasterConfig const& config, 
+		std::string_view name,
+		LogicalDevice& logicalDevice,
+		Queue& graphicsQueue,
+		TaskRasterConfig const& config,
 		FullRenderInfo* renderInfo
 	)
-		: name{name},
-		logicalDevice{logicalDevice},
-		graphicsQueue{graphicsQueue},
-		config{config},
-		ownsAttachmentLifetime{renderInfo == nullptr},
+		: name{ name },
+		logicalDevice{ logicalDevice },
+		graphicsQueue{ graphicsQueue },
+		config{ config },
+		ownsAttachmentLifetime{ renderInfo == nullptr },
 		renderInfo{ renderInfo }
 	{
 		if (renderInfo == nullptr) {
@@ -80,9 +80,9 @@ namespace EWE{
 			);
 		}
 	}
-	
-	
-		
+
+
+
 	void RasterTask::Record_Vertices(CommandRecord& record) {
 		std::unordered_set<ObjectRasterData> unique_configs_vertex{};
 
@@ -95,8 +95,8 @@ namespace EWE{
 			auto* pipelineBind = record.BindPipeline();
 			auto* vpBind = record.SetViewportScissor();
 			auto& vert_ex_back = deferred_pipelines.emplace_back(
-				logicalDevice, 
-				config, obj_config, 
+				logicalDevice,
+				config, obj_config,
 				pipelineBind, vpBind
 			);
 			if (vert_ex_back.pipeline->pipeLayout->descriptorSets.sets.size() > 0) {
@@ -144,6 +144,64 @@ namespace EWE{
 				//for (auto* draw : index_draw_counts.at(config).value) {
 				//	record.DrawIndexed();
 				//}
+			}
+
+
+			if (indirect_vert_draws.Contains(obj_config)) {
+				for (auto* draw : indirect_vert_draws.at(obj_config).value) {
+					if (draw->use_labelPack) {
+						draw->deferred_label = record.BeginLabel();
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndirect();
+						record.EndLabel();
+					}
+					else {
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndirect();
+					}
+				}
+			}
+			if (indirect_indexed_draws.Contains(obj_config)) {
+				for (auto* draw : indirect_indexed_draws.at(obj_config).value) {
+					if (draw->use_labelPack) {
+						draw->deferred_label = record.BeginLabel();
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndexedIndirect();
+						record.EndLabel();
+					}
+					else {
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndexedIndirect();
+					}
+				}
+			}
+			if (indirect_count_vert_draws.Contains(obj_config)) {
+				for (auto* draw : indirect_count_vert_draws.at(obj_config).value) {
+					if (draw->use_labelPack) {
+						draw->deferred_label = record.BeginLabel();
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndirectCount();
+						record.EndLabel();
+					}
+					else {
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndirectCount();
+					}
+				}
+			}
+			if (indirect_count_indexed_draws.Contains(obj_config)) {
+				for (auto* draw : indirect_count_indexed_draws.at(obj_config).value) {
+					if (draw->use_labelPack) {
+						draw->deferred_label = record.BeginLabel();
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndexedIndirectCount();
+						record.EndLabel();
+					}
+					else {
+						draw->deferred_push = record.Push();
+						draw->paramPack = record.DrawIndexedIndirectCount();
+					}
+				}
 			}
 		}
 	}

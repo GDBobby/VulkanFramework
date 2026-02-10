@@ -65,12 +65,14 @@ namespace EWE{
         DeferredReference<DispatchParamPack>* Dispatch();
         DeferredReference<DrawMeshTasksParamPack>* DrawMeshTasks();
         
-        //DeferredReference<DrawIndirectParamPack>* DrawIndirect();
-        //DeferredReference<DrawMeshTasksIndirectParamPack>* DrawMeshIndirect();
-        //DeferredReference<DispatchIndirectParamPack>* DispatchIndirect();
+        DeferredReference<DrawIndirectParamPack>* DrawIndirect();
+        DeferredReference<DrawIndexedIndirectParamPack>* DrawIndexedIndirect();
+        DeferredReference<DrawMeshTasksIndirectParamPack>* DrawMeshTasksIndirect();
+        DeferredReference<DispatchIndirectParamPack>* DispatchIndirect();
         
-        //DeferredReference<DrawIndirectCountParamPack>* DrawIndirectCount();
-        //DeferredReference<DrawMeshTasksIndirectCountParamPack>* DrawMeshIndirect();
+        DeferredReference<DrawIndirectCountParamPack>* DrawIndirectCount();
+        DeferredReference<DrawIndexedIndirectCountParamPack>* DrawIndexedIndirectCount();
+        DeferredReference<DrawMeshTasksIndirectCountParamPack>* DrawMeshIndirect();
 
         DeferredReference<ViewportScissorParamPack>* SetViewportScissor();
         DeferredReference<ViewportScissorWithCountParamPack>* SetViewportScissorWithCount();

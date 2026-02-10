@@ -45,7 +45,7 @@ namespace EWE{
         uint32_t drawCount;
         uint32_t stride;
     };
-    struct DrawIndirectCountParamPack{
+    struct DrawIndirectCountParamPack {
         VkBuffer buffer;
         VkDeviceSize offset;
         VkBuffer countBuffer;
@@ -53,11 +53,45 @@ namespace EWE{
         uint32_t drawCount;
         uint32_t stride;
     };
+    using DrawIndexedIndirectParamPack = DrawIndirectParamPack;
+    using DrawIndexedIndirectCountParamPack = DrawIndirectCountParamPack;
+    using DrawMeshTasksIndirectParamPack = DrawIndirectParamPack;
+    using DrawMeshTasksIndirectCountParamPack = DrawIndirectCountParamPack;
+    /*
+    struct DrawIndexedIndirectParamPack {
+        VkBuffer buffer;
+        VkDeviceSize offset;
+        uint32_t drawCount;
+        uint32_t stride;
+    };
+    struct DrawIndexedIndirectCountParamPack {
+        VkBuffer buffer;
+        VkDeviceSize offset;
+        VkBuffer countBuffer;
+        VkDeviceSize countBufferOffset;
+        uint32_t maxDrawCount;
+        uint32_t stride;
+    };
+    struct DrawMeshTasksIndirectParamPack {
+        VkBuffer buffer;
+        VkDeviceSize offset;
+        uint32_t drawCount;
+        uint32_t stride;
+    };
+    struct DrawMeshTasksIndirectCountParamPack {
+        VkBuffer buffer;
+        VkDeviceSize offset;
+        VkBuffer countBuffer;
+        VkDeviceSize countBufferOffset;
+        uint32_t maxDrawCount;
+        uint32_t stride;
+    };
+    */
     struct DispatchIndirectParamPack{
         VkBuffer buffer;
         VkDeviceSize offset;
     };
-    
+
     struct ViewportScissorParamPack{
         VkViewport viewport;
         VkRect2D scissor;

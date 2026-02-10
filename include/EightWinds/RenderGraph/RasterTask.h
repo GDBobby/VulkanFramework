@@ -32,18 +32,19 @@ namespace EWE{
 		bool use_labelPack = false;
 		DeferredReference<LabelParamPack>* deferred_label = nullptr;
 	};
-	
-	struct VertexDrawData : public DrawBase {
-		DeferredReference<VertexDrawParamPack>* paramPack = nullptr;
-	};
-	struct IndexedDrawData : public DrawBase {
-		DeferredReference<IndexDrawParamPack>* paramPack = nullptr;
-	};
-	struct MeshDrawData : public DrawBase {
-		//if abstract push is empty, we can skip the push
-		DeferredReference<DrawMeshTasksParamPack>* paramPack = nullptr;
+
+	template<typename ParamPack>
+	struct DrawData : public DrawBase {
+		DeferredReference<ParamPack>* paramPack = nullptr;
 	};
 	
+	using VertexDrawData = DrawData<VertexDrawParamPack>;
+	using IndexedDrawData = DrawData<IndexDrawParamPack>;
+	using MeshDrawData = DrawData<DrawMeshTasksParamPack>;
+	using VertexIndirectDrawData = DrawData<DrawIndirectParamPack>;
+	using IndexedIndirectDrawData = DrawData<DrawIndexedIndirectParamPack>;
+	using VertexIndirectCountDrawData = DrawData<DrawIndirectCountParamPack>;
+	using IndexedIndirectCountDrawData = DrawData<DrawIndexedIndirectCountParamPack>;
 
 		//i should do validaiton to ensure this layout is only used with vert draws or mesh draws appropriately
 	struct ObjectRasterData{
@@ -92,7 +93,7 @@ namespace EWE{
 		~DeferredPipelineExecute();
 		DeferredPipelineExecute(DeferredPipelineExecute const& copySrc) = delete;
 		DeferredPipelineExecute& operator=(DeferredPipelineExecute&& moveSrc) = delete;
-		DeferredPipelineExecute(DeferredPipelineExecute&& moveSrc) noexcept
+		[[nodiscard]] DeferredPipelineExecute(DeferredPipelineExecute&& moveSrc) noexcept
 			: pipeline{moveSrc.pipeline},
 				pipe_paramPack{moveSrc.pipe_paramPack},
 				vp_s_paramPack{moveSrc.vp_s_paramPack}
@@ -133,16 +134,24 @@ namespace EWE{
 		//if i made it so that the user is in charge of condensing pipelines, i wouldnt' have to store these
 		
 		//i could template these to make it MUCH more convenient/clean but idk if its worth the effort
-		KeyValueContainer<ObjectRasterData, std::vector<VertexDrawData*>> vert_draws;
-		KeyValueContainer<ObjectRasterData, std::vector<IndexedDrawData*>> indexed_draws;
-		KeyValueContainer<ObjectRasterData, std::vector<MeshDrawData*>> mesh_draws;
-		
-		KeyValueContainer<ObjectRasterData, std::vector<VertexDrawCount*>> vert_draw_counts;
-		KeyValueContainer<ObjectRasterData, std::vector<IndexDrawCount*>> index_draw_counts;
-		KeyValueContainer<ObjectRasterData, std::vector<MeshDrawCount*>> mesh_draw_counts;
+		template<typename DrawT>
+		using DrawContainer = KeyValueContainer<ObjectRasterData, std::vector<DrawT*>>;
+
+		DrawContainer<VertexDrawData> vert_draws;
+		DrawContainer<IndexedDrawData> indexed_draws;
+		DrawContainer<VertexDrawCount> vert_draw_counts;
+		DrawContainer<IndexDrawCount> index_draw_counts;
+
+		DrawContainer<VertexIndirectDrawData> indirect_vert_draws;
+		DrawContainer<IndexedIndirectDrawData> indirect_indexed_draws;
+		DrawContainer<VertexIndirectCountDrawData> indirect_count_vert_draws;
+		DrawContainer<IndexedIndirectCountDrawData> indirect_count_indexed_draws;
+
+		DrawContainer<MeshDrawData> mesh_draws;
+		DrawContainer<MeshDrawCount> mesh_draw_counts;
 		
 		template<typename T>
-		void AddHelper(KeyValueContainer<ObjectRasterData, std::vector<T*>>& kv_container, ObjectRasterData const& config, T& draw) {
+		inline void AddHelper(KeyValueContainer<ObjectRasterData, std::vector<T*>>& kv_container, ObjectRasterData const& config, T& draw) {
 			if (!kv_container.Contains(config)) {
 				kv_container.push_back(config).push_back(&draw);
 			}
@@ -150,6 +159,7 @@ namespace EWE{
 				kv_container.at(config).value.push_back(&draw);
 			}
 		}
+
 
 		void AddDraw(ObjectRasterData const& config, VertexDrawData& draw) {
 			AddHelper(vert_draws, config, draw);
@@ -168,6 +178,18 @@ namespace EWE{
 		}
 		void AddDraw(ObjectRasterData const& config, MeshDrawCount& draw) {
 			AddHelper(mesh_draw_counts, config, draw);
+		}
+		void AddDraw(ObjectRasterData const& config, VertexIndirectDrawData& draw) {
+			AddHelper(indirect_vert_draws, config, draw);
+		}
+		void AddDraw(ObjectRasterData const& config, IndexedIndirectDrawData& draw) {
+			AddHelper(indirect_indexed_draws, config, draw);
+		}
+		void AddDraw(ObjectRasterData const& config, VertexIndirectCountDrawData& draw) {
+			AddHelper(indirect_count_vert_draws, config, draw);
+		}
+		void AddDraw(ObjectRasterData const& config, IndexedIndirectCountDrawData& draw) {
+			AddHelper(indirect_count_indexed_draws, config, draw);
 		}
 
 		//this needs to stay alive as long as these objects are used in a task

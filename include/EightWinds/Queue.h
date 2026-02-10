@@ -28,6 +28,10 @@ namespace EWE{
 
         void Submit(uint32_t submitCount, VkSubmitInfo* submitInfos, VkFence fence) const;
         void Submit2(uint32_t submitCount, VkSubmitInfo2* submitInfos, VkFence fence) const;
+        
+        uint32_t FamilyIndex() const{
+            return family.index;
+        }
 
         //TODO
 		//void BeginLabel(const char* name, float red, float green, float blue);

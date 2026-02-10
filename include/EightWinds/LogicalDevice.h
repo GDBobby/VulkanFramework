@@ -36,6 +36,8 @@ namespace EWE{
         ~LogicalDevice();
         LogicalDevice(LogicalDevice const& copySrc) = delete;
         LogicalDevice& operator=(LogicalDevice const& copySrc) = delete;
+        LogicalDevice(LogicalDevice&& moveSrc) = delete;
+        LogicalDevice& operator=(LogicalDevice&& moveSrc) = delete;
 
         Backend::BindlessDescriptor bindlessDescriptor;
 

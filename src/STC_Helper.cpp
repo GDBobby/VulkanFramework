@@ -80,5 +80,40 @@ namespace EWE{
 			stc_Helper.Submit(wait);
 
 		}
+		void CopyBufferToImage(CommandBuffer& cmdBuf, VkBuffer buffer, Image& img, VkBufferImageCopy const& region, VkImageLayout layout){
+            EWE_VK(vkCmdCopyBufferToImage,
+                cmdBuf,
+                buffer,
+                image, layout,
+                1, &region
+            );
+		}
+		void CopyBufferToImage(CommandBuffer& cmdBuf, VkBuffer buffer, Image& img){
+			
+            VkBufferImageCopy region{
+				.bufferOffset = 0;
+				.bufferRowLength = 0;
+				.bufferImageHeight = 0;
+
+				.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				.imageSubresource.mipLevel = 0;
+				.imageSubresource.baseArrayLayer = 0;
+				.imageSubresource.layerCount = img.layerCount;
+
+				.imageOffset = { 0, 0, 0 };
+				.imageExtent = VkExtent3D{
+					.width = img.width,
+					.height = img.height,
+					1
+				};
+			};
+			
+			CopyBufferToImage(cmdBuf, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		}
+		
+	}
+	
+	TransferCommandPackage TransferContext<Image>::Commands(){
+		
 	}
 }

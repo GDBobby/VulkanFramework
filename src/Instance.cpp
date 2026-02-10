@@ -80,11 +80,11 @@ namespace EWE{
         
         VkInstanceCreateInfo instanceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .pNext = nullptr,
             .pApplicationInfo = &appInfo,
-            .enabledExtensionCount = static_cast<uint32_t>(all_extensions.size()),
-            .ppEnabledExtensionNames = all_extensions.data(),
             .enabledLayerCount = 0,
-            .pNext = nullptr
+            .enabledExtensionCount = static_cast<uint32_t>(all_extensions.size()),
+            .ppEnabledExtensionNames = all_extensions.data()
         };
 
 

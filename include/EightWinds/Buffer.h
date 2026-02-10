@@ -7,9 +7,6 @@
 
 
 namespace EWE{
-    struct StagingBuffer{
-
-    };
 
     template<typename T, typename U>
     constexpr bool BitwiseContains(T const lhs, U const rhs) noexcept{

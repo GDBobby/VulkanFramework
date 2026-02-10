@@ -8,6 +8,7 @@
 namespace EWE{
 	
     struct BarrierObject {
+        std::vector<VkMemoryBarrier2> memoryBarriers;
         std::vector<VkImageMemoryBarrier2> imageBarriers;
         std::vector<VkBufferMemoryBarrier2> bufferBarriers;
         VkDependencyInfo dependencyInfo;
@@ -18,7 +19,7 @@ namespace EWE{
         void FixPointers();
 
         inline bool Empty() const {
-            return (imageBarriers.size() == 0) && (bufferBarriers.size() == 0);
+            return (imageBarriers.size() == 0) && (bufferBarriers.size() == 0 && (memoryBarriers.size() == 0));
         }
     };
 
