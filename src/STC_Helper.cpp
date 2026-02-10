@@ -7,6 +7,8 @@
 
 #include "EightWinds/Backend/Fence.h"
 
+#include "EightWinds/Backend/PipelineBarrier.h"
+
 
 namespace EWE{
 	
@@ -113,7 +115,26 @@ namespace EWE{
 		
 	}
 	
-	TransferCommandPackage TransferContext<Image>::Commands(){
+	TransferCommandPackage* TransferContext<Image>::Commands(){
 		
+		Queue& firstQueue = transferQueue ? *transferQueue : dstQueue;
+		
+		TransferCommandPackage ret = new TransferCommandPackage{
+			.commandPool{img.logicalDevice, firstQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+			.cmdBuf{commandPool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY)},
+		};
+		cmdBuf.Begin();
+		
+		//if the destination is either compute, or generating mipmaps, put the layout to GENERAL
+		UsageData<Image> usage{
+			.stage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
+			.accessMask = VK_ACCESS_2_IDK,
+			.layout = dstLayout
+		};
+		Resource<Image> resource{img, usage};
+		
+		ret->barrier = Barrier::Acquire_Image(firstQueue, resource, 0);
+		
+		return ret;
 	}
 }

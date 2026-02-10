@@ -1,6 +1,7 @@
 #pragma once
 
-#include "EWGraphics/Vulkan/VulkanHeader.h"
+#include "EightWinds/VulkanHeader.h"
+#include "EightWinds/RenderGraph/Resources.h"
 
 #include <vector>
 

@@ -28,6 +28,7 @@ namespace EWE{
 	struct TransferCommandPackage{
 		CommandPool pool; //lives and dies here
 		CommandBuffer cmdBuf;
+		VkImageMemoryBarrier2 barrier;
 	};
 	
 	template<typename Resource>
@@ -56,12 +57,12 @@ namespace EWE{
 		//a release and acquisition barrier are needed if transfering queues 
 		//kind of a handshake between both queues
 		Queue* transferQueue; //optional
-		Queue& dstQueue;
+		Queue& dstQueue; //i dont know if i can reflect upon this to see if it's going to be used for compute
+		VkImageLayout dstLayout;
 		
 		StagingBuffer* stagingBuffer; //also optional
 		
-		VkImageMemoryBarrier2 barrier;
 		
-		TransferCommandPackage Commands();
+		TransferCommandPackage* Commands();
 	};
 }

@@ -11,11 +11,12 @@ namespace EWE{
             queue{queue},
             flags{ createFlags }
         {
-            VkCommandPoolCreateInfo commandPoolCreateInfo{};
-            commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            commandPoolCreateInfo.pNext = nullptr;
-            commandPoolCreateInfo.queueFamilyIndex = queue.family.index;
-            commandPoolCreateInfo.flags = flags;
+            VkCommandPoolCreateInfo commandPoolCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = flags,
+                .queueFamilyIndex = queue.family.index
+            };
             EWE_VK(vkCreateCommandPool,
                 logicalDevice.device, 
                 &commandPoolCreateInfo, 
