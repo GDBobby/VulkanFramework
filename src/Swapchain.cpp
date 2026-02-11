@@ -32,7 +32,7 @@ namespace EWE{
         activeSwapchain{VK_NULL_HANDLE},
         images{0},
         imageViews{0},
-        acquire_semaphores{logicalDevice, false},
+        acquire_semaphores{logicalDevice},
         inFlightFences{logicalDevice, GetFenceCreateInfo()}
     {
         CreateSwapchain();
@@ -162,7 +162,7 @@ namespace EWE{
         present_semaphores.clear(); //these aren't getting destructed
         present_semaphores.reserve(swapImageCount);
         for (uint8_t i = 0; i < swapImageCount; i++){
-            present_semaphores.push_back(Semaphore{ logicalDevice, false });
+            present_semaphores.push_back(Semaphore{logicalDevice});
 #if EWE_DEBUG_NAMING
             std::string debugName = std::string("swapchain present semaphore [") + std::to_string(i) + ']';
             present_semaphores[i].SetName(debugName.c_str());

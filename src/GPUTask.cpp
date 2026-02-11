@@ -9,7 +9,7 @@
 
 namespace EWE{
 
-    GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord)
+    GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord)
     : name{ name },
         logicalDevice{logicalDevice},
         queue{queue},
@@ -19,7 +19,7 @@ namespace EWE{
         assert(!cmdRecord.hasBeenCompiled);
 #endif
         //cmdRecord.Optimize(); <--- EVENTUALLY
-        const uint64_t full_data_size = cmdRecord.records.back().paramOffset + CommandInstruction::GetParamSize(cmdRecord.records.back().type);
+        const uint64_t full_data_size = cmdRecord.records.back().paramOffset + Command::Instruction::GetParamSize(cmdRecord.records.back().type);
 
         commandExecutor.instructions = cmdRecord.records;
         PerFlight<std::size_t> param_pool_addresses{};

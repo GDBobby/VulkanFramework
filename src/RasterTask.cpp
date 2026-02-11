@@ -9,8 +9,8 @@ namespace EWE{
 	DeferredPipelineExecute::DeferredPipelineExecute(
 		LogicalDevice& logicalDevice, 
 		TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-		DeferredReference<PipelineParamPack>* pipe_params,
-		DeferredReference<ViewportScissorParamPack>* vp_params
+		DeferredReference<ParamPack::Pipeline>* pipe_params,
+		DeferredReference<ParamPack::ViewportScissor>* vp_params
 	)
 		: pipeline{
 			new GraphicsPipeline(
@@ -27,7 +27,7 @@ namespace EWE{
 	DeferredPipelineExecute::DeferredPipelineExecute(
 		LogicalDevice& logicalDevice,
 		TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-		CommandRecord& record
+		Command::Record& record
 	)
 		: pipeline{
 			new GraphicsPipeline(
@@ -83,7 +83,7 @@ namespace EWE{
 
 
 
-	void RasterTask::Record_Vertices(CommandRecord& record) {
+	void RasterTask::Record_Vertices(Command::Record& record) {
 		std::unordered_set<ObjectRasterData> unique_configs_vertex{};
 
 		for (auto& [obj_config, _] : vert_draws) unique_configs_vertex.insert(obj_config);
@@ -206,7 +206,7 @@ namespace EWE{
 		}
 	}
 	
-	void RasterTask::Record_Mesh(CommandRecord& record) {
+	void RasterTask::Record_Mesh(Command::Record& record) {
 		std::unordered_set<ObjectRasterData> unique_configs_mesh{};
 
 		for (auto& [obj_config, _] : mesh_draws) unique_configs_mesh.insert(obj_config);
@@ -240,7 +240,7 @@ namespace EWE{
 		}
 	}
 	
-	void RasterTask::Record(CommandRecord& record, bool labeled) {
+	void RasterTask::Record(Command::Record& record, bool labeled) {
 
 		deferred_pipelines.clear();
 

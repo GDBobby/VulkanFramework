@@ -27,60 +27,62 @@ namespace EWE{
 
     //i need a merge option, so that tasks can be modified more easily
     //and commandrecord can be passed around as a pre-package kind of thing
-    struct CommandRecord{
-        CommandRecord() = default;
-        CommandRecord(CommandRecord const&) = delete;
-        CommandRecord& operator=(CommandRecord const&) = delete;
-        CommandRecord(CommandRecord&&) = delete;
-        CommandRecord& operator=(CommandRecord&&) = delete;
+    
+    namespace Command{
+        struct Record{
+            Record() = default;
+            Record(Record const&) = delete;
+            Record& operator=(Record const&) = delete;
+            Record(Record&&) = delete;
+            Record& operator=(Record&&) = delete;
 
-        //i dont know how to handle command lists that are going to be duplicated, or only slightly modified
-        //so im going to disable it
-        bool hasBeenCompiled = false;
+            //i dont know how to handle command lists that are going to be duplicated, or only slightly modified
+            //so im going to disable it
+            bool hasBeenCompiled = false;
 
-        std::vector<CommandInstruction> records{};
-        std::vector<DeferredReferenceHelper*> deferred_references{};
-        //std::vector<GlobalPushConstant_Raw*> push_offsets{};
+            std::vector<Instruction> records{};
+            std::vector<DeferredReferenceHelper*> deferred_references{};
+            //std::vector<GlobalPushConstant_Raw*> push_offsets{};
 
-        //i dont know if i need the Pipeline data for compile time optimization
-        DeferredReference<PipelineParamPack>* BindPipeline();
+            //i dont know if i need the Pipeline data for compile time optimization
+            DeferredReference<ParamPack::Pipeline>* BindPipeline();
 
-        //void return only works if i FORCE the user to use device buffer addresses and bindless textures from a push constant
-        //and only the global bindless descriptor set is allowed (found in logicalDevice)
-        void BindDescriptor();
+            //void return only works if i FORCE the user to use device buffer addresses and bindless textures from a push constant
+            //and only the global bindless descriptor set is allowed (found in logicalDevice)
+            void BindDescriptor();
 
-        //i need some expanded or manual method to keep track of when buffers are written to in shaders
+            //i need some expanded or manual method to keep track of when buffers are written to in shaders
 
-        DeferredReference<GlobalPushConstant_Raw>* Push();
+            DeferredReference<GlobalPushConstant_Raw>* Push();
 
-        //this shouldnt be used directly
-        DeferredReference<VkRenderingInfo>* BeginRender();
-        void EndRender();
+            //this shouldnt be used directly
+            DeferredReference<VkRenderingInfo>* BeginRender();
+            void EndRender();
 
-        DeferredReference<LabelParamPack>* BeginLabel() noexcept;
-        void EndLabel() noexcept;
+            DeferredReference<ParamPack::Label>* BeginLabel() noexcept;
+            void EndLabel() noexcept;
 
-        DeferredReference<VertexDrawParamPack>* Draw();
-        DeferredReference<IndexDrawParamPack>* DrawIndexed();
-        DeferredReference<DispatchParamPack>* Dispatch();
-        DeferredReference<DrawMeshTasksParamPack>* DrawMeshTasks();
-        
-        DeferredReference<DrawIndirectParamPack>* DrawIndirect();
-        DeferredReference<DrawIndexedIndirectParamPack>* DrawIndexedIndirect();
-        DeferredReference<DrawMeshTasksIndirectParamPack>* DrawMeshTasksIndirect();
-        DeferredReference<DispatchIndirectParamPack>* DispatchIndirect();
-        
-        DeferredReference<DrawIndirectCountParamPack>* DrawIndirectCount();
-        DeferredReference<DrawIndexedIndirectCountParamPack>* DrawIndexedIndirectCount();
-        DeferredReference<DrawMeshTasksIndirectCountParamPack>* DrawMeshIndirect();
+            DeferredReference<ParamPack::VertexDraw>* Draw();
+            DeferredReference<ParamPack::IndexDraw>* DrawIndexed();
+            DeferredReference<ParamPack::Dispatch>* Dispatch();
+            DeferredReference<ParamPack::DrawMeshTasks>* DrawMeshTasks();
+            
+            DeferredReference<ParamPack::DrawIndirect>* DrawIndirect();
+            DeferredReference<ParamPack::DrawIndexedIndirect>* DrawIndexedIndirect();
+            DeferredReference<ParamPack::DispatchIndirect>* DispatchIndirect();
+            DeferredReference<ParamPack::DrawMeshTasksIndirect>* DrawMeshTasksIndirect();
+            
+            DeferredReference<ParamPack::DrawIndirectCount>* DrawIndirectCount();
+            DeferredReference<ParamPack::DrawIndexedIndirectCount>* DrawIndexedIndirectCount();
+            DeferredReference<ParamPack::DrawMeshTasksIndirectCount>* DrawMeshIndirect();
 
-        DeferredReference<ViewportScissorParamPack>* SetViewportScissor();
-        DeferredReference<ViewportScissorWithCountParamPack>* SetViewportScissorWithCount();
+            DeferredReference<ParamPack::ViewportScissor>* SetViewportScissor();
+            DeferredReference<ParamPack::ViewportScissorWithCount>* SetViewportScissorWithCount();
 
-        void FixDeferred(const PerFlight<std::size_t> pool_address) noexcept;
+            void FixDeferred(const PerFlight<std::size_t> pool_address) noexcept;
 #if EWE_DEBUG_BOOL
-        bool ValidateInstructions() const;
+            bool ValidateInstructions() const;
 #endif
-    };
-
+        };
+    }//namespace Command
 }//namespace EWE

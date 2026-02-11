@@ -86,55 +86,121 @@ namespace EWE{
             EWE_VK(vkCmdCopyBufferToImage,
                 cmdBuf,
                 buffer,
-                image, layout,
+                img.image, layout,
                 1, &region
             );
 		}
-		void CopyBufferToImage(CommandBuffer& cmdBuf, VkBuffer buffer, Image& img){
+		void CopyBufferToImage(CommandBuffer& cmdBuf, VkBuffer vkbuffer, Image& img) {
 			
             VkBufferImageCopy region{
-				.bufferOffset = 0;
-				.bufferRowLength = 0;
-				.bufferImageHeight = 0;
+				.bufferOffset = 0,
+				.bufferRowLength = 0,
+				.bufferImageHeight = 0,
 
-				.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				.imageSubresource.mipLevel = 0;
-				.imageSubresource.baseArrayLayer = 0;
-				.imageSubresource.layerCount = img.layerCount;
+				.imageSubresource = VkImageSubresourceLayers{
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.mipLevel = 0,
+					.baseArrayLayer = 0,
+					.layerCount = img.arrayLayers
+				},
 
-				.imageOffset = { 0, 0, 0 };
-				.imageExtent = VkExtent3D{
-					.width = img.width,
-					.height = img.height,
-					1
-				};
+				.imageOffset = VkOffset3D{ 0, 0, 0 },
+				.imageExtent = img.extent
 			};
 			
-			CopyBufferToImage(cmdBuf, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+			CopyBufferToImage(cmdBuf, vkbuffer, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		}
 		
 	}
+
+	//TransferCommandPackage::TransferCommandPackage(LogicalDevice& logicalDevice, Queue& queue)
+	//	: logicalDevice{logicalDevice},
+	//	queue{queue},
+	//	pool{ logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT },
+	//	cmdBuf{pool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY) }
+	//{
+
+	//}
 	
-	TransferCommandPackage* TransferContext<Image>::Commands(){
-		
-		Queue& firstQueue = transferQueue ? *transferQueue : dstQueue;
-		
-		TransferCommandPackage ret = new TransferCommandPackage{
-			.commandPool{img.logicalDevice, firstQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-			.cmdBuf{commandPool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY)},
-		};
-		cmdBuf.Begin();
-		
-		//if the destination is either compute, or generating mipmaps, put the layout to GENERAL
+	void SingleQueueTransferContext_Image::Commands(CommandBuffer& cmdBuf){
 		UsageData<Image> usage{
-			.stage = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-			.accessMask = VK_ACCESS_2_IDK,
-			.layout = dstLayout
+			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
 		};
-		Resource<Image> resource{img, usage};
+		if(resource.layout == VK_IMAGE_LAYOUT_GENERAL){
+			usage.layout = VK_IMAGE_LAYOUT_GENERAL
+		}
+		Resource<Image> lh_resource{resource.image, usage};
 		
-		ret->barrier = Barrier::Acquire_Image(firstQueue, resource, 0);
+		{ //initial transition from UNDEFINED to either TRANSFER_DST_OPTIMAL or GENERAL
+			auto initial_transition_barrier = Barrier::Acquire_Image(dstQueue, lh_resource, 0);
+			VkDependencyInfo dependency_info{
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.pNext = nullptr,
+				.memoryBarrierCount = 0,
+				.bufferMemoryBarrierCount = 0,
+				.imageMemoryBarrierCount = 1,
+				.pImageMemoryBarriers = &initial_transition_barrier
+			};
+			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
+		}
+		Command_Helper::CopyBufferToImage(cmdBuf, stagingBuffer->buffer, *resource.image[0], image_region, usage.layout);
+		if(lh_resource.usage.layout != resource.usage.layout){
+			auto ownershipBarrier = Barrier::Acquire_Image(dstQueue, resource, 0);
+			
+			VkDependencyInfo dependency_info{
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.pNext = nullptr,
+				.memoryBarrierCount = 0,
+				.bufferMemoryBarrierCount = 0,
+				.imageMemoryBarrierCount = 1,
+				.pImageMemoryBarriers = &ownershipBarrier
+			};
+			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
+		}
+	}
+	
+	void AsyncTransferContext_Image::Commands(CommandBuffer& cmdBuf){
 		
-		return ret;
+		UsageData<Image> usage{
+			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+			.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+		};
+		if(dstLayout == VK_IMAGE_LAYOUT_GENERAL){
+			usage.layout = VK_IMAGE_LAYOUT_GENERAL
+		}
+		Resource<Image> lh_resource{resource.image, usage};
+		
+		{ //initial transition from UNDEFINED to either TRANSFER_DST_OPTIMAL or GENERAL
+			auto initial_transition_barrier = Barrier::Acquire_Image(transferQueue, resource, 0);
+			VkDependencyInfo dependency_info{
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.pNext = nullptr,
+				.memoryBarrierCount = 0,
+				.bufferMemoryBarrierCount = 0,
+				.imageMemoryBarrierCount = 1,
+				.pImageMemoryBarriers = &initial_transition_barrier
+			};
+			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
+		}
+		
+		Command_Helper::CopyBufferToImage(cmdBuf, stagingBuffer->buffer, *resource.image[0], image_region, usage.layout);
+		
+		{ //ownership and potentially layout transition
+			auto ownershipBarrier = Barrier::Transition_Image(firstQueue, lh_resource, dstQueue, rh_resource, 0);
+			
+			VkDependencyInfo dependency_info{
+				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+				.pNext = nullptr,
+				.memoryBarrierCount = 0,
+				.bufferMemoryBarrierCount = 0,
+				.imageMemoryBarrierCount = 1,
+				.pImageMemoryBarriers = &ownershipBarrier
+			};
+			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
+		}
+		
 	}
 }

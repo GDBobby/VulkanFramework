@@ -28,7 +28,7 @@ namespace EWE{
         cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
         cmdBuffers{ cmdPool.AllocateCommandsPerFlight(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },
         signal{signals},
-        signal_semaphores{logicalDevice, false},
+        signal_semaphores{logicalDevice},
         full_workload{nullptr},
         external_workload{nullptr},
         name{name}

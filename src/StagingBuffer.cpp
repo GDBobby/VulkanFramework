@@ -1,9 +1,12 @@
 #include "EightWinds/Backend/StagingBuffer.h"
 
+#include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Image.h"
 
 namespace EWE{
-	StagingBuffer::StagingBuffer(VkDeviceSize size, const void* data) {
+	StagingBuffer::StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size, const void* data)
+        : logicalDevice{logicalDevice}
+    {
         VkBufferCreateInfo bufferCreateInfo{
         	.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
        		.size = size,
@@ -11,18 +14,20 @@ namespace EWE{
         	.sharingMode = VK_SHARING_MODE_EXCLUSIVE
 		};
 
-        VmaAllocationInfo vmaAllocInfo{};
         VmaAllocationCreateInfo vmaAllocCreateInfo{
         	.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
         	.usage = VMA_MEMORY_USAGE_AUTO
 		};
-        EWE_VK(vmaCreateBuffer, VK::Object->vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer, &vmaAlloc, &vmaAllocInfo);
+        VmaAllocationInfo vmaAllocInfo;
+        EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer, &vmaAlloc, &vmaAllocInfo);
 
         bufferSize = size;
 
         Stage(data, size);
     }
-    StagingBuffer::StagingBuffer(VkDeviceSize size) {
+    StagingBuffer::StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size)
+        : logicalDevice{ logicalDevice } 
+    {
         VkBufferCreateInfo bufferCreateInfo{
         	.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
         	.size = size,
@@ -37,7 +42,7 @@ namespace EWE{
 		};
         bufferSize = size;
 
-        EWE_VK(vmaCreateBuffer, VK::Object->vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer, &vmaAlloc, &vmaAllocInfo);
+        EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer, &vmaAlloc, &vmaAllocInfo);
     }
 	
 	
@@ -46,33 +51,28 @@ namespace EWE{
         if (buffer == VK_NULL_HANDLE) {
             return;
         }
-        EWE_VK(vmaDestroyBuffer, VK::Object->vmaAllocator, buffer, vmaAlloc);
+        EWE_VK(vmaDestroyBuffer, logicalDevice.vmaAllocator, buffer, vmaAlloc);
     }
 	
     void StagingBuffer::Free() const {
         if (buffer == VK_NULL_HANDLE) {
             return;
         }
-        EWE_VK(vmaDestroyBuffer, VK::Object->vmaAllocator, buffer, vmaAlloc);
+        EWE_VK(vmaDestroyBuffer, logicalDevice.vmaAllocator, buffer, vmaAlloc);
 	}
 	
     void StagingBuffer::Stage(const void* data, uint64_t bufferSize) {
         void* stagingData;
 
-        EWE_VK(vmaMapMemory, VK::Object->vmaAllocator, vmaAlloc, &stagingData);
+        EWE_VK(vmaMapMemory, logicalDevice.vmaAllocator, vmaAlloc, &stagingData);
         memcpy(stagingData, data, bufferSize);
-        EWE_VK(vmaUnmapMemory, VK::Object->vmaAllocator, vmaAlloc);
+        EWE_VK(vmaUnmapMemory, logicalDevice.vmaAllocator, vmaAlloc);
     }
     void StagingBuffer::Map(void*& data) {
-        EWE_VK(vmaMapMemory, VK::Object->vmaAllocator, vmaAlloc, &data);
+        EWE_VK(vmaMapMemory, logicalDevice.vmaAllocator, vmaAlloc, &data);
     }
     void StagingBuffer::Unmap() {
-        EWE_VK(vmaUnmapMemory, VK::Object->vmaAllocator, vmaAlloc);
+        EWE_VK(vmaUnmapMemory, logicalDevice.vmaAllocator, vmaAlloc);
     }
-	
-	
-	void StagingBuffer::StageImage(Image& image, bool mipmapping){
-		
-	}
 	
 }

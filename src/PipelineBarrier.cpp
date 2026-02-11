@@ -1,6 +1,8 @@
-#include "EWGraphics/Vulkan/PipelineBarrier.h"
-#include "EWGraphics/Vulkan/Device.hpp"
+#include "EightWinds/Backend/PipelineBarrier.h"
 
+#include "EightWinds/Queue.h"
+#include "EightWinds/Buffer.h"
+#include "EightWinds/Image.h"
 
 #include <iterator>
 
@@ -114,17 +116,6 @@ namespace EWE {
         return *this;
     }
 
-
-	void PipelineBarrier::Submit(CommandBuffer& cmdBuf) const {
-        //need pool synchronization here
-		EWE_VK(vkCmdPipelineBarrier, cmdBuf,
-			srcStageMask, dstStageMask,
-			dependencyFlags,
-			static_cast<uint32_t>(memoryBarriers.size()), memoryBarriers.data(),
-            static_cast<uint32_t>(bufferBarriers.size()), bufferBarriers.data(),
-            static_cast<uint32_t>(imageBarriers.size()), imageBarriers.data()
-		);
-	}
 	//the parameter object passed in is no longer usable, submitting both barriers will potentially lead to errors
 	void PipelineBarrier::Merge(PipelineBarrier const& other) {
 		//idk if i need if operators for empty vectors
@@ -209,7 +200,7 @@ namespace EWE {
 				}
 			};
 		}
-		VkBufferMemoryBarrier2 Acquire_Buffer(Queue& dstQueue, Resource<Buffer>& resource, uint8_t frame_index){
+		VkBufferMemoryBarrier2 Acquire_Buffer(Queue& dstQueue, Resource<Buffer>& resource, uint8_t frameIndex){
 			const uint32_t srcQueueFamilyIndex = resource.resource[frameIndex]->owningQueue ? resource.resource[frameIndex]->owningQueue->FamilyIndex() : dstQueue.FamilyIndex();
 			return VkBufferMemoryBarrier2{
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -256,12 +247,12 @@ namespace EWE {
 				}
 			};
 		}
-		VkBufferMemoryBarrier2 Transition_Buffer(Queue* srcQueue, Resource<Buffer>& lh_resource, Queue* dstQueue, Resource<Buffer>& rh_resource, uint8_t frameIndex){
+		VkBufferMemoryBarrier2 Transition_Buffer(Queue& srcQueue, Resource<Buffer>& lh_resource, Queue& dstQueue, Resource<Buffer>& rh_resource, uint8_t frameIndex){
 			return VkBufferMemoryBarrier2{
 				.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
 				.pNext = nullptr,
 				.srcStageMask = lh_resource.usage.stage,
-				.srcAccessMask = lh_resourcelh_resource.usage.accessMask,
+				.srcAccessMask = lh_resource.usage.accessMask,
 				.dstStageMask = rh_resource.usage.stage,
 				.dstAccessMask = rh_resource.usage.accessMask,
 				.srcQueueFamilyIndex = srcQueue.FamilyIndex(),

@@ -28,7 +28,7 @@ namespace EWE {
 		Pipeline& operator=(Pipeline const&) = delete;
 		Pipeline& operator=(Pipeline&&) = delete;
 		
-		void WriteToParamPack(PipelineParamPack& paramPack) const;
+		void WriteToParamPack(ParamPack::Pipeline& paramPack) const;
 
 #if PIPELINE_HOT_RELOAD
 		uint16_t framesSinceSwap = 0;

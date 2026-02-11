@@ -21,8 +21,6 @@
 
 #include "EightWinds/Data/PerFlight.h"
 
-#include "EightWinds/Backend/RenderInfo3.h"
-
 #include <unordered_set>
 #include <optional>
 
@@ -30,7 +28,7 @@ namespace EWE{
 	
 	struct DrawBase : public GlobalPushConstant_Abstract {
 		bool use_labelPack = false;
-		DeferredReference<LabelParamPack>* deferred_label = nullptr;
+		DeferredReference<ParamPack::Label>* deferred_label = nullptr;
 	};
 
 	template<typename ParamPack>
@@ -38,13 +36,13 @@ namespace EWE{
 		DeferredReference<ParamPack>* paramPack = nullptr;
 	};
 	
-	using VertexDrawData = DrawData<VertexDrawParamPack>;
-	using IndexedDrawData = DrawData<IndexDrawParamPack>;
-	using MeshDrawData = DrawData<DrawMeshTasksParamPack>;
-	using VertexIndirectDrawData = DrawData<DrawIndirectParamPack>;
-	using IndexedIndirectDrawData = DrawData<DrawIndexedIndirectParamPack>;
-	using VertexIndirectCountDrawData = DrawData<DrawIndirectCountParamPack>;
-	using IndexedIndirectCountDrawData = DrawData<DrawIndexedIndirectCountParamPack>;
+	using VertexDrawData = DrawData<ParamPack::VertexDraw>;
+	using IndexedDrawData = DrawData<ParamPack::IndexDraw>;
+	using MeshDrawData = DrawData<ParamPack::DrawMeshTasks>;
+	using VertexIndirectDrawData = DrawData<ParamPack::DrawIndirect>;
+	using IndexedIndirectDrawData = DrawData<ParamPack::DrawIndexedIndirect>;
+	using VertexIndirectCountDrawData = DrawData<ParamPack::DrawIndirectCount>;
+	using IndexedIndirectCountDrawData = DrawData<ParamPack::DrawIndexedIndirectCount>;
 
 		//i should do validaiton to ensure this layout is only used with vert draws or mesh draws appropriately
 	struct ObjectRasterData{
@@ -62,32 +60,32 @@ namespace EWE{
 	//count is for using 1 push constant with multiple objects
 	//i dont think that will ever happen?
 	struct VertexDrawCount : public DrawBase {
-		std::vector<VertexDrawParamPack> data;
+		std::vector<ParamPack::VertexDraw> data;
 	};
 	struct IndexDrawCount : public DrawBase{
-		std::vector<IndexDrawParamPack> data;	
+		std::vector<ParamPack::IndexDraw> data;
 	};
 	struct MeshDrawCount : public DrawBase{
-		std::vector<DrawMeshTasksParamPack> data;	
+		std::vector<ParamPack::DrawMeshTasks> data;
 	};
 
 	struct DeferredPipelineExecute {
 		Pipeline* pipeline; //needs to be deleted
 		//ObjectRasterData rasterData;//i dont really care about keeping the data, besides viewing in debug
 
-		DeferredReference<PipelineParamPack>* pipe_paramPack;
-		DeferredReference<ViewportScissorParamPack>* vp_s_paramPack;
+		DeferredReference<ParamPack::Pipeline>* pipe_paramPack;
+		DeferredReference<ParamPack::ViewportScissor>* vp_s_paramPack;
 
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
 			TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-			DeferredReference<PipelineParamPack>* pipe_params,
-			DeferredReference<ViewportScissorParamPack>* vp_params
+			DeferredReference<ParamPack::Pipeline>* pipe_params,
+			DeferredReference<ParamPack::ViewportScissor>* vp_params
 		);
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
 			TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-			CommandRecord& record
+			Command::Record& record
 		);
 
 		~DeferredPipelineExecute();
@@ -194,13 +192,13 @@ namespace EWE{
 
 		//this needs to stay alive as long as these objects are used in a task
 		std::vector<DeferredPipelineExecute> deferred_pipelines{};
-		DeferredReference<LabelParamPack>* deferred_label = nullptr;
+		DeferredReference<ParamPack::Label>* deferred_label = nullptr;
 		
 		//the pipelines are unique between vertices and mesh
-		void Record_Vertices(CommandRecord& record);
-		void Record_Mesh(CommandRecord& record);
+		void Record_Vertices(Command::Record& record);
+		void Record_Mesh(Command::Record& record);
 
-		void Record(CommandRecord& record, bool labeled = false);
+		void Record(Command::Record& record, bool labeled = false);
 		
 		void AdjustPipelines();
 	};

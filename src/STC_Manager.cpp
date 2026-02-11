@@ -1,43 +1,7 @@
-#include "EWGraphics/Vulkan/QueueSyncPool.h"
+#include "EWEngine/STC_Manager.h"
 
-#include "EWGraphics/Data/EWE_Memory.h"
-#include "EWGraphics/Data/ThreadPool.h"
-#include "EWGraphics/Texture/ImageFunctions.h"
-
-#include <sstream>
 
 namespace EWE {
-
-    
-    void GraphicsFence::CheckReturn(uint64_t time) {
-        if (fence.CheckReturn(time)) {
-
-#if DEBUGGING_FENCES
-            fence.log.push_back("checked return, continuing in graphics fence");
-#endif
-#if EWE_DEBUG
-            assert(gCommand.command != nullptr);
-#endif
-            gCommand.command->Reset();
-            gCommand.command = nullptr;
-
-            if (gCommand.stagingBuffer != nullptr) {
-                gCommand.stagingBuffer->Free();
-                Deconstruct(gCommand.stagingBuffer);
-                gCommand.stagingBuffer = nullptr;
-            }
-            if (gCommand.imageInfo != nullptr) {
-                //assert(gCommand.imageInfo->descriptorImageInfo.imageLayout != gCommand.imageInfo->destinationImageLayout); //i dont remember why i put this in
-                gCommand.imageInfo->descriptorImageInfo.imageLayout = gCommand.imageInfo->destinationImageLayout;
-                gCommand.imageInfo = nullptr;
-            }
-#if DEBUGGING_FENCES
-            fence.log.push_back("allowing graphics fence to be reobtained");
-#endif
-            //signalSemaphore->FinishSignaling();
-            fence.inUse = false;
-        }
-    }
 
     thread_local ThreadedSingleTimeCommands* QueueSyncPool::threadSTC;
 

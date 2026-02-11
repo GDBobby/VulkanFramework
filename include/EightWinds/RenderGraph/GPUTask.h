@@ -17,8 +17,9 @@
 //equivalent a renderpass subpass?
 
 namespace EWE{
-    struct CommandRecord;
-    
+    namespace Command {
+        struct Record;
+    }
     //the id of this task is its address
     //GPUTask is intended to be used in a single thread.
     //if its desired to multi-thread within a single task, sync needs to be external
@@ -29,9 +30,9 @@ namespace EWE{
         //i think i define a command pool here, or at least a queue
         Queue& queue;
 
-        CommandExecutor commandExecutor;
+        Command::Executor commandExecutor;
 
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, CommandRecord& cmdRecord);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;

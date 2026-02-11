@@ -16,22 +16,23 @@ namespace EWE{
     //    uint16_t buffer_count;
     //    uint16_t image_count;
     //};
-    
-    struct CommandExecutor{
-        LogicalDevice& logicalDevice;
+    namespace Command{
+        struct Executor{
+            LogicalDevice& logicalDevice;
 
-        [[nodiscard]] explicit CommandExecutor(LogicalDevice& logicalDevice) noexcept;
-        CommandExecutor(CommandExecutor const& copySrc) = delete;
-        CommandExecutor(CommandExecutor&& moveSrc) = delete;
-        CommandExecutor& operator=(CommandExecutor const& copySrc) = delete;
-        CommandExecutor& operator=(CommandExecutor&& moveSrc) = delete;
+            [[nodiscard]] explicit Executor(LogicalDevice& logicalDevice) noexcept;
+            Executor(Executor const& copySrc) = delete;
+            Executor(Executor&& moveSrc) = delete;
+            Executor& operator=(Executor const& copySrc) = delete;
+            Executor& operator=(Executor&& moveSrc) = delete;
 
-        //i can use templates to make the parampool type aware
-        PerFlight<std::vector<uint8_t>> paramPool;
-        //std::vector<uint8_t> barrierPool;
-        std::vector<CommandInstruction> instructions{};
+            //i can use templates to make the parampool type aware
+            PerFlight<std::vector<uint8_t>> paramPool;
+            //std::vector<uint8_t> barrierPool;
+            std::vector<Instruction> instructions{};
 
-        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept;
-        void Debug() const noexcept;
-    };
-}
+            void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept;
+            void Debug() const noexcept;
+        };
+    } //namespace Command 
+} //namespace EWE

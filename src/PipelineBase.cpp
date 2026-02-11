@@ -14,7 +14,7 @@
 namespace EWE {
 	
 	
-	void Pipeline::WriteToParamPack(PipelineParamPack& paramPack) const{
+	void Pipeline::WriteToParamPack(ParamPack::Pipeline& paramPack) const{
 		paramPack.pipe = vkPipe;
 		paramPack.layout = pipeLayout->vkLayout;
 		paramPack.bindPoint = pipeLayout->bindPoint;

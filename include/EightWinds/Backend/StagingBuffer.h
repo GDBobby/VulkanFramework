@@ -2,16 +2,22 @@
 
 #include "EightWinds/VulkanHeader.h"
 
+
+#include <cstdint>
+
 namespace EWE{
-	struct Image;
-	struct Buffer;
+	//struct Image;
+	//struct Buffer;
+    struct LogicalDevice;
 	
     struct StagingBuffer{
+        LogicalDevice& logicalDevice;
+
         VkBuffer buffer{ VK_NULL_HANDLE };
         VkDeviceSize bufferSize;
         VmaAllocation vmaAlloc{};
-        StagingBuffer(VkDeviceSize size);
-        StagingBuffer(VkDeviceSize size, const void* data);
+        StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size);
+        StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size, const void* data);
         void Free();
         void Free() const;
         void Stage(const void* data, uint64_t bufferSize);
@@ -19,6 +25,6 @@ namespace EWE{
         void Unmap();
 		
 		
-		void StageImage(Image& image, bool mipmapping);
+		//void StageImage(Image& image, bool mipmapping);
     };
 }

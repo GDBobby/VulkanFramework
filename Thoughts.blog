@@ -132,3 +132,8 @@ I don't think Submission Task will be need Prefix and Suffix, but they might use
 
 ## 2/5/2026
 i can use imgui and the param pool to edit the command buffer params without any other context
+
+## 2/10/2026
+i think i can change the parampool a bit. it's a bit like an array at the moment, 
+where if i wasnt to resize it i basically need to recreate it.
+i think i can make it more like my hive implementation, in which i just chain static parts

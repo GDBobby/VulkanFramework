@@ -6,6 +6,8 @@
 #include <vector>
 
 namespace EWE {
+	struct Queue;
+
     struct PipelineBarrier {
         std::vector<VkMemoryBarrier2> memoryBarriers;
         std::vector<VkImageMemoryBarrier2> imageBarriers;

@@ -49,7 +49,7 @@ namespace EWE{
 
 
 
-    TimelineSemaphore::TimelineSemaphore(LogicalDevice& logicalDevice, int initialValue)
+    TimelineSemaphore::TimelineSemaphore(LogicalDevice& logicalDevice, uint64_t initialValue)
         : logicalDevice{logicalDevice}
     {
         //VK_SEMAPHORE_TYPE_BINARY = 0,
@@ -58,7 +58,7 @@ namespace EWE{
         //i need to find a way to rectify features internally
 #if EWE_DEBUG_BOOL
         printf("not checking features to see if timeline semaphore is enabled yet\n");
-        assert(logicalDevice.physicalDevice.features.timelineSemaphore);
+        assert(logicalDevice.features12.timelineSemaphore);
 #endif
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo{
