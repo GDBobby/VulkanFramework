@@ -10,15 +10,20 @@ namespace EWE{
         VkImageSubresourceRange subresource;
 
         //this makes a full image view
-        [[nodiscard]] explicit ImageView(Image& image) noexcept;
+        [[nodiscard]] explicit ImageView(Image& image);
         //for any customization
-        [[nodiscard]] explicit ImageView(Image& image, VkImageViewCreateInfo const& createInfo) noexcept;
+        [[nodiscard]] explicit ImageView(Image& image, VkImageViewCreateInfo const& createInfo);
+        [[nodiscard]] explicit ImageView(Image& image, bool readyForConstruction) noexcept; //the  value isn't read, the object won't be constructed
+        
         ~ImageView();
 
 #if EWE_DEBUG_NAMING
         std::string debugName;
         void SetName(std::string_view name);
 #endif
+
+        void Create();
+        void Create(VkImageViewCreateInfo const& createInfo);
 
         operator VkImageView() const {
             return view;

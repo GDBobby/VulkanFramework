@@ -20,6 +20,7 @@
 
 namespace EWE{
 
+    struct ImguiExtension;
 
 
 
@@ -34,7 +35,6 @@ namespace EWE{
 
         LogicalDevice& logicalDevice;
         Swapchain& swapchain;
-
 
         //its important that task dont get moved or copied
         Hive<GPUTask> tasks;
@@ -65,7 +65,9 @@ namespace EWE{
             else if constexpr (std::is_same_v<T, Buffer>) {
                 task.resources.buffers[res_index].resource[frameIndex] = resource;
             }
-
         }
+
+
+        friend struct ImguiExtension;
     };
 }//namespace EWE

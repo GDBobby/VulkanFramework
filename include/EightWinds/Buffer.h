@@ -16,6 +16,7 @@ namespace EWE{
     struct Buffer{
         LogicalDevice& logicalDevice;
         Queue* owningQueue;
+        std::string name;
 
         [[nodiscard]] Buffer(LogicalDevice& device); //does not get initialized on the GPU
         
@@ -66,7 +67,6 @@ namespace EWE{
     public:
 
 #if EWE_DEBUG_NAMING
-        std::string debugName;
         void SetName(std::string_view name);
 #endif
     };

@@ -53,7 +53,7 @@ set(GLFW_VULKAN_STATIC ON CACHE BOOL "")
 
 add_subdirectory(external/glfw)
 
-option(ENABLE_AFTERMATH "Enable NVIDIA NSight aftermath" ON)
+option(ENABLE_AFTERMATH "Enable NVIDIA NSight aftermath" OFF)
 if (DEFINED NVIDIA_AFTERMATH_PATH AND ENABLE_AFTERMATH)
     message(STATUS "Including NVIDIA Nsight Aftermath - ${NVIDIA_AFTERMATH_PATH}")
 

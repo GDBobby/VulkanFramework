@@ -27,11 +27,21 @@ namespace EWE{
         //main rendering thread should not be auxilary, the rest are
         //auxilary pools can reset individual command buffers, main pool resets all at once
         [[nodiscard]] explicit CommandPool(LogicalDevice& logicalDevice, Queue& queue, VkCommandPoolCreateFlags createFlags);
+        ~CommandPool();
+        CommandPool(CommandPool const& copySrc) = delete;
+        CommandPool& operator=(CommandPool const& copySrc) = delete;
+        CommandPool(CommandPool&& moveSrc) noexcept;
+        CommandPool& operator=(CommandPool&& moveSrc) noexcept;
 
         [[nodiscard]] PerFlight<CommandBuffer> AllocateCommandsPerFlight(VkCommandBufferLevel buffer_level);
         [[nodiscard]] std::vector<CommandBuffer> AllocateCommands(uint8_t count, VkCommandBufferLevel buffer_level);
         [[nodiscard]] CommandBuffer AllocateCommand(VkCommandBufferLevel buffer_level);
 
+        void Reset(VkCommandPoolResetFlags flag);
+
+        bool operator==(CommandPool& other) const {
+            return commandPool == other.commandPool;
+        }
         operator VkCommandPool() const {
             return commandPool;
         }

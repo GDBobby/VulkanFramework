@@ -15,6 +15,8 @@ namespace EWE{
     struct Image{
         LogicalDevice& logicalDevice;
         VkImage image;
+        
+        bool readyForUsage = false;
         [[nodiscard]] explicit Image(LogicalDevice& logicalDevice) noexcept;
         
         Image(Image const& copySrc) = delete;
@@ -28,6 +30,7 @@ namespace EWE{
         std::string debugName;
         void SetName(std::string_view name);
 #endif
+
 
         Queue* owningQueue;
 

@@ -64,7 +64,7 @@ namespace EWE {
 								auto& retBinding = retBindings.vkBindings[ret_index];
 
 								if (binding.binding == retBinding.binding) {
-									assert(retBinding.descriptorType == binding.descriptorType);
+									EWE_ASSERT(retBinding.descriptorType == binding.descriptorType);
 									retBinding.stageFlags |= binding.stageFlags;
 									foundBindingMatch = true;
 								}

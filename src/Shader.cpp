@@ -17,6 +17,8 @@
 #include <string.h>
 #endif
 
+#include <filesystem>
+
 #if EWE_DEBUG_BOOL
 #define SPV_REFLECT(func, ...) {auto result = func(__VA_ARGS__); if (result != SPV_REFLECT_RESULT_SUCCESS) {printf("failed to read reflected shader data - %s - %s\n", #func, magic_enum::enum_name(result).data());}}
 #endif
@@ -29,8 +31,8 @@ namespace EWE {
 		shaderFile.open(filepath.data(), std::ios::binary);
 		if (!shaderFile.is_open()) {
 #if EWE_DEBUG_BOOL
-			printf("failed ot open shader file : %s\n", filepath.data());
-			assert(shaderFile.is_open() && "failed to open shader");
+			printf("failed ot open shader file - %s : %s\n", std::filesystem::current_path().string().c_str(), filepath.data());
+			EWE_ASSERT(shaderFile.is_open(), "failed to open shader");
 #endif
 		}
 		shaderFile.seekg(0, std::ios::end);

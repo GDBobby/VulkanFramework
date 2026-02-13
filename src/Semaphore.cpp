@@ -57,8 +57,7 @@ namespace EWE{
 
         //i need to find a way to rectify features internally
 #if EWE_DEBUG_BOOL
-        printf("not checking features to see if timeline semaphore is enabled yet\n");
-        assert(logicalDevice.features12.timelineSemaphore);
+        EWE_ASSERT(logicalDevice.features12.timelineSemaphore);
 #endif
 
         VkSemaphoreTypeCreateInfo timelineCreateInfo{

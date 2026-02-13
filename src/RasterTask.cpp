@@ -282,4 +282,14 @@ namespace EWE{
 			}
 		}
 	}
+
+
+#if EWE_IMGUI
+	void RasterTask::Imgui() {
+		ImGui::PushID();
+		ImGui::Text("Raster Task : %s", name.c_str());
+		ImGui::TreeNode("config")
+		config.Imgui();
+	}
+#endif
 }

@@ -24,6 +24,30 @@ namespace EWE{
                 &commandPool
             );
     }    
+
+    CommandPool::~CommandPool() {
+        if (commandPool != VK_NULL_HANDLE) {
+            vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+        }
+    }
+    CommandPool::CommandPool(CommandPool&& moveSrc) noexcept
+        : logicalDevice{moveSrc.logicalDevice},
+        queue{moveSrc.queue},
+        commandPool{moveSrc.commandPool}
+
+    {
+
+    }
+    CommandPool& CommandPool::operator=(CommandPool&& moveSrc) noexcept {
+        EWE_ASSERT(logicalDevice == moveSrc.logicalDevice);
+        EWE_ASSERT(queue == moveSrc.queue);
+        commandPool = moveSrc.commandPool;
+        moveSrc.commandPool = VK_NULL_HANDLE;
+
+        return *this;
+    }
+
+
     PerFlight<CommandBuffer> CommandPool::AllocateCommandsPerFlight(VkCommandBufferLevel buffer_level) {
         allocatedBuffers += max_frames_in_flight;
 
@@ -74,4 +98,9 @@ namespace EWE{
         EWE_VK(vkAllocateCommandBuffers, logicalDevice, &allocInfo, &raw_data);
         return CommandBuffer{ *this, raw_data };
     }
+
+    void CommandPool::Reset(VkCommandPoolResetFlags flag) {
+        EWE_VK(vkResetCommandPool, logicalDevice, commandPool, flag);
+    }
+
 }

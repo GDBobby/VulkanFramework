@@ -8,6 +8,7 @@
 #include "EightWinds/Backend/DeviceSpecialization/FeaturePropertyPack.h"
 #include "EightWinds/Backend/Descriptor/Bindless.h"
 #include "EightWinds/Backend/GarbageDisposal.h"
+#include "EightWinds/Data/RuntimeArray.h"
 
 namespace EWE{
     struct LogicalDevice{
@@ -19,10 +20,11 @@ namespace EWE{
 
         //i think ill let the engine handle filtering the queues
         //i don't think there's a reason to use multiple queues in a single family currently.
-        std::vector<Queue> queues;
+        HeapBlock<Queue> queues;
 
         VkDevice device;
 
+        bool operator==(LogicalDevice const& other) const { return device == other.device; }
         operator VkDevice() const { return device; }
 
         [[nodiscard]] explicit LogicalDevice(

@@ -2,6 +2,10 @@
 
 #include "EightWinds/Backend/PerFlightDebugViewer.h"
 
+#ifdef EWE_IMGUI
+#include "imgui.h"
+#endif
+
 namespace EWE{
 
 

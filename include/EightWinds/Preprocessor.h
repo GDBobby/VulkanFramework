@@ -6,6 +6,9 @@
 #define EWE_DEBUG_BOOL true
 #endif
 
+
+#include <string_view>
+
 #define EWE_USING_EXCEPTIONS true
 
 #ifdef EWE_DEBUG_NAME_FORCE
@@ -40,8 +43,11 @@
     #else
         #define EWE_UNREACHABLE throw std::runtime_error("unreachable code")
     #endif
+#endif
 
-    static inline void EWE_Debug_Breakpoint() {
+
+static inline void EWE_Debug_Breakpoint() {
+    #if EWE_DEBUG_BOOL
         #if defined(_MSC_VER)
             __debugbreak();
 
@@ -58,7 +64,17 @@
                 __builtin_trap();
             #endif
         #endif
+    #else
+
+    #endif
+}
+
+
+inline void EWE_ASSERT(bool statement, std::string_view print = "failed assert") {
+#if EWE_DEBUG_BOOL
+    if (!statement) {
+        printf("%s\n", print.data());
+        EWE_Debug_Breakpoint();
     }
-
-
 #endif
+}

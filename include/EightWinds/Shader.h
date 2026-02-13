@@ -10,6 +10,7 @@
 namespace EWE {
 	struct Shader {
         LogicalDevice& logicalDevice;
+        std::string name;
 
         struct Stage { //becomes Shader::Stage
             enum Bits {
@@ -141,7 +142,6 @@ namespace EWE {
         void HotReload();
 #endif
 #if EWE_DEBUG_NAMING
-        std::string name;
         void SetDebugName(std::string_view name);
 #endif
 

@@ -90,14 +90,14 @@ namespace EWE{
         };
     }
 
-    ImageView::ImageView(Image& image, VkImageViewCreateInfo const& createInfo) noexcept
+    ImageView::ImageView(Image& image, VkImageViewCreateInfo const& createInfo) 
         : image{image},
         subresource{createInfo.subresourceRange}
     { 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
     }
     
-    ImageView::ImageView(Image& image) noexcept
+    ImageView::ImageView(Image& image) 
         : image{image}
     {
         const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
@@ -105,9 +105,25 @@ namespace EWE{
 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
     }
+    ImageView::ImageView(Image& image, bool readyForConstruction) noexcept
+        : image{image}
+    {
+        //the creation of the view on the GPU is postponed, most likely because the image has not yet been created on the GPU
+    }
 
     ImageView::~ImageView(){
         vkDestroyImageView(image.logicalDevice.device, view, nullptr);
+    }
+    
+    void ImageView::Create(){
+        const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
+        subresource = createInfo.subresourceRange;
+        EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
+    }
+
+    void ImageView::Create(VkImageViewCreateInfo const& createInfo){
+        subresource = createInfo.subresourceRange;
+        EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
     }
 
 

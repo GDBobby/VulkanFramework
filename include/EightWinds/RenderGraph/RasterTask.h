@@ -177,16 +177,18 @@ namespace EWE{
 		void AddDraw(ObjectRasterData const& config, MeshDrawCount& draw) {
 			AddHelper(mesh_draw_counts, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, VertexIndirectDrawData& draw) {
+
+		//these are not strongly typed. i need better distinction
+		void Add_Vert_IndirectDraw(ObjectRasterData const& config, VertexIndirectDrawData& draw) {
 			AddHelper(indirect_vert_draws, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, IndexedIndirectDrawData& draw) {
+		void Add_Indexed_IndirectDraw(ObjectRasterData const& config, IndexedIndirectDrawData& draw) {
 			AddHelper(indirect_indexed_draws, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, VertexIndirectCountDrawData& draw) {
+		void Add_Vert_IndirectCountDraw(ObjectRasterData const& config, VertexIndirectCountDrawData& draw) {
 			AddHelper(indirect_count_vert_draws, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, IndexedIndirectCountDrawData& draw) {
+		void AddIndexed_IndirectCountDraw(ObjectRasterData const& config, IndexedIndirectCountDrawData& draw) {
 			AddHelper(indirect_count_indexed_draws, config, draw);
 		}
 

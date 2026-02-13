@@ -83,7 +83,7 @@ namespace EWE{
 
 		}
 		void CopyBufferToImage(CommandBuffer& cmdBuf, VkBuffer buffer, Image& img, VkBufferImageCopy const& region, VkImageLayout layout){
-            EWE_VK(vkCmdCopyBufferToImage,
+            vkCmdCopyBufferToImage(
                 cmdBuf,
                 buffer,
                 img.image, layout,
@@ -128,10 +128,10 @@ namespace EWE{
 			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
 		};
-		if(resource.layout == VK_IMAGE_LAYOUT_GENERAL){
-			usage.layout = VK_IMAGE_LAYOUT_GENERAL
+		if(resource.usage.layout == VK_IMAGE_LAYOUT_GENERAL){
+			usage.layout = VK_IMAGE_LAYOUT_GENERAL;
 		}
-		Resource<Image> lh_resource{resource.image, usage};
+		Resource<Image> lh_resource{*resource.resource[0], usage};
 		
 		{ //initial transition from UNDEFINED to either TRANSFER_DST_OPTIMAL or GENERAL
 			auto initial_transition_barrier = Barrier::Acquire_Image(dstQueue, lh_resource, 0);
@@ -145,7 +145,7 @@ namespace EWE{
 			};
 			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
 		}
-		Command_Helper::CopyBufferToImage(cmdBuf, stagingBuffer->buffer, *resource.image[0], image_region, usage.layout);
+		Command_Helper::CopyBufferToImage(cmdBuf, stagingBuffer->buffer, *resource.resource[0], image_region, usage.layout);
 		if(lh_resource.usage.layout != resource.usage.layout){
 			auto ownershipBarrier = Barrier::Acquire_Image(dstQueue, resource, 0);
 			
@@ -159,48 +159,5 @@ namespace EWE{
 			};
 			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
 		}
-	}
-	
-	void AsyncTransferContext_Image::Commands(CommandBuffer& cmdBuf){
-		
-		UsageData<Image> usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-		};
-		if(dstLayout == VK_IMAGE_LAYOUT_GENERAL){
-			usage.layout = VK_IMAGE_LAYOUT_GENERAL
-		}
-		Resource<Image> lh_resource{resource.image, usage};
-		
-		{ //initial transition from UNDEFINED to either TRANSFER_DST_OPTIMAL or GENERAL
-			auto initial_transition_barrier = Barrier::Acquire_Image(transferQueue, resource, 0);
-			VkDependencyInfo dependency_info{
-				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-				.pNext = nullptr,
-				.memoryBarrierCount = 0,
-				.bufferMemoryBarrierCount = 0,
-				.imageMemoryBarrierCount = 1,
-				.pImageMemoryBarriers = &initial_transition_barrier
-			};
-			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
-		}
-		
-		Command_Helper::CopyBufferToImage(cmdBuf, stagingBuffer->buffer, *resource.image[0], image_region, usage.layout);
-		
-		{ //ownership and potentially layout transition
-			auto ownershipBarrier = Barrier::Transition_Image(firstQueue, lh_resource, dstQueue, rh_resource, 0);
-			
-			VkDependencyInfo dependency_info{
-				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-				.pNext = nullptr,
-				.memoryBarrierCount = 0,
-				.bufferMemoryBarrierCount = 0,
-				.imageMemoryBarrierCount = 1,
-				.pImageMemoryBarriers = &ownershipBarrier
-			};
-			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
-		}
-		
 	}
 }

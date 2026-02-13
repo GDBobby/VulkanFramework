@@ -5,6 +5,9 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Queue.h"
 
+#include "EightWinds/RenderGraph/Resources.h"
+#include "EightWinds/Image.h"
+
 #include "EightWinds/Backend/StagingBuffer.h"
 #include "EightWinds/CommandPool.h"
 #include "EightWinds/CommandBuffer.h"
@@ -23,11 +26,6 @@ namespace EWE{
 			Queue& queue;
 			Resource resource;
 		};
-		
-		
-		void BufferStaging(){
-			
-		}
 	}
 	
 	/* using fibers, i dont need a callback, or a callback object
@@ -88,13 +86,11 @@ namespace EWE{
 	};
 	
 	struct AsyncTransferContext_Image{
-		Resource<Image> resource;
-		Queue& transferQueue;
-		Queue& dstQueue;
+		Resource<Image> resource; //set the dstlayout here
 		StagingBuffer* stagingBuffer;
 		bool generatingMipMaps;
 		VkBufferImageCopy image_region;
-		void Commands(CommandBuffer& cmdBuf);
+		//void Commands(CommandBuffer& cmdBuf);
 	};
 	
 	

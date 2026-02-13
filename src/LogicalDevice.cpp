@@ -24,10 +24,11 @@ namespace EWE{
         queuePriorities.reserve(physicalDevice.queueFamilies.size());
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.pNext = nullptr;// this is just for protected bit, and i think it requires vkdevicequeuecreateinfo2 or something
-        queueCreateInfo.queueCount = 1;
+        VkDeviceQueueCreateInfo queueCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .pNext = nullptr,// this is just for protected bit, and i think it requires vkdevicequeuecreateinfo2 or something
+            .queueCount = 1
+        };
 
         for (uint8_t i = 0; i < physicalDevice.queueFamilies.size(); i++) {
             queueCreateInfo.queueFamilyIndex = physicalDevice.queueFamilies[i].index;
@@ -78,12 +79,11 @@ namespace EWE{
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
         EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
-
-
-        queues.reserve(queueCreateInfos.size());
-        for (auto& qci : queueCreateInfos) {
+        
+        queues.Resize(queueCreateInfos.size());
+        for (std::size_t i = 0; i < queueCreateInfos.size(); i++) {
             //VkDevice logicalDeviceExplicit, QueueFamily& family, float priority
-            queues.emplace_back(*this, physicalDevice.queueFamilies[qci.queueFamilyIndex], queuePriorities[qci.queueFamilyIndex]);
+            queues.ConstructAt(i, *this, physicalDevice.queueFamilies[queueCreateInfos[i].queueFamilyIndex], queuePriorities[queueCreateInfos[i].queueFamilyIndex]);
         }
 
         return device;
@@ -100,6 +100,7 @@ namespace EWE{
     : instance{physDevice.instance},
         physicalDevice{std::forward<PhysicalDevice>(physDevice)},
         api_version{api_version},
+        queues{deviceCreateInfo.queueCreateInfoCount},
         device{CreateDevice(deviceCreateInfo)},
         
         bindlessDescriptor{*this},
@@ -146,12 +147,13 @@ namespace EWE{
 
 #if EWE_DEBUG_NAMING
     void LogicalDevice::SetObjectName(void* objectHandle, VkObjectType objectType, std::string_view name) const {
-        VkDebugUtilsObjectNameInfoEXT nameInfo{};
-        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-        nameInfo.pNext = nullptr;
-        nameInfo.objectHandle = reinterpret_cast<uint64_t>(objectHandle);
-        nameInfo.objectType = objectType;
-        nameInfo.pObjectName = name.data();
+        VkDebugUtilsObjectNameInfoEXT nameInfo{
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+            .pNext = nullptr,
+            .objectType = objectType,
+            .objectHandle = reinterpret_cast<uint64_t>(objectHandle),
+            .pObjectName = name.data()
+        };
         EWE_VK(debugUtilsObjectName, device, &nameInfo);
     }
 #endif

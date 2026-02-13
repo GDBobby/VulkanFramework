@@ -5,7 +5,6 @@
   "configurePresets": [
     {
       "name": "base",
-      "workingDirectory": "${sourceDir}",
       "hidden": true,
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {

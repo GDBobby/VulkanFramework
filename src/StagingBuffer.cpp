@@ -30,6 +30,7 @@ namespace EWE{
     {
         VkBufferCreateInfo bufferCreateInfo{
         	.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .pNext = nullptr,
         	.size = size,
         	.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         	.sharingMode = VK_SHARING_MODE_EXCLUSIVE
@@ -51,14 +52,14 @@ namespace EWE{
         if (buffer == VK_NULL_HANDLE) {
             return;
         }
-        EWE_VK(vmaDestroyBuffer, logicalDevice.vmaAllocator, buffer, vmaAlloc);
+        vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, vmaAlloc);
     }
 	
     void StagingBuffer::Free() const {
         if (buffer == VK_NULL_HANDLE) {
             return;
         }
-        EWE_VK(vmaDestroyBuffer, logicalDevice.vmaAllocator, buffer, vmaAlloc);
+        vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, vmaAlloc);
 	}
 	
     void StagingBuffer::Stage(const void* data, uint64_t bufferSize) {
@@ -66,13 +67,13 @@ namespace EWE{
 
         EWE_VK(vmaMapMemory, logicalDevice.vmaAllocator, vmaAlloc, &stagingData);
         memcpy(stagingData, data, bufferSize);
-        EWE_VK(vmaUnmapMemory, logicalDevice.vmaAllocator, vmaAlloc);
+        vmaUnmapMemory(logicalDevice.vmaAllocator, vmaAlloc);
     }
     void StagingBuffer::Map(void*& data) {
         EWE_VK(vmaMapMemory, logicalDevice.vmaAllocator, vmaAlloc, &data);
     }
     void StagingBuffer::Unmap() {
-        EWE_VK(vmaUnmapMemory, logicalDevice.vmaAllocator, vmaAlloc);
+        vmaUnmapMemory(logicalDevice.vmaAllocator, vmaAlloc);
     }
 	
 }
