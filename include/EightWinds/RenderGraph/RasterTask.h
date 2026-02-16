@@ -4,7 +4,7 @@
 
 
 #include "EightWinds/RenderGraph/GPUTask.h"
-#include "EightWinds/RenderGraph/Command/DeferredReference.h"
+#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
 
 #include "EightWinds/Pipeline/TaskRasterConfig.h"
 #include "EightWinds/ObjectRasterConfig.h"
@@ -28,12 +28,12 @@ namespace EWE{
 	
 	struct DrawBase : public GlobalPushConstant_Abstract {
 		bool use_labelPack = false;
-		DeferredReference<ParamPack::Label>* deferred_label = nullptr;
+		InstructionPointer<ParamPack::Label>* deferred_label = nullptr;
 	};
 
 	template<typename ParamPack>
 	struct DrawData : public DrawBase {
-		DeferredReference<ParamPack>* paramPack = nullptr;
+		InstructionPointer<ParamPack>* paramPack = nullptr;
 	};
 	
 	using VertexDrawData = DrawData<ParamPack::VertexDraw>;
@@ -73,14 +73,14 @@ namespace EWE{
 		Pipeline* pipeline; //needs to be deleted
 		//ObjectRasterData rasterData;//i dont really care about keeping the data, besides viewing in debug
 
-		DeferredReference<ParamPack::Pipeline>* pipe_paramPack;
-		DeferredReference<ParamPack::ViewportScissor>* vp_s_paramPack;
+		InstructionPointer<ParamPack::Pipeline>* pipe_paramPack;
+		InstructionPointer<ParamPack::ViewportScissor>* vp_s_paramPack;
 
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
 			TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-			DeferredReference<ParamPack::Pipeline>* pipe_params,
-			DeferredReference<ParamPack::ViewportScissor>* vp_params
+			InstructionPointer<ParamPack::Pipeline>* pipe_params,
+			InstructionPointer<ParamPack::ViewportScissor>* vp_params
 		);
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
@@ -121,7 +121,7 @@ namespace EWE{
 		VkRect2D scissor;
 
 		FullRenderInfo* renderInfo;
-		DeferredReference<VkRenderingInfo>* deferred_vk_render_info{ nullptr };
+		InstructionPointer<VkRenderingInfo>* deferred_vk_render_info{ nullptr };
 
 		bool ownsAttachmentLifetime = true;
 
@@ -194,7 +194,7 @@ namespace EWE{
 
 		//this needs to stay alive as long as these objects are used in a task
 		std::vector<DeferredPipelineExecute> deferred_pipelines{};
-		DeferredReference<ParamPack::Label>* deferred_label = nullptr;
+		InstructionPointer<ParamPack::Label>* deferred_label = nullptr;
 		
 		//the pipelines are unique between vertices and mesh
 		void Record_Vertices(Command::Record& record);

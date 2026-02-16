@@ -9,8 +9,8 @@ namespace EWE{
 	DeferredPipelineExecute::DeferredPipelineExecute(
 		LogicalDevice& logicalDevice, 
 		TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-		DeferredReference<ParamPack::Pipeline>* pipe_params,
-		DeferredReference<ParamPack::ViewportScissor>* vp_params
+		InstructionPointer<ParamPack::Pipeline>* pipe_params,
+		InstructionPointer<ParamPack::ViewportScissor>* vp_params
 	)
 		: pipeline{
 			new GraphicsPipeline(

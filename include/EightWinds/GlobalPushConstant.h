@@ -7,7 +7,7 @@
 
 #include "EightWinds/DescriptorImageInfo.h"
 
-#include "EightWinds/RenderGraph/Command/DeferredReference.h"
+#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
 
 namespace EWE{
 
@@ -40,7 +40,7 @@ namespace EWE{
         std::array<Buffer*, GlobalPushConstant_Raw::buffer_count> buffers;
         std::array<DescriptorImageInfo*, GlobalPushConstant_Raw::texture_count> textures;
         
-        DeferredReference<GlobalPushConstant_Raw>* deferred_push = nullptr;
+        InstructionPointer<GlobalPushConstant_Raw>* deferred_push = nullptr;
 
         [[nodiscard]] GlobalPushConstant_Abstract() {
             buffers.fill(nullptr);

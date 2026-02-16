@@ -4,7 +4,7 @@
 
 #include "EightWinds/Data/PerFlight.h"
 #include "EightWinds/Data/RuntimeArray.h"
-#include "EightWinds/RenderGraph/Command/DeferredReference.h"
+#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
 #include "EightWinds/Image.h"
 #include "EightWinds/ImageView.h"
 
@@ -88,6 +88,6 @@ namespace EWE{
 			AttachmentSetInfo const& setInfo
 		);
 
-		void Undefer(DeferredReference<VkRenderingInfo>* deferred_render_info);
+		void Undefer(InstructionPointer<VkRenderingInfo>* deferred_render_info);
 	};
 } //namespace EWE

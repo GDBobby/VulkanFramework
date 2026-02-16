@@ -9,14 +9,14 @@
 
 namespace EWE{
     template<typename T>
-    struct DeferredReference{
+    struct InstructionPointer{
     private:
         PerFlight<T*> data;
         bool adjusted = false;
     public:
 
-        DeferredReference() : data{ reinterpret_cast<T*>(UINT64_MAX) } {}
-        DeferredReference(std::size_t offset)
+        InstructionPointer() : data{ reinterpret_cast<T*>(UINT64_MAX) } {}
+        InstructionPointer(std::size_t offset)
         : data{reinterpret_cast<T*>(offset) }
         {}
 
@@ -29,7 +29,7 @@ namespace EWE{
         }
     };
 
-    struct DeferredReferenceHelper {
+    struct InstructionPointerAdjuster {
         PerFlight<std::size_t> data;
         bool adjusted;
     };

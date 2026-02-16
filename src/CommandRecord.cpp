@@ -142,44 +142,44 @@ namespace EWE{
         */
 
 
-        DeferredReference<ParamPack::ViewportScissor>* Record::SetViewportScissor(){
+        InstructionPointer<ParamPack::ViewportScissor>* Record::SetViewportScissor(){
             BindCommand(records, Instruction::Type::DS_ViewportScissor);
-            auto deferred_ref = new DeferredReference<ParamPack::ViewportScissor>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::ViewportScissor>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
 
         }
-        DeferredReference<ParamPack::ViewportScissorWithCount>* Record::SetViewportScissorWithCount(){
+        InstructionPointer<ParamPack::ViewportScissorWithCount>* Record::SetViewportScissorWithCount(){
             BindCommand(records, Instruction::Type::DS_ViewportScissorWithCount);
-            auto deferred_ref = new DeferredReference<ParamPack::ViewportScissorWithCount>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::ViewportScissorWithCount>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 
-        DeferredReference<ParamPack::Pipeline>* Record::BindPipeline(){
+        InstructionPointer<ParamPack::Pipeline>* Record::BindPipeline(){
             BindCommand(records, Instruction::Type::BindPipeline);
-            auto deferred_ref = new DeferredReference<ParamPack::Pipeline>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::Pipeline>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 
         //the plan is to only have the single descriptor set, for all bindless textures
         //void BindDescriptor(VkDescriptorSet set);
 
-        DeferredReference<GlobalPushConstant_Raw>* Record::Push() {
+        InstructionPointer<GlobalPushConstant_Raw>* Record::Push() {
             //assert a pipeline is binded
             BindCommand(records, Instruction::Type::PushConstant);
             // push_offsets.push_back(reinterpret_cast<GlobalPushConstant_Raw*>(GetCurrentOffset(records.back())));
-            DeferredReference<GlobalPushConstant_Raw>* ret{};
-            ret = new DeferredReference<GlobalPushConstant_Raw>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(ret));
+            InstructionPointer<GlobalPushConstant_Raw>* ret{};
+            ret = new InstructionPointer<GlobalPushConstant_Raw>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(ret));
             return ret;
         }
 
-        DeferredReference<VkRenderingInfo>* Record::BeginRender(){
+        InstructionPointer<VkRenderingInfo>* Record::BeginRender(){
             BindCommand(records, Instruction::Type::BeginRender);
-            auto deferred_ref = new DeferredReference<VkRenderingInfo>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<VkRenderingInfo>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
             
         }
@@ -191,70 +191,70 @@ namespace EWE{
             BindCommand(records, Instruction::Type::BindDescriptor);
         }
 
-        DeferredReference<ParamPack::Label>* Record::BeginLabel() noexcept{
+        InstructionPointer<ParamPack::Label>* Record::BeginLabel() noexcept{
             BindCommand(records, Instruction::Type::BeginLabel);
-            auto deferred_ref = new DeferredReference<ParamPack::Label>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::Label>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
         void Record::EndLabel() noexcept{
             BindCommand(records, Instruction::Type::EndLabel);
         }
 
-        DeferredReference<ParamPack::VertexDraw>* Record::Draw(){
+        InstructionPointer<ParamPack::VertexDraw>* Record::Draw(){
             BindCommand(records, Instruction::Type::Draw);
-            auto deferred_ref = new DeferredReference<ParamPack::VertexDraw>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::VertexDraw>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
-        DeferredReference<ParamPack::IndexDraw>* Record::DrawIndexed(){
+        InstructionPointer<ParamPack::IndexDraw>* Record::DrawIndexed(){
             BindCommand(records, Instruction::Type::DrawIndexed);
-            auto deferred_ref = new DeferredReference<ParamPack::IndexDraw>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::IndexDraw>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
-        DeferredReference<ParamPack::Dispatch>* Record::Dispatch(){
+        InstructionPointer<ParamPack::Dispatch>* Record::Dispatch(){
             BindCommand(records, Instruction::Type::Dispatch);
-            auto deferred_ref = new DeferredReference<ParamPack::Dispatch>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::Dispatch>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
-        DeferredReference<ParamPack::DrawMeshTasks>* Record::DrawMeshTasks() {
+        InstructionPointer<ParamPack::DrawMeshTasks>* Record::DrawMeshTasks() {
             BindCommand(records, Instruction::Type::DrawMeshTasks);
-            auto deferred_ref = new DeferredReference<ParamPack::DrawMeshTasks>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawMeshTasks>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 
-        DeferredReference<ParamPack::DrawIndirect>* Record::DrawIndirect() {
+        InstructionPointer<ParamPack::DrawIndirect>* Record::DrawIndirect() {
             BindCommand(records, Instruction::Type::DrawIndirect);
-            auto deferred_ref = new DeferredReference<ParamPack::DrawIndirect>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndirect>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
-        DeferredReference<ParamPack::DrawIndexedIndirect>* Record::DrawIndexedIndirect() {
+        InstructionPointer<ParamPack::DrawIndexedIndirect>* Record::DrawIndexedIndirect() {
             BindCommand(records, Instruction::Type::DrawIndexedIndirect);
-            auto deferred_ref = new DeferredReference<ParamPack::DrawIndexedIndirect>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndexedIndirect>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 
-        DeferredReference<ParamPack::DrawMeshTasksIndirect>* Record::DrawMeshTasksIndirect() {
+        InstructionPointer<ParamPack::DrawMeshTasksIndirect>* Record::DrawMeshTasksIndirect() {
             BindCommand(records, Instruction::Type::DrawMeshTasksIndirect);
-            auto deferred_ref = new DeferredReference<ParamPack::DrawMeshTasksIndirect>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawMeshTasksIndirect>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
-        DeferredReference<ParamPack::DrawIndirectCount>* Record::DrawIndirectCount() {
+        InstructionPointer<ParamPack::DrawIndirectCount>* Record::DrawIndirectCount() {
             BindCommand(records, Instruction::Type::DrawIndirectCount);
-            auto deferred_ref = new DeferredReference<ParamPack::DrawIndirectCount>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndirectCount>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
-        DeferredReference<ParamPack::DrawIndexedIndirectCount>* Record::DrawIndexedIndirectCount() {
+        InstructionPointer<ParamPack::DrawIndexedIndirectCount>* Record::DrawIndexedIndirectCount() {
             BindCommand(records, Command::Instruction::Type::DrawIndexedIndirectCount);
-            auto deferred_ref = new DeferredReference<ParamPack::DrawIndexedIndirectCount>(GetCurrentOffset(records.back()));
-            deferred_references.push_back(reinterpret_cast<DeferredReferenceHelper*>(deferred_ref));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndexedIndirectCount>(GetCurrentOffset(records.back()));
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 

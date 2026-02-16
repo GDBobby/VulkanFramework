@@ -97,7 +97,7 @@ namespace EWE{
 			
 			if(meshlet){
 				assert(vertexCount < 256); //meshproperties.limits.verticesMaximum
-				auto reint = reinterpret_cast<DeferredReference<ParamPack::DrawMeshTasks>*>(params);
+				auto reint = reinterpret_cast<InstructionPointer<ParamPack::DrawMeshTasks>*>(params);
 				reint->GetRef().x = vertexCount;
 				if(vertexPushIndex >= 0 && model->HasVertexBuffer()){
 					gpc.buffers[vertexPushIndex] = model->vertexBuffer.GetDeviceAddress();
