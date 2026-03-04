@@ -1,11 +1,15 @@
 #pragma once
 
 #include "EightWinds/VulkanHeader.h"
-#include "EightWinds/RenderGraph/GPUTask.h"
+#include "EightWinds/RenderGraph/Resources.h"
 
 
 
 namespace EWE{
+    struct LogicalDevice;
+    struct Queue;
+    struct CommandBuffer;
+
     struct PresentBridge{
         LogicalDevice& logicalDevice;
         Queue& presentQueue;

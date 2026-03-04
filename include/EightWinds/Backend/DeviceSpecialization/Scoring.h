@@ -45,8 +45,18 @@ namespace EWE{
         constexpr DeviceWeight(WeightType required, uint64_t score) : required{required}, score{score} {}
     };
 
-    template<typename T>
-    struct DefaultWeights{};
+    //static consteval auto DW_GetMembers(){
+    //    return std::span{
+    //        std::define_static_array(std::meta::nonstatic_data_members_of(T, std::meta::access_context::current())).data(),
+    //        MetaFunc(T, std::meta::access_context::current()).size()
+    //    };
+    //}
+
+    template<class T>
+    struct DefaultWeights{
+        //static constexpr auto member_meta_info = DW_GetMembers();
+        //static std::array<DeviceWeight<
+    };
 
     template<>
     struct DefaultWeights<VkPhysicalDeviceFeatures>{
@@ -54,8 +64,16 @@ namespace EWE{
     };
 
     template<>
-    struct DefaultWeights<VkPhysicalDeviceProperties>{
+    struct DefaultWeights<VkPhysicalDeviceLimits>{
         static constexpr auto maxImageDimension1D = DeviceWeight<uint32_t>(256, 3); //each additional texel allowed in this dimensions adds the second parameter (3) to the score
+        static constexpr auto maxImageDimension2D = DeviceWeight<uint32_t>(256, 3);
+        static constexpr auto maxImageDimension3D = DeviceWeight<uint32_t>(256, 3);
+    };
+
+    template<>
+    struct DefaultWeights<VkPhysicalDeviceProperties>{
+        //i need to pass thru the limits somehow
+        //static constexpr auto
     };
 
     struct DeviceScore{
@@ -84,33 +102,20 @@ namespace EWE{
         using ScoredType = VkPhysicalDeviceFeatures;
         DeviceScore operator()(ScoredType const& features) const noexcept{
             using DefW = DefaultWeights<ScoredType>;
-            /*
-            C++ 26 reflection
-
-            for(auto& default_member : DefW::static_constexpr_members){
-                auto& input_member = find(features.member); //find would match the names
-                if(default_member.required && !input_member){
-                    return DeviceScore(false, 0);
-                }
-                else{
-                    if constexpr (std::is_same_v<input_member, bool>){
-                        ret.score += default_member.score;
-                    }
-                    else {
-                        ret.score += input_member * default_member.score; //casting if necessary
-                    }
-                }
-            }
-            */
-
 
             DeviceScore ret{true, 0};
+#ifdef EWE_USING_REFLECTION
+            template for(constexpr auto member : std::define_static_array(std::meta::nonstatic_data_members_of(^^DefW))) {
+                if(![:member:].CheckRequirement())
+            }
+#else
             if(!DefW::samplerAnisotropy.CheckRequirement(features.samplerAnisotropy)){
                 return DeviceScore(false, 0);
             }
             else{
                 ret.score += DefW::samplerAnisotropy.score * features.samplerAnisotropy;
             }
+#endif
             return ret;
         }
     };

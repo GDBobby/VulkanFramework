@@ -3,6 +3,8 @@
 #include "EightWinds/Backend/Semaphore.h"
 
 namespace EWE{
+
+//fence is now only meant to be used within a present submission
     struct Fence {
         LogicalDevice& logicalDevice;
         VkFence vkFence{ VK_NULL_HANDLE };
@@ -13,18 +15,15 @@ namespace EWE{
             return vkFence;
         }
 
-        bool Wait(uint64_t wait_timer) {
-
-        }
+        bool Wait(uint64_t wait_timer);
 
         bool inUse{ false };
         bool submitted{ false };
-        std::vector<Semaphore*> waitSemaphores{};
 #if DEBUGGING_FENCES
         std::vector<std::string> log{};
 #endif
 
-        //its up to the calling function to unlock the mutex
+        //its up to the calling function to unlock the mutex //<-- no mutex anymore
         bool CheckReturn(uint64_t time);
 
         

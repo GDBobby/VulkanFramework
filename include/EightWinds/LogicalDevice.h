@@ -3,14 +3,19 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Instance.h"
 #include "EightWinds/PhysicalDevice.h"
-#include "EightWinds/Backend/QueueFamily.h"
+//#include "EightWinds/Backend/QueueFamily.h"
 #include "EightWinds/Queue.h"
 #include "EightWinds/Backend/DeviceSpecialization/FeaturePropertyPack.h"
 #include "EightWinds/Backend/Descriptor/Bindless.h"
 #include "EightWinds/Backend/GarbageDisposal.h"
-#include "EightWinds/Data/RuntimeArray.h"
+#include "EightWinds/Data/HeapBlock.h"
+#include "EightWinds/Data/Address.h"
 
 namespace EWE{
+    struct Buffer;
+    struct Image;
+    struct Shader;
+
     struct LogicalDevice{
         Instance& instance;
         PhysicalDevice physicalDevice;
@@ -69,8 +74,18 @@ namespace EWE{
         PFN_vkCmdDrawMeshTasksIndirectEXT cmdDrawMeshTasksIndirect;
         PFN_vkCmdDrawMeshTasksIndirectCountEXT cmdDrawMeshTasksIndirectCount;
 
+#if EWE_USING_EXCEPTIONS
+        void HandleVulkanException(EWEException& renderExcept);
+#endif
+
+        ResourceTracker<Image> images;
+        ResourceTracker<Buffer> buffers;
+        ResourceTracker<Shader> shaders;
+
     private:
         //just so i can force construction order. also creates queues
         VkDevice CreateDevice(VkDeviceCreateInfo& deviceCreateInfo);
+
+        
     };
 }

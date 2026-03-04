@@ -3,6 +3,8 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Image.h"
 
+#include <cstring>
+
 namespace EWE{
 	StagingBuffer::StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size, const void* data)
         : logicalDevice{logicalDevice}

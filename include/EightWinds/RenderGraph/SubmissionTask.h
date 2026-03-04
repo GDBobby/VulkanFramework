@@ -1,71 +1,37 @@
 #pragma once
 
-#include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Queue.h"
 #include "EightWinds/CommandPool.h"
 #include "EightWinds/CommandBuffer.h"
 
 #include "EightWinds/Data/PerFlight.h"
 
-#include "EightWinds/RenderGraph/GPUTask.h"
 #include "EightWinds/Backend/Semaphore.h"
 
 #include "EightWinds/Backend/SubmitInfo.h"
 
-#include <optional>
-
 namespace EWE{
-    struct TaskSubmissionWorkload {
-        //i dont know how to handle the bridges yet
-        //for the moment im gonna automatically generate them
-        std::vector<GPUTask*> ordered_gpuTasks;
-
-        //could explicitly build this instead of using tasks
-        std::vector<std::function<void(CommandBuffer& cmdBuf, uint8_t frameIndex)>> packaged_tasks; 
-        
-        //void GenerateBridges(); //bridges are no logner generated
-
-        bool Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
-
-        constexpr auto PackIntoTask() {
-            for (auto& package : ordered_gpuTasks) {
-                package->GenerateWorkload();
-                packaged_tasks.push_back(package->workload);
-            }
-
-            return [this](CommandBuffer& cmdBuf, uint8_t frameIndex) {
-                return this->Execute(cmdBuf, frameIndex);
-            };
-        }
-    };
 
     struct SubmissionTask{
         LogicalDevice& logicalDevice;
         Queue& queue;
         CommandPool cmdPool;
         PerFlight<CommandBuffer> cmdBuffers;
-        bool signal;
+        //bool signal;
         std::string name;
-        [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, bool signals, std::string_view name);
+        [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name);
 
         PerFlight<Backend::SubmitInfo> submitInfo;
 
-        PerFlight<Semaphore> signal_semaphores;
+        std::vector<std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)>> packaged_tasks;
 
-        //im abstracting the workload, so that the programmer isn't forced into using GPUTask.
-        //the particular situation i have in mind is imgui, in which there is already a substantial existing workload
-        std::function<bool(CommandBuffer&, uint8_t)> full_workload;
-        //do i need to give the command buffer at all? or can i make it always explicit
-        //for the moment i think i just take the L on the branch
-        //this forces the user to define submitInfo before the render loop is initiated, or per frame
-        //if this is used, an extra wasted command pool will exist. probably not a big deal?
-        std::function<bool(Backend::SubmitInfo&, uint8_t frameIndex)> external_workload;
+        bool uses_present_image = false;
 
         //i dont really want to automatically generate barriers but we will for the moment
         bool Execute(uint8_t frameIndex);
     };
 
-    //i dont think this object is necessary. idk
+    //this is a helper struct that will build the semaphore wait data for each submission task
     struct SubmissionBridge{ 
         //this wont care about access, only queue and layout
         std::span<SubmissionTask*> lhs;

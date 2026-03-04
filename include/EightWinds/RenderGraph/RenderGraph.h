@@ -9,20 +9,18 @@
 #include "EightWinds/Queue.h"
 
 #include "EightWinds/RenderGraph/GPUTask.h"
-#include "EightWinds/RenderGraph/PresentSubmission.h"
+//#include "EightWinds/RenderGraph/PresentSubmission.h"
 #include "EightWinds/RenderGraph/SubmissionTask.h"
 #include "EightWinds/RenderGraph/PresentBridge.h"
 #include "EightWinds/RenderGraph/SynchronizationManager.h"
 
-#include "EightWinds/Data/Hive.h"
+#include "EightWinds/Backend/Semaphore.h"
 
-#include <span>
+#include "EightWinds/Data/Hive.h"
 
 namespace EWE{
 
     struct ImguiExtension;
-
-
 
     struct RenderGraph{
         [[nodiscard]] explicit RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain); //this cant be noexcept because Hive can throw if malloc fails
@@ -40,7 +38,7 @@ namespace EWE{
         Hive<GPUTask> tasks;
         
         Hive<SubmissionTask> submissions;
-        PresentSubmission presentSubmission;
+        //PresentSubmission presentSubmission;
 
         PresentBridge presentBridge;
 
@@ -49,13 +47,25 @@ namespace EWE{
         //each inner vector needs to use only one queue
         std::vector<std::vector<SubmissionTask*>> execution_order;
 
+
+        PerFlight<VkSemaphoreSubmitInfo> present_wait_semaphore_data;
         VkResult presentResult = VK_SUCCESS;
-        VkPresentInfoKHR presentInfo{};
+        PerFlight<std::vector<VkSemaphore>> present_wait_raw_semaphore_data{};
+        //PerFlight<std::vector<VkSemaphore*>> present_acquire_waits{};
+        PerFlight<VkPresentInfoKHR> presentInfo{};
+
+
+        PerFlight<RuntimeArray<TimelineSemaphore>> semaphores;
+        //PerFlight<RuntimeArray<BinarySemaphore>> binary_semaphores; //for present
 
         void Execute(uint8_t frameIndex);
 
         void ClearAllBarriers(uint8_t frameIndex);
         void RecreateBarriers(uint8_t frameIndex);
+
+        void InitializeSemaphores(); //this prevents needing to branch every frame
+        //this needs to be ran every frame
+        void UpdateSemaphores(uint8_t frameIndex);
 
         template<typename T>
         void ChangeResource(GPUTask& task, uint32_t res_index, T* resource, uint8_t frameIndex) {

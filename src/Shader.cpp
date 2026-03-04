@@ -358,12 +358,13 @@ namespace EWE {
 	}
 
 	void Shader::CompileModule(const std::size_t dataSize, const void* data) {
-		VkShaderModuleCreateInfo shaderCreateInfo{};
-		shaderCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		shaderCreateInfo.pNext = nullptr;
-		shaderCreateInfo.codeSize = dataSize;
-		shaderCreateInfo.pCode = reinterpret_cast<const uint32_t*>(data);
-		shaderCreateInfo.flags = 0;
+		VkShaderModuleCreateInfo shaderCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			.codeSize = dataSize,
+			.pCode = reinterpret_cast<const uint32_t*>(data)
+		};
 		EWE_VK(vkCreateShaderModule, logicalDevice.device, &shaderCreateInfo, nullptr, &shaderStageCreateInfo.module);
 
 #if DEBUG_NAMING
@@ -384,6 +385,7 @@ namespace EWE {
 #if EWE_DEBUG_NAMING
 		SetDebugName(fileLocation);
 #endif
+		logicalDevice.shaders.Add(this);
 
 	}
 
@@ -395,11 +397,13 @@ namespace EWE {
 #if EWE_DEBUG_NAMING
 		SetDebugName(fileLocation);
 #endif
+		logicalDevice.shaders.Add(this);
 	}
 
 	Shader::Shader(LogicalDevice& logicalDevice) 
     : logicalDevice{logicalDevice}, filepath{} 
-	{}
+	{
+		logicalDevice.shaders.Add(this);}
 	
 	Shader::~Shader() {
 		if (shaderStageCreateInfo.module != VK_NULL_HANDLE) {
@@ -413,6 +417,7 @@ namespace EWE {
 		}
 		staleModules.clear();
 #endif
+		logicalDevice.shaders.Remove(this);
 	}
 #if PIPELINE_HOT_RELOAD
 	void Shader::HotReload() {

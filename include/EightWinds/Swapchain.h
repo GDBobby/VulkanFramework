@@ -44,6 +44,12 @@ namespace EWE{
         Queue& presentQueue;
 
         [[nodiscard]] explicit Swapchain(LogicalDevice& logicalDevice, Window& window, Queue& presentQueue) noexcept;
+        ~Swapchain();
+
+        Swapchain(Swapchain const& copySrc) = delete;
+        Swapchain(Swapchain&& moveSrc) = delete;
+        Swapchain& operator=(Swapchain const& copySrc) = delete;
+        Swapchain& operator=(Swapchain&& moveSrc) = delete;
 
         std::vector<VkPresentModeKHR> available_presentModes;
         std::vector<VkSurfaceFormatKHR> available_surface_formats;
@@ -55,13 +61,13 @@ namespace EWE{
         HeapBlock<Image> images;
         HeapBlock<ImageView> imageViews;
 
-        PerFlight<Semaphore> acquire_semaphores;
-        std::vector<Semaphore> present_semaphores;
+        PerFlight<BinarySemaphore> acquire_semaphores;
+        std::vector<BinarySemaphore> present_semaphores;
 
-        inline Semaphore& GetAcquireSemaphore(uint8_t frameIndex) {
+        inline BinarySemaphore& GetAcquireSemaphore(uint8_t frameIndex) {
             return acquire_semaphores[frameIndex];
         }
-        inline Semaphore& GetCurrentPresentSemaphore() {
+        inline BinarySemaphore& GetCurrentPresentSemaphore() {
             return present_semaphores[imageIndex];
         }
 

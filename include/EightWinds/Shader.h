@@ -132,6 +132,10 @@ namespace EWE {
         [[nodiscard]] explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data);
         [[nodiscard]] explicit Shader(LogicalDevice& logicalDevice);
 		~Shader();
+        Shader(Shader const& copySrc) = delete;
+        Shader(Shader&& moveSrc) = delete;
+        Shader& operator=(Shader const& copySrc) = delete;
+        Shader& operator=(Shader&& moveSrc) = delete;
 
 		bool ValidateVertexInputAttributes(std::vector<VkVertexInputAttributeDescription> const& cpu_side) const;
 		VkShaderModule GetVkShader() const {

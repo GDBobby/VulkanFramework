@@ -3,7 +3,9 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 
-
+#if EWE_DEBUG_NAMING
+#include <stacktrace>
+#endif
 
 
 namespace EWE{
@@ -27,6 +29,12 @@ namespace EWE{
             VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
         );
         ~Buffer();
+
+
+        Buffer(Buffer const& copySrc) = delete;
+        Buffer& operator=(Buffer const& copySrc) = delete;
+        Buffer(Buffer&& moveSrc) = delete;
+        Buffer& operator=(Buffer&& moveSrc) = delete;
 
         VkDescriptorBufferInfo buffer_info;
         VkBufferUsageFlags usageFlags;
@@ -67,6 +75,7 @@ namespace EWE{
     public:
 
 #if EWE_DEBUG_NAMING
+        std::stacktrace creation_trace;
         void SetName(std::string_view name);
 #endif
     };

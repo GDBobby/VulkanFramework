@@ -43,6 +43,9 @@ namespace EWE{
         }
 #endif
     }
+    Swapchain::~Swapchain(){
+        //idk yet
+    }
 
     bool Swapchain::CreateSwapchain(){
         uint32_t presentCount = 0;
@@ -162,7 +165,7 @@ namespace EWE{
         present_semaphores.clear(); //these aren't getting destructed
         present_semaphores.reserve(swapImageCount);
         for (uint8_t i = 0; i < swapImageCount; i++){
-            present_semaphores.push_back(Semaphore{logicalDevice});
+            present_semaphores.push_back(BinarySemaphore{logicalDevice});
 #if EWE_DEBUG_NAMING
             std::string debugName = std::string("swapchain present semaphore [") + std::to_string(i) + ']';
             present_semaphores[i].SetName(debugName.c_str());
@@ -225,9 +228,8 @@ namespace EWE{
             case VK_SUCCESS: break; //dont do anything
             case VK_SUBOPTIMAL_KHR: break; //dont do anythign? need to look into this
             case VK_ERROR_OUT_OF_DATE_KHR: RecreateSwapchain(); return false;
-            default: break;
+            default: EWE_VK_RESULT(acquireResult);break;
         }
-        EWE_VK_RESULT(acquireResult); //throws or asserts
 
 #if EWE_DEBUG_BOOL
         //printf("acquired image index : %u\n", image_index);

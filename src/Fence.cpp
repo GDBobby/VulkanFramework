@@ -31,7 +31,6 @@ namespace EWE{
         if (ret == VK_SUCCESS) {
             EWE_VK(vkResetFences, logicalDevice.device, 1, &vkFence);
             //its up to the calling function to unlock the mutex
-            waitSemaphores.clear();
             //makes more sense to clear the submitted flag here, rather than on acquire
             submitted = false;
             return true;
@@ -47,6 +46,9 @@ namespace EWE{
         }
     }
 
+    bool Fence::Wait(uint64_t time){
+        return true;
+    }
     
 #if EWE_DEBUG_NAMING
         void Fence::SetName(std::string_view name){

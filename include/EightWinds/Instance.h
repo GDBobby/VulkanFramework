@@ -15,6 +15,11 @@ namespace EWE{
 
         ~Instance();
 
+        Instance(Instance const& copySrc) = delete;
+        Instance(Instance&& moveSrc) = delete;
+        Instance& operator=(Instance const& copySrc) = delete;
+        Instance& operator=(Instance&& moveSrc) = delete;
+
         VkInstance instance;
         const uint32_t api_version;
 

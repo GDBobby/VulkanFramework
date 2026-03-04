@@ -5,7 +5,9 @@
 #include "EightWinds/Queue.h"
 
 #include <string>
-
+#if EWE_DEBUG_NAMING
+#include <stacktrace>
+#endif
 namespace EWE{
     //the framework isnt going to provide a method to load images
     //it can be done externally via stb or the like
@@ -21,13 +23,15 @@ namespace EWE{
         
         Image(Image const& copySrc) = delete;
         Image& operator=(Image const& copySrc) = delete;
-        //moving is ok, but i need to make sure it's not double destructed
+        Image(Image&& moveSrc) = delete;
+        Image& operator=(Image&& moveSrc) = delete;
+
+        ~Image();
         
         operator VkImage() const {
             return image;
         }
 #if EWE_DEBUG_NAMING
-        std::string debugName;
         void SetName(std::string_view name);
 #endif
 
@@ -35,6 +39,8 @@ namespace EWE{
         Queue* owningQueue;
 
         std::string name; //directory, this is the hash key for an unordered_set
+        std::stacktrace creation_trace;
+
         VkExtent3D extent;
 
         uint32_t arrayLayers;

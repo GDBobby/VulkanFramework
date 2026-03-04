@@ -13,6 +13,7 @@ namespace EWE{
         if(vmaAlloc != VK_NULL_HANDLE){
             vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer_info.buffer, vmaAlloc);
         }
+        logicalDevice.buffers.Remove(this);
     }
 
     void Buffer::DestroyTheVkBuffer() {
@@ -41,6 +42,7 @@ namespace EWE{
             .buffer = buffer_info.buffer
         };
         deviceAddress = vkGetBufferDeviceAddress(logicalDevice.device, &bdaInfo);
+        logicalDevice.buffers.Add(this);
     }
 
     void Buffer::Init(
@@ -66,6 +68,10 @@ namespace EWE{
         alignmentSize{0},
         bufferSize{0},
         existsOnTheGPU{false}
+#if EWE_DEBUG_NAMING
+        ,
+        creation_trace{std::stacktrace::current(1)}
+#endif
     {
         buffer_info.buffer = VK_NULL_HANDLE;
         vmaAlloc = VK_NULL_HANDLE;
@@ -77,6 +83,10 @@ namespace EWE{
         alignmentSize{ CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits) },
         bufferSize{ alignmentSize * instanceCount },
         existsOnTheGPU{ true }
+#if EWE_DEBUG_NAMING
+        ,
+        creation_trace{std::stacktrace::current(1)}
+#endif
     {
         CreateTheVkBuffer(vmaAllocCreateInfo);
     }

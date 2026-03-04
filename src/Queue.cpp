@@ -35,6 +35,7 @@ namespace EWE {
 
 #if EWE_DEBUG_NAMING
     void Queue::SetName(std::string_view name) {
+        debugName = name;
         logicalDevice.SetObjectName(queue, VK_OBJECT_TYPE_QUEUE, name);
     }
 #endif

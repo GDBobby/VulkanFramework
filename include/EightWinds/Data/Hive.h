@@ -54,6 +54,10 @@ namespace EWE{
             */
         };
         std::vector<Comb*> combs;
+        
+        std::size_t element_count = 0;
+
+        std::size_t Size() const { return element_count;}
 
         [[nodiscard]] explicit Hive()
             : combs {}
@@ -81,10 +85,12 @@ namespace EWE{
         template<typename... Args>
             requires std::constructible_from<T, Args...>
         T& AddElement(Args&&... args){
+            element_count++;
             return *std::construct_at(GetAConstructionPointer(), std::forward<Args>(args)...);
         }
 
         void DestroyElement(T* element) {
+            element_count--;
             std::destroy_at<T>(element);
 
             for (auto& comb : combs) {
@@ -234,6 +240,16 @@ namespace EWE{
 
         const_iterator cend() const {
             return end();
+        }
+
+        void DestroyElement(iterator iter){
+            element_count--;
+            EWE_ASSERT(iter.hive == this);
+            auto& comb = combs[iter.combIndex];
+            auto& element = comb->memory[iter.slotIndex];
+            EWE_ASSERT(comb->occupancy[iter.slotIndex]);
+            comb->occupancy[iter.slotIndex] = false;
+            comb->memory.DestroyAt(iter.slotIndex);
         }
     };
 }

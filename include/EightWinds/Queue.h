@@ -2,10 +2,14 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Backend/QueueFamily.h"
 
+#include "EightWinds/Data/Address.h"
+
 #include <mutex>
 
 namespace EWE{
     struct LogicalDevice;
+    struct CommandPool;
+
     struct Queue {
         enum Type {
             Graphics,
@@ -45,6 +49,8 @@ namespace EWE{
 		//void EndLabel();
 
         operator VkQueue() const { return queue; }
+
+        ResourceTracker<CommandPool> commandPools;
 
 #if EWE_DEBUG_NAMING
         std::string debugName;

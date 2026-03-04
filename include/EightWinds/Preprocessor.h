@@ -27,6 +27,7 @@
 
 #if EWE_DEBUG_BOOL
     #include <cassert> //sucks to include this in the header but whatever
+    #include <cstdio> //printf
 
     #ifdef _MSC_VER
         #define EWE_UNREACHABLE assert(false)

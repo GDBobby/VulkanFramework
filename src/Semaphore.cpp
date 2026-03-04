@@ -3,7 +3,7 @@
 #include <cassert>
 
 namespace EWE{
-    Semaphore::Semaphore(LogicalDevice& logicalDevice)
+    BinarySemaphore::BinarySemaphore(LogicalDevice& logicalDevice)
         :logicalDevice{logicalDevice}
     {
         VkSemaphoreCreateInfo semaphoreCreateInfo{
@@ -13,13 +13,13 @@ namespace EWE{
         };
         EWE_VK(vkCreateSemaphore, logicalDevice.device, &semaphoreCreateInfo, nullptr, &vkSemaphore);
     }
-    Semaphore::~Semaphore() {
+    BinarySemaphore::~BinarySemaphore() {
         if (vkSemaphore != VK_NULL_HANDLE) {
             logicalDevice.garbageDisposal.Toss(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE);
         }
     }
     
-    Semaphore::Semaphore(Semaphore&& moveSrc) noexcept
+    BinarySemaphore::BinarySemaphore(BinarySemaphore&& moveSrc) noexcept
         : logicalDevice{moveSrc.logicalDevice},
         vkSemaphore{moveSrc.vkSemaphore}//,
         //waiting{moveSrc.waiting},
@@ -27,7 +27,7 @@ namespace EWE{
     {
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
     }
-    Semaphore& Semaphore::operator=(Semaphore&& moveSrc) noexcept{
+    BinarySemaphore& BinarySemaphore::operator=(BinarySemaphore&& moveSrc) noexcept{
         assert(logicalDevice == moveSrc.logicalDevice);
         vkSemaphore = moveSrc.vkSemaphore;
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
@@ -38,7 +38,7 @@ namespace EWE{
     }
     
 #if EWE_DEBUG_NAMING
-        void Semaphore::SetName(std::string_view name){
+        void BinarySemaphore::SetName(std::string_view name){
             logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
         }
 #endif

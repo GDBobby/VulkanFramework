@@ -23,6 +23,10 @@ namespace EWE{
 
         PhysicalDevice(PhysicalDevice&& moveSrc) noexcept;
 
+        PhysicalDevice(PhysicalDevice const& copySrc) = delete;
+        PhysicalDevice& operator=(PhysicalDevice const& copySrc) = delete;
+        PhysicalDevice& operator=(PhysicalDevice&& moveSrc) = delete;
+
         operator VkPhysicalDevice() const {
             return device;
         }

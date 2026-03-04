@@ -39,7 +39,12 @@ namespace EWE{
         auto& frame_sems = incomingSemaphores[frameIndex];
         presentInfo.waitSemaphoreCount = static_cast<uint32_t>(frame_sems.size());
         presentInfo.pWaitSemaphores = frame_sems.data();
-        EWE_VK(vkQueuePresentKHR, presentQueue, &presentInfo);
-        EWE_VK_RESULT(presentResult);
+        VkResult temp_ret = vkQueuePresentKHR(presentQueue, &presentInfo);
+        if(temp_ret != VK_SUBOPTIMAL_KHR){
+            EWE_VK_RESULT(temp_ret);
+        }
+        if(presentResult != VK_SUBOPTIMAL_KHR){
+            EWE_VK_RESULT(presentResult);
+        }
     }
 }//namespace EWE

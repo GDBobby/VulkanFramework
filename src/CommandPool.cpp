@@ -8,28 +8,33 @@ namespace EWE{
 
     [[nodiscard]] CommandPool::CommandPool(LogicalDevice& logicalDevice, Queue& queue, VkCommandPoolCreateFlags createFlags)
         : logicalDevice{logicalDevice}, 
-            queue{queue},
-            flags{ createFlags }
-        {
-            VkCommandPoolCreateInfo commandPoolCreateInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = flags,
-                .queueFamilyIndex = queue.family.index
-            };
-            EWE_VK(vkCreateCommandPool,
-                logicalDevice.device, 
-                &commandPoolCreateInfo, 
-                nullptr, 
-                &commandPool
-            );
+        queue{queue},
+        flags{ createFlags }
+    {
+        VkCommandPoolCreateInfo commandPoolCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = flags,
+            .queueFamilyIndex = queue.family.index
+        };
+        EWE_VK(vkCreateCommandPool,
+            logicalDevice.device, 
+            &commandPoolCreateInfo, 
+            nullptr, 
+            &commandPool
+        );
+
+        queue.commandPools.Add(this);
     }    
 
     CommandPool::~CommandPool() {
-        if (commandPool != VK_NULL_HANDLE) {
+        //if (commandPool != VK_NULL_HANDLE) {
             vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
-        }
+
+            queue.commandPools.Remove(this);
+        //}
     }
+    /*
     CommandPool::CommandPool(CommandPool&& moveSrc) noexcept
         : logicalDevice{moveSrc.logicalDevice},
         queue{moveSrc.queue},
@@ -46,7 +51,7 @@ namespace EWE{
 
         return *this;
     }
-
+    */
 
     PerFlight<CommandBuffer> CommandPool::AllocateCommandsPerFlight(VkCommandBufferLevel buffer_level) {
         allocatedBuffers += max_frames_in_flight;

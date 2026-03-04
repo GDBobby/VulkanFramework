@@ -2,7 +2,8 @@
 
 namespace EWE{
         Sampler::Sampler(LogicalDevice& logicalDevice, VkSamplerCreateInfo const& samplerInfo)
-            : logicalDevice{logicalDevice}
+            : logicalDevice{logicalDevice},
+            samplerInfo{samplerInfo}
         {
             EWE_VK(vkCreateSampler, logicalDevice, &samplerInfo, nullptr, &sampler);
         }

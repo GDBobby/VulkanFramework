@@ -52,6 +52,14 @@ namespace EWE{
 			moveSrc.size = 0;
 		}
 		HeapBlock& operator=(HeapBlock&& moveSrc) noexcept = delete;
+
+		void Clear(){
+			if(size != 0){
+				allocator.deallocate(memory, size);
+			}
+			size = 0;
+			memory = nullptr;
+		}
 		
 		void Resize(std::size_t count){
 			if(count != size){

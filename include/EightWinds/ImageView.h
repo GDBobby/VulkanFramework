@@ -17,6 +17,12 @@ namespace EWE{
         
         ~ImageView();
 
+        ImageView(ImageView const& copySrc) = delete;
+        ImageView(ImageView&& moveSrc) = delete;
+        ImageView& operator=(ImageView const& copySrc) = delete;
+        ImageView& operator=(ImageView&& moveSrc) = delete;
+        
+
 #if EWE_DEBUG_NAMING
         std::string debugName;
         void SetName(std::string_view name);

@@ -28,10 +28,11 @@ namespace EWE{
         //auxilary pools can reset individual command buffers, main pool resets all at once
         [[nodiscard]] explicit CommandPool(LogicalDevice& logicalDevice, Queue& queue, VkCommandPoolCreateFlags createFlags);
         ~CommandPool();
+        
         CommandPool(CommandPool const& copySrc) = delete;
         CommandPool& operator=(CommandPool const& copySrc) = delete;
-        CommandPool(CommandPool&& moveSrc) noexcept;
-        CommandPool& operator=(CommandPool&& moveSrc) noexcept;
+        CommandPool(CommandPool&& moveSrc) = delete;
+        CommandPool& operator=(CommandPool&& moveSrc) = delete;
 
         [[nodiscard]] PerFlight<CommandBuffer> AllocateCommandsPerFlight(VkCommandBufferLevel buffer_level);
         [[nodiscard]] std::vector<CommandBuffer> AllocateCommands(uint8_t count, VkCommandBufferLevel buffer_level);

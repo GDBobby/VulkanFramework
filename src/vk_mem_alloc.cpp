@@ -6,4 +6,4 @@
 #define VMA_DEBUG_MARGIN 16
 #define VMA_DEBUG_DETECT_CORRUPTION 1
 #endif
-#include "vma/vk_mem_alloc.h"
+#include "vma/include/vk_mem_alloc.h"

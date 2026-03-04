@@ -2,9 +2,16 @@
 
 namespace EWE{
     Image::Image(LogicalDevice& logicalDevice) noexcept
-        : logicalDevice{logicalDevice}
+        : logicalDevice{logicalDevice},
+        creation_trace{std::stacktrace::current(1)}
     {
 
+    }
+    Image::~Image(){
+        //can we assume it was created?
+        vmaDestroyImage(logicalDevice.vmaAllocator, image, memory);
+
+        logicalDevice.images.Remove(this);
     }
 
     bool Image::Create(VmaAllocationCreateInfo const& allocCreateInfo){
@@ -30,6 +37,9 @@ namespace EWE{
         };
 
         EWE_VK(vmaCreateImage, logicalDevice.vmaAllocator, &imgCreateInfo, &allocCreateInfo, &image, &memory, nullptr);
+
+        logicalDevice.images.Add(this);
+
         return true;
     }
     bool Image::Create(VmaAllocationCreateInfo const& allocCreateInfo, StagingBuffer* stagedPixelData){
@@ -61,7 +71,7 @@ namespace EWE{
 
 #if EWE_DEBUG_NAMING
     void Image::SetName(std::string_view name) {
-        debugName = name;
+        this->name = name;
         logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE, name);
     }
 #endif

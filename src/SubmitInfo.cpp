@@ -2,8 +2,6 @@
 
 #include "EightWinds/CommandBuffer.h"
 
-#include <iterator>
-
 namespace EWE{
     namespace Backend{
         void SubmitInfo::AddCommandBuffer(CommandBuffer& cmdBuf){
@@ -18,16 +16,25 @@ namespace EWE{
             );
         }
 
+        void SubmitInfo::ApplyWaitSemaphores(){
+            internal_waitSemaphores.resize(waitSemaphores.size());
+            for(std::size_t i = 0; i < waitSemaphores.size(); i++){
+                memcpy(&internal_waitSemaphores[i], waitSemaphores[i], sizeof(VkSemaphoreSubmitInfo));
+            }
+        }
+
         VkSubmitInfo2 SubmitInfo::Expand(){
     #if EWE_DEBUG_BOOL
             assert(commandInfos.size() == cmdBuffers.size());
             assert(signalSemaphores.size() > 0 && "signaling with no context");
     #endif
+            ApplyWaitSemaphores();
+
             return VkSubmitInfo2{
                 .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
                 .pNext = nullptr,
-                .waitSemaphoreInfoCount = static_cast<uint32_t>(waitSemaphores.size()),
-                .pWaitSemaphoreInfos = waitSemaphores.data(),
+                .waitSemaphoreInfoCount = static_cast<uint32_t>(internal_waitSemaphores.size()),
+                .pWaitSemaphoreInfos = internal_waitSemaphores.data(),
                 .commandBufferInfoCount = static_cast<uint32_t>(commandInfos.size()),
                 .pCommandBufferInfos = commandInfos.data(),
                 .signalSemaphoreInfoCount = static_cast<uint32_t>(signalSemaphores.size()),
@@ -39,11 +46,12 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
             assert(commandInfos.size() == cmdBuffers.size());
 #endif
+            ApplyWaitSemaphores();
             return VkSubmitInfo2{
                 .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
                 .pNext = nullptr,
-                .waitSemaphoreInfoCount = static_cast<uint32_t>(waitSemaphores.size()),
-                .pWaitSemaphoreInfos = waitSemaphores.data(),
+                .waitSemaphoreInfoCount = static_cast<uint32_t>(internal_waitSemaphores.size()),
+                .pWaitSemaphoreInfos = internal_waitSemaphores.data(),
                 .commandBufferInfoCount = static_cast<uint32_t>(commandInfos.size()),
                 .pCommandBufferInfos = commandInfos.data(),
                 .signalSemaphoreInfoCount = 0,
@@ -53,7 +61,9 @@ namespace EWE{
 
         
         void SubmitInfo::WaitOnPrevious(SubmitInfo& previous){
-            std::copy(previous.signalSemaphores.begin(), previous.signalSemaphores.end(), std::back_inserter(waitSemaphores));
+            for(auto& prev_sigSem : previous.signalSemaphores){
+                waitSemaphores.push_back(&prev_sigSem);
+            }
         }
     } //namespace Backend
 } //namespace EWE

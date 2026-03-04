@@ -49,6 +49,16 @@ namespace EWE{
 		}
 	}
 
+	DeferredPipelineExecute::DeferredPipelineExecute(DeferredPipelineExecute&& moveSrc) noexcept
+		: pipeline{moveSrc.pipeline},
+			pipe_paramPack{moveSrc.pipe_paramPack},
+			vp_s_paramPack{moveSrc.vp_s_paramPack}
+	{
+		moveSrc.pipeline = nullptr;
+		moveSrc.pipe_paramPack = nullptr;
+		moveSrc.vp_s_paramPack = nullptr;
+	}
+
 	void DeferredPipelineExecute::UndeferPipeline(VkViewport const& viewport, VkRect2D const& scissor) {
 		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
 			pipeline->WriteToParamPack(pipe_paramPack->GetRef(i));
@@ -83,22 +93,22 @@ namespace EWE{
 
 
 
-	void RasterTask::Record_Vertices(Command::Record& record) {
-		std::unordered_set<ObjectRasterData> unique_configs_vertex{};
+	void RasterTask::Record_Vertices(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs_vertex) {
 
-		for (auto& [obj_config, _] : vert_draws) unique_configs_vertex.insert(obj_config);
-		for (auto& [obj_config, _] : indexed_draws) unique_configs_vertex.insert(obj_config);
-		for (auto& [obj_config, _] : vert_draw_counts) unique_configs_vertex.insert(obj_config);
-		for (auto& [obj_config, _] : index_draw_counts)	unique_configs_vertex.insert(obj_config);
+		std::size_t current_offset = 0;
 
 		for (auto const& obj_config : unique_configs_vertex) {
 			auto* pipelineBind = record.BindPipeline();
 			auto* vpBind = record.SetViewportScissor();
-			auto& vert_ex_back = deferred_pipelines.emplace_back(
+
+			deferred_pipelines.ConstructAt(current_offset,
 				logicalDevice,
 				config, obj_config,
 				pipelineBind, vpBind
 			);
+
+			auto& vert_ex_back = deferred_pipelines[current_offset++];
+
 			if (vert_ex_back.pipeline->pipeLayout->descriptorSets.sets.size() > 0) {
 				record.BindDescriptor();
 			}
@@ -206,20 +216,20 @@ namespace EWE{
 		}
 	}
 	
-	void RasterTask::Record_Mesh(Command::Record& record) {
-		std::unordered_set<ObjectRasterData> unique_configs_mesh{};
-
-		for (auto& [obj_config, _] : mesh_draws) unique_configs_mesh.insert(obj_config);
-		for (auto& [obj_config, _] : mesh_draw_counts) unique_configs_mesh.insert(obj_config);
+	void RasterTask::Record_Mesh(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs_mesh, std::size_t current_offset) {
 
 		for (auto const& obj_config : unique_configs_mesh) {
 			auto* pipelineBind = record.BindPipeline();
 			auto* vpBind = record.SetViewportScissor();
-			auto& mesh_ex_back = deferred_pipelines.emplace_back(
+
+			deferred_pipelines.ConstructAt(current_offset, 
 				logicalDevice, 
 				config, obj_config, 
 				pipelineBind, vpBind
 			);
+
+			auto& mesh_ex_back = deferred_pipelines[current_offset++];
+
 			if (mesh_ex_back.pipeline->pipeLayout->descriptorSets.sets.size() > 0) {
 				record.BindDescriptor();
 			}
@@ -242,7 +252,7 @@ namespace EWE{
 	
 	void RasterTask::Record(Command::Record& record, bool labeled) {
 
-		deferred_pipelines.clear();
+		deferred_pipelines.Clear();
 
 		std::vector<VkFormat> formats(config.attachment_set_info.colors.size());
 		for (uint32_t i = 0; i < formats.size(); i++) {
@@ -256,8 +266,21 @@ namespace EWE{
 		}
 #endif
 		deferred_vk_render_info = record.BeginRender();
-		Record_Vertices(record);
-		Record_Mesh(record);
+
+		//i need to pre-record unique_configs so that I can resize the deferred_pipeline_execute runtimearray
+		std::unordered_set<ObjectRasterData> unique_configs_vertex{};
+		for (auto& [obj_config, _] : vert_draws) unique_configs_vertex.insert(obj_config);
+		for (auto& [obj_config, _] : indexed_draws) unique_configs_vertex.insert(obj_config);
+		for (auto& [obj_config, _] : vert_draw_counts) unique_configs_vertex.insert(obj_config);
+		for (auto& [obj_config, _] : index_draw_counts)	unique_configs_vertex.insert(obj_config);
+
+		std::unordered_set<ObjectRasterData> unique_configs_mesh{};
+		for (auto& [obj_config, _] : mesh_draws) unique_configs_mesh.insert(obj_config);
+		for (auto& [obj_config, _] : mesh_draw_counts) unique_configs_mesh.insert(obj_config);
+
+		deferred_pipelines.Resize(unique_configs_vertex.size() + unique_configs_mesh.size());
+		Record_Vertices(record, unique_configs_vertex);
+		Record_Mesh(record, unique_configs_mesh, unique_configs_vertex.size());
 		record.EndRender();
 #if EWE_DEBUG_NAMING
 		if (labeled) {

@@ -1,7 +1,6 @@
 #include "EightWinds/Backend/Descriptor/Binding.h"
 
 #include <numeric>
-
 #include <algorithm>
 
 namespace EWE{

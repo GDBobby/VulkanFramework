@@ -3,19 +3,31 @@
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/CommandBuffer.h"
+#include <vulkan/vulkan_core.h>
 
 namespace EWE{
     struct CommandBuffer;
 
     namespace Backend{
         struct SubmitInfo {
-            std::vector<VkSemaphoreSubmitInfo> waitSemaphores;
-            std::vector<VkSemaphoreSubmitInfo> signalSemaphores;
-
+        private:
+            std::vector<VkSemaphoreSubmitInfo> internal_waitSemaphores;
             std::vector<CommandBuffer*> cmdBuffers;
-
             //dont directly deal with commands, VkCommandBufferSubmitInfo isn't for game development
             std::vector<VkCommandBufferSubmitInfo> commandInfos;
+
+            void ApplyWaitSemaphores();
+        public:
+            std::vector<VkSemaphoreSubmitInfo*> waitSemaphores;
+            std::vector<VkSemaphoreSubmitInfo> signalSemaphores;
+
+            /*
+            std::vector<BinarySemaphore*> wait_binaries;
+            std::vector<TimelineSemaphore*> wait_timelines;
+            std::vector<BinarySemaphore*> signal_binaries;
+            std::vector<TimelineSemaphore*> signal_timelines;
+            */
+
 
             void AddCommandBuffer(CommandBuffer& cmdBuf);
 

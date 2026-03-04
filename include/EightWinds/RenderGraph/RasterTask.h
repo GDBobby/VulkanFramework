@@ -91,15 +91,7 @@ namespace EWE{
 		~DeferredPipelineExecute();
 		DeferredPipelineExecute(DeferredPipelineExecute const& copySrc) = delete;
 		DeferredPipelineExecute& operator=(DeferredPipelineExecute&& moveSrc) = delete;
-		[[nodiscard]] DeferredPipelineExecute(DeferredPipelineExecute&& moveSrc) noexcept
-			: pipeline{moveSrc.pipeline},
-				pipe_paramPack{moveSrc.pipe_paramPack},
-				vp_s_paramPack{moveSrc.vp_s_paramPack}
-		{
-			moveSrc.pipeline = nullptr;
-			moveSrc.pipe_paramPack = nullptr;
-			moveSrc.vp_s_paramPack = nullptr;
-		}
+		[[nodiscard]] DeferredPipelineExecute(DeferredPipelineExecute&& moveSrc) noexcept;
 		DeferredPipelineExecute& operator=(DeferredPipelineExecute const& copySrc) = delete;
 		
 		void UndeferPipeline(VkViewport const& viewport, VkRect2D const& scissor);
@@ -193,12 +185,12 @@ namespace EWE{
 		}
 
 		//this needs to stay alive as long as these objects are used in a task
-		std::vector<DeferredPipelineExecute> deferred_pipelines{};
+		HeapBlock<DeferredPipelineExecute> deferred_pipelines{};
 		InstructionPointer<ParamPack::Label>* deferred_label = nullptr;
 		
 		//the pipelines are unique between vertices and mesh
-		void Record_Vertices(Command::Record& record);
-		void Record_Mesh(Command::Record& record);
+		void Record_Vertices(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs);
+		void Record_Mesh(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs, std::size_t current_offset);
 
 		void Record(Command::Record& record, bool labeled = false);
 		

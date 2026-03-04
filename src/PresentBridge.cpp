@@ -1,6 +1,7 @@
 #include "EightWinds/RenderGraph/PresentBridge.h"
 
 #include "EightWinds/CommandBuffer.h"
+#include "EightWinds/Image.h"
 
 namespace EWE{
     PresentBridge::PresentBridge(LogicalDevice& logicalDevice, Queue& presentQueue) noexcept

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 set(CMAKE_CONFIGURATION_TYPES "Debug;DebugASan;Release;RelWithDebInfo;RelWithDebInfoASan" CACHE STRING "" FORCE)
 
 
-project(EWGraphics)
+project(EWFramework)
 
 include(./.env.cmake OPTIONAL RESULT_VARIABLE LOCAL_ENV)
 message(STATUS "Local .env.cmake: ${LOCAL_ENV}")
@@ -13,6 +13,10 @@ message(STATUS "CMake current list dir : ${CMAKE_CURRENT_LIST_DIR}")
 message(STATUS "~~~ CURRENT SOURCE DIR : ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "project name : ${PROJECT_NAME}")
 message(STATUS "build location : ${CMAKE_CURRENT_BINARY_DIR}")
+
+if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
+    message(FATAL_ERROR "In-source builds are disabled. Please create a build folder.")
+endif()
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -122,7 +126,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	$<INSTALL_INTERFACE:include>
 	
 	${Vulkan_INCLUDE_DIR}
-	${CMAKE_CURRENT_SOURCE_DIR}/external/GLFW/include/
+	${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include/
 	${CMAKE_CURRENT_SOURCE_DIR}/external/include
 	${CMAKE_CURRENT_SOURCE_DIR}/external
 	${LinearAlgebra_SOURCE_DIR}
@@ -153,7 +157,7 @@ endif()
 
 # Create source groups to maintain file structure in Visual Studio
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
-# target_precompile_headers(${PROJECT_NAME} PRIVATE include/EWGraphics/stdafx.h)
+# target_precompile_headers(${PROJECT_NAME} PRIVATE include/EightWinds/stdafx.h)
 
 include(CheckCXXSourceCompiles)
 
@@ -161,7 +165,7 @@ check_cxx_source_compiles("
     #include <stacktrace>
     int main() {
         auto st = std::stacktrace::current();
-        return st.size();
+        return 0;
     }
 " HAVE_STD_STACKTRACE)
 

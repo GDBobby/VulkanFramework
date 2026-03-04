@@ -3,7 +3,7 @@
 #include "EightWinds/LogicalDevice.h"
 
 namespace EWE{
-    struct Semaphore {
+    struct BinarySemaphore {
         LogicalDevice& logicalDevice;
 
         VkSemaphore vkSemaphore{ VK_NULL_HANDLE };
@@ -22,19 +22,19 @@ namespace EWE{
         };
         std::vector<Tracking> tracking{};
 #endif
-        [[nodiscard]] explicit Semaphore(LogicalDevice& logicalDevice);
-        Semaphore(Semaphore const& copySrc) = delete;
-        Semaphore& operator=(Semaphore const& copySrc) = delete;
-        Semaphore(Semaphore&& moveSrc) noexcept;
-        Semaphore& operator=(Semaphore&& moveSrc) noexcept;
-        ~Semaphore();
+        [[nodiscard]] explicit BinarySemaphore(LogicalDevice& logicalDevice);
+        BinarySemaphore(BinarySemaphore const& copySrc) = delete;
+        BinarySemaphore& operator=(BinarySemaphore const& copySrc) = delete;
+        BinarySemaphore(BinarySemaphore&& moveSrc) noexcept;
+        BinarySemaphore& operator=(BinarySemaphore&& moveSrc) noexcept;
+        ~BinarySemaphore();
         
 #if EWE_DEBUG_NAMING
         std::string debugName;
         void SetName(std::string_view name);
 #endif
 
-        bool operator==(Semaphore const& other) const{
+        bool operator==(BinarySemaphore const& other) const{
             return vkSemaphore == other.vkSemaphore;
         }
         operator VkSemaphore() const {
@@ -45,6 +45,8 @@ namespace EWE{
     struct TimelineSemaphore{
         LogicalDevice& logicalDevice;
         VkSemaphore vkSemaphore{ VK_NULL_HANDLE };
+
+        uint64_t value;
         
 #if SEMAPHORE_TRACKING
         struct Tracking{
@@ -64,7 +66,7 @@ namespace EWE{
         [[nodiscard]] explicit TimelineSemaphore(LogicalDevice& logicalDevice, uint64_t initialValue = 0);
         TimelineSemaphore(TimelineSemaphore const& copySrc) = delete;
         TimelineSemaphore& operator=(TimelineSemaphore const& copySrc) = delete;
-        TimelineSemaphore(TimelineSemaphore&& moveSrc) noexcept;
+        [[nodiscard]] TimelineSemaphore(TimelineSemaphore&& moveSrc) noexcept;
         TimelineSemaphore& operator=(TimelineSemaphore&& moveSrc) noexcept;
         ~TimelineSemaphore();
         

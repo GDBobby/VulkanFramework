@@ -22,6 +22,7 @@
 
 namespace EWE{
 
+    template<typename FeatureMan, typename PropertyMan>
     struct DeviceEvaluation {
         VkPhysicalDevice device = VK_NULL_HANDLE;
 #if EWE_DEBUG_BOOL
@@ -31,6 +32,13 @@ namespace EWE{
         uint64_t score = 0;
         bool passedRequirements = true;
         std::vector<bool> supported_extensions{};
+
+        FeatureMan features;
+        PropertyMan properties;
+
+        [[nodiscard]] explicit DeviceEvaluation(FeatureMan const& features, PropertyMan const& properties)
+        : features{features}, properties{properties}
+        {}
 
         /*
 
@@ -114,7 +122,7 @@ namespace EWE{
             }
         }
 
-        [[nodiscard]] std::vector<DeviceEvaluation> ScorePhysicalDevices(VkInstance instance) {
+        [[nodiscard]] std::vector<DeviceEvaluation<FeatureMan, PropertyMan>> ScorePhysicalDevices(VkInstance instance) {
             //im not handling requried properties/limits yet. might just wait until reflection for that.
 
             uint32_t deviceCount;
@@ -122,7 +130,7 @@ namespace EWE{
             std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
             EWE_VK(vkEnumeratePhysicalDevices, instance, &deviceCount, physicalDevices.data());
 
-            std::vector<DeviceEvaluation> ret{};
+            std::vector<DeviceEvaluation<FeatureMan, PropertyMan>> ret{};
             ret.reserve(deviceCount);
 
             int16_t chosenDevice = -1;
@@ -132,7 +140,7 @@ namespace EWE{
                 auto filtered_features = features.Populate(dev);
                 properties.Populate(dev);
 
-                auto& devEval = ret.emplace_back();
+                auto& devEval = ret.emplace_back(filtered_features, properties);
                 devEval.device = dev;
 #if EWE_DEBUG_BOOL
                 devEval.name = GetProperty<VkPhysicalDeviceProperties2>().properties.deviceName;
@@ -168,7 +176,7 @@ namespace EWE{
 
             }
             std::ranges::sort(ret,
-                              [](const DeviceEvaluation& a, const DeviceEvaluation& b)
+                              [](const DeviceEvaluation<FeatureMan, PropertyMan>& a, const DeviceEvaluation<FeatureMan, PropertyMan>& b)
                               {
                                   if (a.passedRequirements != b.passedRequirements)
                                       return a.passedRequirements > b.passedRequirements;
@@ -180,7 +188,7 @@ namespace EWE{
         }
 
         [[nodiscard]] LogicalDevice ConstructDevice(
-            DeviceEvaluation& deviceEval, 
+            DeviceEvaluation<FeatureMan, PropertyMan>& deviceEval, 
             PhysicalDevice&& physicalDevice, 
             VkBaseInStructure* pNextChain,
             uint32_t api_version,
@@ -193,32 +201,27 @@ namespace EWE{
             auto featurePack = features.GetFeaturePack();
             auto propertyPack = properties.GetPropertyPack();
             
-            VkDeviceCreateInfo deviceCreateInfo{};
-            deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-            deviceCreateInfo.pNext = pNextChain;
-            
             //extension_support = deviceEval.supported_extensions;
             assert(deviceEval.supported_extensions.size() == extension_support.size());
             for (uint16_t i = 0; i < deviceEval.supported_extensions.size(); i++) {
             //theres a smarter copy for this i just dont feel like loking for it rn
                 extension_support[i] = deviceEval.supported_extensions[i];
             }
-
-            deviceCreateInfo.ppEnabledLayerNames = nullptr;
-            deviceCreateInfo.enabledLayerCount = 0;
-
-            //deviceCreateInfo.queueCreateInfoCount
-            //^handled inside the LogicalDevice constructor
-
             std::vector<const char*> active_extensions{};
             for (uint16_t i = 0; i < extension_support.size(); i++) {
                 if (extension_support[i]) {
                     active_extensions.push_back(ExtensionMan::names[i].data());
                 }
             }
-            deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(active_extensions.size());
-            deviceCreateInfo.ppEnabledExtensionNames = active_extensions.data();
-
+            VkDeviceCreateInfo deviceCreateInfo{
+                .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                .pNext = pNextChain,
+                .enabledLayerCount = 0,
+                .ppEnabledLayerNames = nullptr,
+                .enabledExtensionCount = static_cast<uint32_t>(active_extensions.size()),
+                .ppEnabledExtensionNames = active_extensions.data()
+            };
+            
             return LogicalDevice(
                 std::forward<PhysicalDevice>(physicalDevice), 
                 deviceCreateInfo, 

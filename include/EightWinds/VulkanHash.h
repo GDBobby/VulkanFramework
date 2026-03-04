@@ -48,17 +48,6 @@ struct std::hash<VkBlendOp> {
 };
 
 template<>
-struct std::hash<VkColorComponentFlags> {
-	std::size_t operator()(VkColorComponentFlags flags) const noexcept {
-		const uint8_t val = static_cast<uint8_t>(flags);
-#if EWE_DEBUG_BOOL
-		assert(val != VK_COLOR_COMPONENT_FLAG_BITS_MAX_ENUM);
-#endif
-		return std::hash<uint8_t>{}(static_cast<uint8_t>(val));
-	}
-};
-
-template<>
 struct std::hash<VkPipelineColorBlendAttachmentState> {
 	std::size_t operator()(const VkPipelineColorBlendAttachmentState& s) const noexcept {
 
