@@ -5,7 +5,6 @@
 #include "EightWinds/Backend/Descriptor/SetLayout.h"
 
 #include <vector>
-#include <mutex> //factory
 
 namespace EWE {
 	struct Shader {
@@ -111,7 +110,7 @@ namespace EWE {
 		Backend::Descriptor::LayoutPack descriptorSets;
 
         //VkPipelineVertexInputStateCreateInfo
-		std::vector<VkVertexInputAttributeDescription> vertexInputAttributes{};
+		//std::vector<VkVertexInputAttributeDescription> vertexInputAttributes{};
 		VkPushConstantRange pushRange{};
 
 		std::vector<SpecializationEntry> defaultSpecConstants{};
@@ -123,10 +122,11 @@ namespace EWE {
                 std::string name;
                 FundamentalType type;
                 uint32_t offset;
+                uint8_t size;
             };
             std::vector<Member> members{};
         };
-        std::vector<ShaderStruct> structData{};
+        std::vector<ShaderStruct> BDA_data{};
 
 		[[nodiscard]] explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation);
         [[nodiscard]] explicit Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data);
@@ -137,10 +137,14 @@ namespace EWE {
         Shader& operator=(Shader const& copySrc) = delete;
         Shader& operator=(Shader&& moveSrc) = delete;
 
-		bool ValidateVertexInputAttributes(std::vector<VkVertexInputAttributeDescription> const& cpu_side) const;
+		//bool ValidateVertexInputAttributes(std::vector<VkVertexInputAttributeDescription> const& cpu_side) const;
 		VkShaderModule GetVkShader() const {
 			return shaderStageCreateInfo.module;
 		}
+        Shader::Stage GetStage() const{
+            return Shader::Stage{shaderStageCreateInfo.stage};
+        }
+
         
 #if PIPELINE_HOT_RELOAD
         void HotReload();

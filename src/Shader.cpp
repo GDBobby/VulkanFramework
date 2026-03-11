@@ -1,9 +1,8 @@
 #include "EightWinds/Shader.h"
 
+#include "spirv.hpp"
+#include "spirv_common.hpp"
 #include "spirvcross/spirv_reflect.hpp"
-
-
-#include <algorithm>
 
 #if EWE_DEBUG_BOOL
 #include <cassert>
@@ -156,6 +155,7 @@ namespace EWE {
 		return VK_FORMAT_UNDEFINED;
 	}
 
+	/*
 	void InterpretInputAttributes(spirv_cross::Compiler const& compiler, std::vector<VkVertexInputAttributeDescription>& vk_attributes) {
 
 		auto const& stage_inputs = compiler.get_shader_resources().stage_inputs;
@@ -205,21 +205,88 @@ namespace EWE {
 		}
 		return true;
 	}
+	*/
 
-	void InterpretPushConstants(spirv_cross::Compiler const& compiler, spirv_cross::SmallVector<spirv_cross::Resource> const& pushResource, VkPushConstantRange& pushRange) {
+	void InterpretStruct(spirv_cross::Compiler const& compiler, spirv_cross::ID struct_id, Shader& shader){
+		spirv_cross::SPIRType const& struct_type = compiler.get_type(struct_id);
+		EWE_ASSERT(struct_type.basetype == spirv_cross::SPIRType::Struct);
+
+
+		auto& strBack = shader.BDA_data.emplace_back();
+		strBack.name = compiler.get_name(struct_id);
+		strBack.size = compiler.get_declared_struct_size(struct_type);
+
+		std::size_t arraySize = compiler.get_declared_struct_size_runtime_array(struct_type, 2);
+#if EWE_DEBUG_BOOL
+		if (strBack.size != arraySize) {
+			printf("figure out what array size means\n");
+		}
+#endif
+
+		bool embedded_struct = false;
+		if(struct_type.member_types.size() == 1){
+    		auto const& member_type = compiler.get_type(struct_type.member_types[0]);
+			if(member_type.op == spirv_cross::OpTypeArray || member_type.op == spirv_cross::OpTypeRuntimeArray){
+
+				uint32_t embedded_type_id = member_type.parent_type;
+				const auto& embedded_type = compiler.get_type(embedded_type_id);
+				if(embedded_type.op == spirv_cross::OpTypeStruct){
+					embedded_struct = true;
+
+					for (uint32_t m = 0; m < embedded_type.member_types.size(); m++) {
+						strBack.members.push_back(
+							Shader::ShaderStruct::Member{
+								.name = compiler.get_member_name(embedded_type_id, m),
+								//.type = ST_COUNT,
+								.offset = compiler.type_struct_member_offset(embedded_type, m),
+								.size = static_cast<uint8_t>(compiler.get_declared_struct_member_size(embedded_type, m))
+							}
+						);
+					}
+				}
+
+			}
+		}
+		if(!embedded_struct){
+			for (uint32_t m = 0; m < struct_type.member_types.size(); m++) {
+
+				strBack.members.push_back(
+					Shader::ShaderStruct::Member{
+						.name = compiler.get_member_name(struct_id, m),
+						//.type = ST_COUNT,
+						.offset = compiler.type_struct_member_offset(struct_type, m),
+						.size = static_cast<uint8_t>(compiler.get_declared_struct_member_size(struct_type, m))
+					}
+				);
+			}
+		}
+	}
+
+	void InterpretPushConstants(spirv_cross::Compiler const& compiler, spirv_cross::SmallVector<spirv_cross::Resource> const& pushResource, Shader& shader) {
 		if (pushResource.size() == 0) {
 			return;
 		}
 		//only supporting 1 push range rn
 		auto& reflectedPush = pushResource[0];
 		const auto& pushReflectedType = compiler.get_type(pushResource[0].base_type_id);
-		pushRange.size = static_cast<uint32_t>(compiler.get_declared_struct_size(pushReflectedType));
-		if (pushRange.size > 0) {
+		shader.pushRange.size = static_cast<uint32_t>(compiler.get_declared_struct_size(pushReflectedType));
+		if (shader.pushRange.size > 0) {
 			//pushRange.offset = pushReflectedType.member_types[0];
 		}
+		for(uint32_t i = 0; i < pushReflectedType.member_types.size(); i++){
+			std::string member_name = compiler.get_member_name(pushReflectedType.self, i);
+			auto const& member_type = compiler.get_type(pushReflectedType.member_types[i]);
+			std::size_t offset = compiler.type_struct_member_offset(pushReflectedType, i);
+
+			if (member_type.pointer && member_type.storage == spv::StorageClassPhysicalStorageBuffer) {
+				uint32_t struct_type_id = member_type.parent_type;
+				InterpretStruct(compiler, struct_type_id, shader);
+			}
+		}
+
 		//else {
-		pushRange.offset = 0;
-		pushRange.stageFlags = VK_SHADER_STAGE_ALL;
+		shader.pushRange.offset = 0;
+		shader.pushRange.stageFlags = VK_SHADER_STAGE_ALL;
 		//}
 	}
 
@@ -300,46 +367,7 @@ namespace EWE {
 		}
 		auto resources = compiler.get_shader_resources();
 
-		uint32_t id_bound = compiler.get_current_id_bound();
-		for (uint32_t id = 0; id < id_bound; ++id) {
-
-			try {
-				const spirv_cross::SPIRType& type = compiler.get_type(id);
-
-				// We want: OpTypeStruct used as a buffer_reference
-				if (type.basetype == spirv_cross::SPIRType::Struct && type.op == spirv_cross::Op::OpTypeStruct) {
-					
-
-					auto& strBack = structData.emplace_back();
-					strBack.name = compiler.get_name(id);
-					strBack.size = compiler.get_declared_struct_size(type);
-
-					std::size_t arraySize = compiler.get_declared_struct_size_runtime_array(type, 2);
-#if EWE_DEBUG_BOOL
-					if (strBack.size != arraySize) {
-						printf("figure out what array size means\n");
-					}
-#endif
-
-					for (uint32_t m = 0; m < type.member_types.size(); m++) {
-
-						strBack.members.push_back(
-							Shader::ShaderStruct::Member{
-								.name = compiler.get_member_name(id, m),
-								.type = ST_COUNT,
-								.offset = compiler.type_struct_member_offset(type, m)
-							}
-						);
-					}
-
-				}
-			}
-			catch (...) {
-
-			}
-		}
-
-		InterpretPushConstants(compiler, resources.push_constant_buffers, pushRange);
+		InterpretPushConstants(compiler, resources.push_constant_buffers, *this);
 		//pushRange.stageFlags = shaderStageCreateInfo.stage;
 		//InterpretInputAttributes(compiler, vertexInputAttributes);
 

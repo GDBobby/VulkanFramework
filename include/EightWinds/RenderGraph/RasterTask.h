@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EightWinds/RenderGraph/Command/ParamPacks.h"
 #include "EightWinds/VulkanHeader.h"
 
 
@@ -15,14 +16,11 @@
 
 #include "EightWinds/Data/KeyValueContainer.h"
 
-#include "EightWinds/Shader.h"
 #include "EightWinds/Pipeline/Layout.h"
 #include "EightWinds/Pipeline/PipelineBase.h"
 
-#include "EightWinds/Data/PerFlight.h"
 
 #include <unordered_set>
-#include <optional>
 
 namespace EWE{
 	
@@ -41,6 +39,7 @@ namespace EWE{
 	using MeshDrawData = DrawData<ParamPack::DrawMeshTasks>;
 	using VertexIndirectDrawData = DrawData<ParamPack::DrawIndirect>;
 	using IndexedIndirectDrawData = DrawData<ParamPack::DrawIndexedIndirect>;
+	using MeshIndirectDrawData = DrawData<ParamPack::DrawMeshTasksIndirect>;
 	using VertexIndirectCountDrawData = DrawData<ParamPack::DrawIndirectCount>;
 	using IndexedIndirectCountDrawData = DrawData<ParamPack::DrawIndexedIndirectCount>;
 
@@ -141,46 +140,46 @@ namespace EWE{
 		DrawContainer<MeshDrawCount> mesh_draw_counts;
 		
 		template<typename T>
-		inline void AddHelper(KeyValueContainer<ObjectRasterData, std::vector<T*>>& kv_container, ObjectRasterData const& config, T& draw) {
+		inline void AddHelper(KeyValueContainer<ObjectRasterData, std::vector<T*>>& kv_container, ObjectRasterData const& config, T* draw) {
 			if (!kv_container.Contains(config)) {
-				kv_container.push_back(config).push_back(&draw);
+				kv_container.push_back(config).push_back(draw);
 			}
 			else {
-				kv_container.at(config).value.push_back(&draw);
+				kv_container.at(config).value.push_back(draw);
 			}
 		}
 
 
-		void AddDraw(ObjectRasterData const& config, VertexDrawData& draw) {
+		void AddDraw(ObjectRasterData const& config, VertexDrawData* draw) {
 			AddHelper(vert_draws, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, IndexedDrawData& draw) {
+		void AddDraw(ObjectRasterData const& config, IndexedDrawData* draw) {
 			AddHelper(indexed_draws, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, MeshDrawData& draw) {
+		void AddDraw(ObjectRasterData const& config, MeshDrawData* draw) {
 			AddHelper(mesh_draws, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, VertexDrawCount& draw) {
+		void AddDraw(ObjectRasterData const& config, VertexDrawCount* draw) {
 			AddHelper(vert_draw_counts, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, IndexDrawCount& draw) {
+		void AddDraw(ObjectRasterData const& config, IndexDrawCount* draw) {
 			AddHelper(index_draw_counts, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, MeshDrawCount& draw) {
+		void AddDraw(ObjectRasterData const& config, MeshDrawCount* draw) {
 			AddHelper(mesh_draw_counts, config, draw);
 		}
 
 		//these are not strongly typed. i need better distinction
-		void Add_Vert_IndirectDraw(ObjectRasterData const& config, VertexIndirectDrawData& draw) {
+		void Add_Vert_IndirectDraw(ObjectRasterData const& config, VertexIndirectDrawData* draw) {
 			AddHelper(indirect_vert_draws, config, draw);
 		}
-		void Add_Indexed_IndirectDraw(ObjectRasterData const& config, IndexedIndirectDrawData& draw) {
+		void Add_Indexed_IndirectDraw(ObjectRasterData const& config, IndexedIndirectDrawData* draw) {
 			AddHelper(indirect_indexed_draws, config, draw);
 		}
-		void Add_Vert_IndirectCountDraw(ObjectRasterData const& config, VertexIndirectCountDrawData& draw) {
+		void Add_Vert_IndirectCountDraw(ObjectRasterData const& config, VertexIndirectCountDrawData* draw) {
 			AddHelper(indirect_count_vert_draws, config, draw);
 		}
-		void AddIndexed_IndirectCountDraw(ObjectRasterData const& config, IndexedIndirectCountDrawData& draw) {
+		void AddIndexed_IndirectCountDraw(ObjectRasterData const& config, IndexedIndirectCountDrawData* draw) {
 			AddHelper(indirect_count_indexed_draws, config, draw);
 		}
 

@@ -35,9 +35,9 @@ namespace EWE{
             uint32_t z;
         };
         struct DrawMeshTasks{
-            uint8_t x;
-            uint8_t y;
-            uint8_t z;  
+            uint16_t x;
+            uint16_t y;
+            uint16_t z;  
         };
         
         struct DrawIndirect{
@@ -66,17 +66,21 @@ namespace EWE{
             VkDeviceSize offset;
         };
 
-        struct ViewportScissor{
+        struct Viewport{
             VkViewport viewport;
+        };
+        struct Scissor{
             VkRect2D scissor;
         };
-        struct ViewportScissorWithCount{
+        struct ViewportCount{
             static constexpr uint32_t ArbitraryViewportCountLimit = 10;
-            static constexpr uint32_t ArbitraryScissorCountLimit = 10;
             //lets set an arbitrary limit to 10
             VkViewport viewports[ArbitraryViewportCountLimit];
-            VkRect2D scissors[ArbitraryScissorCountLimit];
             uint32_t currentViewportCount = 0;
+        };
+        struct ScissorCount{
+            static constexpr uint32_t ArbitraryScissorCountLimit = 10;
+            VkRect2D scissors[ArbitraryScissorCountLimit];
             uint32_t currentScissorCount = 0;
         };
 

@@ -41,8 +41,8 @@ namespace EWE{
             bool hasBeenCompiled = false;
 
             std::vector<Instruction> records{};
-            std::vector<InstructionPointerAdjuster*> deferred_references{};
-            //std::vector<GlobalPushConstant_Raw*> push_offsets{};
+
+            InstructionPointerAdjuster* AddInstruction(Instruction::Type type, bool external_memory = false); 
 
             //i dont know if i need the Pipeline data for compile time optimization
             InstructionPointer<ParamPack::Pipeline>* BindPipeline();
@@ -76,9 +76,12 @@ namespace EWE{
             InstructionPointer<ParamPack::DrawIndexedIndirectCount>* DrawIndexedIndirectCount();
             InstructionPointer<ParamPack::DrawMeshTasksIndirectCount>* DrawMeshIndirect();
 
-            InstructionPointer<ParamPack::ViewportScissor>* SetViewportScissor();
-            InstructionPointer<ParamPack::ViewportScissorWithCount>* SetViewportScissorWithCount();
+            InstructionPointer<ParamPack::Viewport>* SetViewport();
+            InstructionPointer<ParamPack::ViewportCount>* SetViewportCount();
+            InstructionPointer<ParamPack::Scissor>* SetScissor();
+            InstructionPointer<ParamPack::ScissorCount>* SetScissorCount();
 
+            std::size_t CalculateSize() const noexcept;
             void FixDeferred(const PerFlight<std::size_t> pool_address) noexcept;
 #if EWE_DEBUG_BOOL
             bool ValidateInstructions() const;

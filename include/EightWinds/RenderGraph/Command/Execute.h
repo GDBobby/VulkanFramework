@@ -6,7 +6,7 @@
 
 #include "EightWinds/Data/PerFlight.h"
 
-#include <vector>
+#include "EightWinds/Data/HeapBlock.h"
 
 namespace EWE{
 
@@ -27,7 +27,7 @@ namespace EWE{
             Executor& operator=(Executor&& moveSrc) = delete;
 
             //i can use templates to make the parampool type aware
-            PerFlight<std::vector<uint8_t>> paramPool;
+            PerFlight<HeapBlock<uint8_t>> paramPool;
             //std::vector<uint8_t> barrierPool;
             std::vector<Instruction> instructions{};
 

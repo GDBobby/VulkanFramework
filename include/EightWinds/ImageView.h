@@ -24,7 +24,7 @@ namespace EWE{
         
 
 #if EWE_DEBUG_NAMING
-        std::string debugName;
+        std::string name;
         void SetName(std::string_view name);
 #endif
 

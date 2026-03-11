@@ -46,6 +46,13 @@ namespace EWE{
             }
         }
 
+        constexpr T* Data() {
+            return GetMemory();
+        }
+        constexpr T const* Data() const{
+            return GetMemory();
+        }
+
         constexpr T& operator[](std::size_t i) { 
             return GetMemory()[i];
         }

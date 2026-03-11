@@ -1,4 +1,6 @@
+#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
 #include "EightWinds/RenderGraph/Command/Record.h"
+#include "EightWinds/VulkanHeader.h"
 
 #include <cassert>
 
@@ -7,19 +9,19 @@ namespace EWE{
     namespace Command{
         void BindCommand(std::vector<Instruction>& records, Instruction::Type cmdType){
             std::size_t paramOffset = 0;
-            if(records.size() > 0){
-                paramOffset = records.back().paramOffset + Instruction::GetParamSize(records.back().type);
-            }
-            records.push_back(Instruction{cmdType, paramOffset});
-        }
-
-        //this is not an address, it's an offset into the vector.
-        //once compile is called, all of the pointers inside the deferred references will be
-        //redirected to point at the real data, within the params pool
-        std::size_t GetCurrentOffset(Instruction const& backInstruction) {
-            return backInstruction.paramOffset;
+            //if(records.size() > 0){
+                //paramOffset = records.back().paramOffset + Instruction::GetParamSize(records.back().type);
+            //}
+            records.push_back(Instruction{cmdType});
         }
     
+        std::size_t Record::CalculateSize() const noexcept{
+            std::size_t ret = 0;
+            for(auto const& inst : records){
+                ret += Instruction::GetParamSize(inst.type);
+            }
+            return ret;
+        }
 
         #if EWE_DEBUG_BOOL
         bool Record::ValidateInstructions() const{
@@ -68,8 +70,10 @@ namespace EWE{
 
                     case Instruction::Type::BindDescriptor:
                     case Instruction::Type::PushConstant:
-                    case Instruction::Type::DS_ViewportScissor:
-                    case Instruction::Type::DS_ViewportScissorWithCount:
+                    case Instruction::Type::DS_Viewport:
+                    case Instruction::Type::DS_ViewportCount:
+                    case Instruction::Type::DS_Scissor:
+                    case Instruction::Type::DS_ScissorCount:
                     case Instruction::Type::Draw:
                     case Instruction::Type::DrawIndexed:
                     case Instruction::Type::Dispatch:
@@ -141,24 +145,58 @@ namespace EWE{
         }
         */
 
+        InstructionPointerAdjuster* Record::AddInstruction(Instruction::Type type, bool external_memory /*= false*/) {
+            if(Instruction::GetParamSize(type) == 0){
+                records.push_back(
+                    Instruction{
+                        .type = type,
+                        .instruction_pointer = nullptr
+                    }
+                );
+            }
+            else{
+                records.push_back(
+                    Instruction{
+                        .type = type,
+                        .instruction_pointer = new InstructionPointerAdjuster()
+                    }
+                );
+            }
+            return records.back().instruction_pointer;
+        }
 
-        InstructionPointer<ParamPack::ViewportScissor>* Record::SetViewportScissor(){
-            BindCommand(records, Instruction::Type::DS_ViewportScissor);
-            auto deferred_ref = new InstructionPointer<ParamPack::ViewportScissor>(GetCurrentOffset(records.back()));
+
+        InstructionPointer<ParamPack::Viewport>* Record::SetViewport(){
+            return reinterpret_cast<
+            BindCommand(records, Instruction::Type::DS_Viewport);
+            auto deferred_ref = new InstructionPointer<ParamPack::Viewport>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
-
         }
-        InstructionPointer<ParamPack::ViewportScissorWithCount>* Record::SetViewportScissorWithCount(){
-            BindCommand(records, Instruction::Type::DS_ViewportScissorWithCount);
-            auto deferred_ref = new InstructionPointer<ParamPack::ViewportScissorWithCount>(GetCurrentOffset(records.back()));
+        InstructionPointer<ParamPack::ViewportCount>* Record::SetViewportCount(){
+            BindCommand(records, Instruction::Type::DS_ViewportCount);
+            auto deferred_ref = new InstructionPointer<ParamPack::ViewportCount>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
+        InstructionPointer<ParamPack::Scissor>* Record::SetScissor(){
+            BindCommand(records, Instruction::Type::DS_Scissor);
+            auto deferred_ref = new InstructionPointer<ParamPack::Scissor>();
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
+            return deferred_ref;
+        }
+        InstructionPointer<ParamPack::ScissorCount>* Record::SetScissorCount(){
+            BindCommand(records, Instruction::Type::DS_ScissorCount);
+            auto deferred_ref = new InstructionPointer<ParamPack::ScissorCount>();
+            deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
+            return deferred_ref;
+        }
+
+
 
         InstructionPointer<ParamPack::Pipeline>* Record::BindPipeline(){
             BindCommand(records, Instruction::Type::BindPipeline);
-            auto deferred_ref = new InstructionPointer<ParamPack::Pipeline>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::Pipeline>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
@@ -169,16 +207,16 @@ namespace EWE{
         InstructionPointer<GlobalPushConstant_Raw>* Record::Push() {
             //assert a pipeline is binded
             BindCommand(records, Instruction::Type::PushConstant);
-            // push_offsets.push_back(reinterpret_cast<GlobalPushConstant_Raw*>(GetCurrentOffset(records.back())));
+            // push_offsets.push_back(reinterpret_cast<GlobalPushConstant_Raw*>());
             InstructionPointer<GlobalPushConstant_Raw>* ret{};
-            ret = new InstructionPointer<GlobalPushConstant_Raw>(GetCurrentOffset(records.back()));
+            ret = new InstructionPointer<GlobalPushConstant_Raw>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(ret));
             return ret;
         }
 
         InstructionPointer<VkRenderingInfo>* Record::BeginRender(){
             BindCommand(records, Instruction::Type::BeginRender);
-            auto deferred_ref = new InstructionPointer<VkRenderingInfo>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<VkRenderingInfo>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
             
@@ -193,7 +231,7 @@ namespace EWE{
 
         InstructionPointer<ParamPack::Label>* Record::BeginLabel() noexcept{
             BindCommand(records, Instruction::Type::BeginLabel);
-            auto deferred_ref = new InstructionPointer<ParamPack::Label>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::Label>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
@@ -203,70 +241,76 @@ namespace EWE{
 
         InstructionPointer<ParamPack::VertexDraw>* Record::Draw(){
             BindCommand(records, Instruction::Type::Draw);
-            auto deferred_ref = new InstructionPointer<ParamPack::VertexDraw>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::VertexDraw>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
         InstructionPointer<ParamPack::IndexDraw>* Record::DrawIndexed(){
             BindCommand(records, Instruction::Type::DrawIndexed);
-            auto deferred_ref = new InstructionPointer<ParamPack::IndexDraw>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::IndexDraw>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
         InstructionPointer<ParamPack::Dispatch>* Record::Dispatch(){
             BindCommand(records, Instruction::Type::Dispatch);
-            auto deferred_ref = new InstructionPointer<ParamPack::Dispatch>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::Dispatch>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
         InstructionPointer<ParamPack::DrawMeshTasks>* Record::DrawMeshTasks() {
             BindCommand(records, Instruction::Type::DrawMeshTasks);
-            auto deferred_ref = new InstructionPointer<ParamPack::DrawMeshTasks>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawMeshTasks>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 
         InstructionPointer<ParamPack::DrawIndirect>* Record::DrawIndirect() {
             BindCommand(records, Instruction::Type::DrawIndirect);
-            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndirect>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndirect>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
         InstructionPointer<ParamPack::DrawIndexedIndirect>* Record::DrawIndexedIndirect() {
             BindCommand(records, Instruction::Type::DrawIndexedIndirect);
-            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndexedIndirect>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndexedIndirect>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 
         InstructionPointer<ParamPack::DrawMeshTasksIndirect>* Record::DrawMeshTasksIndirect() {
             BindCommand(records, Instruction::Type::DrawMeshTasksIndirect);
-            auto deferred_ref = new InstructionPointer<ParamPack::DrawMeshTasksIndirect>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawMeshTasksIndirect>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
         InstructionPointer<ParamPack::DrawIndirectCount>* Record::DrawIndirectCount() {
             BindCommand(records, Instruction::Type::DrawIndirectCount);
-            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndirectCount>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndirectCount>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
         InstructionPointer<ParamPack::DrawIndexedIndirectCount>* Record::DrawIndexedIndirectCount() {
             BindCommand(records, Command::Instruction::Type::DrawIndexedIndirectCount);
-            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndexedIndirectCount>(GetCurrentOffset(records.back()));
+            auto deferred_ref = new InstructionPointer<ParamPack::DrawIndexedIndirectCount>();
             deferred_references.push_back(reinterpret_cast<InstructionPointerAdjuster*>(deferred_ref));
             return deferred_ref;
         }
 
         void Record::FixDeferred(const PerFlight<std::size_t> pool_address) noexcept {
 
-            for (auto& def_ref : deferred_references) {
-                for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                    def_ref->data[i] += pool_address[i];
+            std::size_t current_offset = 0;
+            for(auto& inst : records){
+                if(inst.instruction_pointer->internal){
+                    for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+                        inst.instruction_pointer->data[frame] = pool_address[frame] + current_offset;
+                    }
+                    inst.instruction_pointer->adjusted = true;
+                    current_offset += Instruction::GetParamSize(inst.type);
                 }
-                def_ref->adjusted = true;
-                //we convert the initial offset to a real pointer into the paramPool
             }
+#if EWE_DEBUG_BOOL
+            EWE_ASSERT(current_offset = CalculateSize());
+#endif
         }
     }//namespace Command
 } //namespace EWE

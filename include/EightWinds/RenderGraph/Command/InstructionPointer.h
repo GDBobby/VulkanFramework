@@ -5,6 +5,7 @@
 #if EWE_DEBUG_BOOL
 #include <cassert>
 #endif
+#include <cstdint>
 
 
 namespace EWE{
@@ -12,6 +13,10 @@ namespace EWE{
     struct InstructionPointer{
     private:
         PerFlight<T*> data;
+        //for use with param pool if true, 
+        //if not, the user defines the construction and lifetime of the pointed data
+        //if internal is not true, the pointer will not be changed when calling Record::Undefer
+        bool internal = true;
         bool adjusted = false;
     public:
 
@@ -32,5 +37,6 @@ namespace EWE{
     struct InstructionPointerAdjuster {
         PerFlight<std::size_t> data;
         bool adjusted;
+        bool internal; 
     };
 }

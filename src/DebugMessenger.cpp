@@ -53,22 +53,7 @@ namespace EWE {
                     DebugMessenger::validation_callback();
                 }
 #endif
-
-#if defined(_MSC_VER)
-    #define DEBUG_BREAK() __debugbreak()
-#elif defined(__clang__)
-    #if __has_builtin(__builtin_debugtrap)
-        #define DEBUG_BREAK() __builtin_debugtrap()
-    #else
-        #define DEBUG_BREAK() __builtin_trap()
-     #endif
-#elif defined(__GNUC__) || defined(__GNUG__)
-    #if defined(__i386__) || defined(__x86_64__)
-        #define DEBUG_BREAK() __asm__ volatile("int $3")
-    #else
-        #define DEBUG_BREAK() __builtin_trap()
-    #endif
-#endif
+                EWE_Debug_Breakpoint();
                 break;
             }
             default:

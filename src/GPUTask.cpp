@@ -16,16 +16,17 @@ namespace EWE{
         commandExecutor{logicalDevice}
     {
 #if EWE_DEBUG_BOOL
-        assert(!cmdRecord.hasBeenCompiled);
+        //assert(!cmdRecord.hasBeenCompiled);
 #endif
         //cmdRecord.Optimize(); <--- EVENTUALLY
-        const uint64_t full_data_size = cmdRecord.records.back().paramOffset + Command::Instruction::GetParamSize(cmdRecord.records.back().type);
+        
+        const uint64_t full_data_size = cmdRecord.CalculateSize();
 
         commandExecutor.instructions = cmdRecord.records;
         PerFlight<std::size_t> param_pool_addresses{};
         for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-            commandExecutor.paramPool[i].resize(full_data_size);
-            param_pool_addresses[i] = reinterpret_cast<std::size_t>(commandExecutor.paramPool[i].data());
+            commandExecutor.paramPool[i].Resize(full_data_size);
+            param_pool_addresses[i] = reinterpret_cast<std::size_t>(commandExecutor.paramPool[i].Data());
         }
         cmdRecord.FixDeferred(param_pool_addresses);
         //for(auto& push_off : cmdRecord.push_offsets){
