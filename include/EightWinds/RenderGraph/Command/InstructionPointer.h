@@ -2,9 +2,6 @@
 
 #include "EightWinds/Data/PerFlight.h"
 
-#if EWE_DEBUG_BOOL
-#include <cassert>
-#endif
 #include <cstdint>
 
 
@@ -26,17 +23,20 @@ namespace EWE{
         {}
 
         constexpr T& GetRef(uint8_t frameIndex) {
-#if EWE_DEBUG_BOOL
-            assert(frameIndex < max_frames_in_flight);
-            assert(adjusted);
-#endif
+            EWE_ASSERT(frameIndex < max_frames_in_flight);
+            EWE_ASSERT(adjusted);
             return *data[frameIndex];
         }
     };
 
     struct InstructionPointerAdjuster {
         PerFlight<std::size_t> data;
-        bool adjusted;
-        bool internal; 
+        bool adjusted = false;
+        bool internal = true; 
+
+        template<typename T>
+        InstructionPointer<T>* CastTo() noexcept{
+            return reinterpret_cast<InstructionPointer<T>*>(this);
+        }
     };
 }

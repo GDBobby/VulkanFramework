@@ -129,9 +129,7 @@ namespace EWE {
 		if (barriers.size() <= 1) {
 			return;
 		}
-#if EWE_DEBUG
-		assert(barriers.size() < 256 && "too many barriers"); //reduce the barrier count. if not possible, change the values and data types here
-#endif
+		EWE_ASSERT(barriers.size() < 256 && "too many barriers"); //reduce the barrier count. if not possible, change the values and data types here
 
         uint8_t lastComparisonIndex = 0;
 		uint8_t currentComparisonIndex = 1;
@@ -224,7 +222,7 @@ namespace EWE {
 			if (lh_resource.resource[frameIndex]->image != rh_resource.resource[frameIndex]->image) {
 				printf("transitioning invalid? - {%s}:{%s}\n", lh_img.name.c_str(), rh_img.name.c_str());
 			}
-			assert(lh_resource.resource[frameIndex]->image == rh_resource.resource[frameIndex]->image);
+			EWE_ASSERT(lh_resource.resource[frameIndex]->image == rh_resource.resource[frameIndex]->image);
 #endif
 			return VkImageMemoryBarrier2{
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,

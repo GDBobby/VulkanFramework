@@ -29,9 +29,7 @@ template<>
 struct std::hash<VkBlendFactor> {
 	std::size_t operator()(VkBlendFactor f) const noexcept {
 		const uint8_t val = static_cast<uint8_t>(f);
-#if EWE_DEBUG_BOOL
-		assert(val != VK_BLEND_FACTOR_MAX_ENUM);
-#endif
+		EWE_ASSERT(val != VK_BLEND_FACTOR_MAX_ENUM);
 		return std::hash<uint8_t>{}(static_cast<uint8_t>(val));
 	}
 };
@@ -40,9 +38,7 @@ template<>
 struct std::hash<VkBlendOp> {
 	std::size_t operator()(VkBlendOp op) const noexcept {
 		const uint8_t val = static_cast<uint8_t>(op);
-#if EWE_DEBUG_BOOL
-		assert(val != VK_BLEND_OP_MAX_ENUM);
-#endif
+		EWE_ASSERT(val != VK_BLEND_OP_MAX_ENUM);
 		return std::hash<uint8_t>{}(static_cast<uint8_t>(val));
 	}
 };

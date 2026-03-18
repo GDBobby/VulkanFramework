@@ -4,8 +4,6 @@
 
 #include "EightWinds/Backend/STC_Helper.h"
 
-#include <cassert>
-
 /*
 VUID-VkRenderingAttachmentInfo-pNext-11752
 If the pNext chain includes a VkRenderingAttachmentFlagsInfoKHR structure, and flags includes VK_RENDERING_ATTACHMENT_RESOLVE_SKIP_TRANSFER_FUNCTION_BIT_KHR or VK_RENDERING_ATTACHMENT_RESOLVE_ENABLE_TRANSFER_FUNCTION_BIT_KHR, imageView must have a format using sRGB encoding
@@ -106,6 +104,35 @@ namespace EWE{
 		image.Create(vmaAllocCreateInfo);
 	}
 
+
+	void RenderAttachments::CreateImages(std::string_view name, uint32_t width, uint32_t height, AttachmentSetInfo const& setInfo) {
+		VmaAllocationCreateInfo vmaAllocCreateInfo{
+		//if(imageCreateInfo.width * height > some amount){
+			.flags = static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) |
+					static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT),
+			.usage = VMA_MEMORY_USAGE_AUTO
+		};
+
+
+		for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
+			for (uint8_t i = 0; i < color_images.Size(); i++) {
+				SetImageData(color_images[i][frame], graphicsQueue, width, height, setInfo.colors[i].format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vmaAllocCreateInfo);
+				color_images[i][frame].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+#if EWE_DEBUG_NAMING
+				const std::string resource_name = "color[" + std::to_string(frame) + "][" + std::to_string(i) + "]";
+				color_images[i][frame].SetName(resource_name);
+
+#endif
+			}
+			SetImageData(depth_images[frame], graphicsQueue, width, height, setInfo.depth.format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, vmaAllocCreateInfo);
+			depth_images[frame].layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+#if EWE_DEBUG_NAMING
+			std::string resource_name = "depth[" + std::to_string(frame) + "]";
+			depth_images[frame].SetName(resource_name);
+#endif
+		}
+	}
+
 	RenderAttachments::RenderAttachments(
 		std::string_view name,
 		LogicalDevice& logicalDevice,
@@ -191,33 +218,6 @@ namespace EWE{
 		}
 	}
 
-	void RenderAttachments::CreateImages(std::string_view name, uint32_t width, uint32_t height, AttachmentSetInfo const& setInfo) {
-		VmaAllocationCreateInfo vmaAllocCreateInfo{
-		//if(imageCreateInfo.width * height > some amount){
-			.flags = static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) |
-					static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT),
-			.usage = VMA_MEMORY_USAGE_AUTO
-		};
-
-
-		for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
-			for (uint8_t i = 0; i < color_images.Size(); i++) {
-				SetImageData(color_images[i][frame], graphicsQueue, width, height, setInfo.colors[i].format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vmaAllocCreateInfo);
-				color_images[i][frame].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-#if EWE_DEBUG_NAMING
-				const std::string resource_name = "color[" + std::to_string(frame) + "][" + std::to_string(i) + "]";
-				color_images[i][frame].SetName(resource_name);
-
-#endif
-			}
-			SetImageData(depth_images[frame], graphicsQueue, width, height, setInfo.depth.format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, vmaAllocCreateInfo);
-			depth_images[frame].layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-#if EWE_DEBUG_NAMING
-			std::string resource_name = "depth[" + std::to_string(frame) + "]";
-			depth_images[frame].SetName(resource_name);
-#endif
-		}
-	}
 
 	void RenderAttachments::CreateImageViews() {
 		for (uint8_t i = 0; i < color_images.Size(); i++) {

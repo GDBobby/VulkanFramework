@@ -28,7 +28,7 @@ namespace EWE {
 
 
 	Backend::Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, Shader::Stage::COUNT> const& shaders) {
-		assert(shaders.size() > 0);
+		EWE_ASSERT(shaders.size() > 0);
 		Backend::Descriptor::LayoutPack ret{};
 
 		uint8_t highestSize = 0;
@@ -98,7 +98,7 @@ namespace EWE {
 		);
 
 		for (auto& dsl : ret.sets) {
-			assert(dsl.bindings.vkBindings.size() > 0);
+			EWE_ASSERT(dsl.bindings.vkBindings.size() > 0);
             //this needs to be promoted to a full dsl
 			//dsl.value->BuildVkDSL();
 			//std::string debug_name = std::string(fileLocation.data()) + std::string(" - dsl#") + std::to_string(dsl.first);
@@ -198,7 +198,7 @@ namespace EWE {
 		}
 		else {
 			printf("this is going to be raytracing i guess?\n");
-			assert(false);
+			EWE_ASSERT(false);
 		}
 
 
@@ -210,7 +210,7 @@ namespace EWE {
 		plCreateInfo.pPushConstantRanges = pushConstantRanges.data();
 
 		const bool hasSets = descriptorSets.sets.size() > 0;
-		assert(descriptorSets.sets.size() <= 1);
+		EWE_ASSERT(descriptorSets.sets.size() <= 1);
 
 		plCreateInfo.setLayoutCount = static_cast<uint32_t>(hasSets);
 		plCreateInfo.pSetLayouts = &logicalDevice.bindlessDescriptor.layout;

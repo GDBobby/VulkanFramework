@@ -24,29 +24,6 @@
 #define EWE_CALL_STACK_DEBUG (EWE_DEBUG_BOOL && HAVE_STD_STACKTRACE)
 #endif
 
-
-#if EWE_DEBUG_BOOL
-    #include <cassert> //sucks to include this in the header but whatever
-    #include <cstdio> //printf
-
-    #ifdef _MSC_VER
-        #define EWE_UNREACHABLE assert(false)
-    #elif defined(__GNUC__) || defined(__clang__)
-        #define EWE_UNREACHABLE assert(false);__builtin_unreachable()
-    #else
-        #define EWE_UNREACHABLE throw std::runtime_error("unreachable code")
-    #endif
-#else
-    #ifdef _MSC_VER
-        #define EWE_UNREACHABLE __assume(false)
-    #elif defined(__GNUC__) || defined(__clang__)
-        #define EWE_UNREACHABLE __builtin_unreachable()
-    #else
-        #define EWE_UNREACHABLE throw std::runtime_error("unreachable code")
-    #endif
-#endif
-
-
 static inline void EWE_Debug_Breakpoint() {
     #if EWE_DEBUG_BOOL
         #if defined(_MSC_VER)
@@ -71,6 +48,10 @@ static inline void EWE_Debug_Breakpoint() {
 }
 
 
+#if EWE_DEBUG_BOOL
+    #include <cstdio> //printf
+#endif
+
 inline void EWE_ASSERT(bool statement, std::string_view print = "failed assert") {
 #if EWE_DEBUG_BOOL
     if (!statement) {
@@ -79,3 +60,18 @@ inline void EWE_ASSERT(bool statement, std::string_view print = "failed assert")
     }
 #endif
 }
+
+
+#if EWE_DEBUG_BOOL
+#include <utility>
+
+    #ifdef _MSC_VER
+        #define EWE_UNREACHABLE EWE_ASSERT(false, "unreachable"); std::unreachable()
+    #elif defined(__GNUC__) || defined(__clang__)
+        #define EWE_UNREACHABLE EWE_ASSERT(false, "unreachable"); std::unreachable()
+    #else
+        #define EWE_UNREACHABLE throw std::runtime_error("unreachable code")
+    #endif
+#else
+    #define EWE_UNREACHABLE std::unreachable()
+#endif

@@ -1,8 +1,6 @@
 #include "EightWinds/ShaderFactory.h"
 #include "EightWinds/Shader.h"
 
-#include <cassert>
-
 namespace EWE{
 
 
@@ -40,7 +38,7 @@ namespace EWE{
 		auto modFind = shaderModuleMap.find(filepath);
 		if (modFind == shaderModuleMap.end()) {
 			auto empRet = shaderModuleMap.emplace(filepath, new Shader(logicalDevice, filepath));
-			assert(empRet.second);
+			EWE_ASSERT(empRet.second);
 			return empRet.first->second.shader;
 		}
 		else {
@@ -50,10 +48,10 @@ namespace EWE{
 		}
 	}
 	Shader* ShaderFactory::CreateShader(std::string_view filepath, const std::size_t dataSize, const void* data) {
-		assert(shaderModuleMap.find(filepath) == shaderModuleMap.end());
+		EWE_ASSERT(shaderModuleMap.find(filepath) == shaderModuleMap.end());
 
 		auto empRet = shaderModuleMap.emplace(filepath, new Shader(logicalDevice, filepath, dataSize, data));
-		assert(empRet.second);
+		EWE_ASSERT(empRet.second);
 		return empRet.first->second.shader;
 	}
 

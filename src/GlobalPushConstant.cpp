@@ -1,11 +1,9 @@
 #include "EightWinds/GlobalPushConstant.h"
 
-#include <cassert>
-
 namespace EWE{
 
     void GlobalPushConstant_Raw::Bind(uint8_t slot, Buffer const& buffer) noexcept {
-        assert(slot < buffer_count);
+        EWE_ASSERT(slot < buffer_count);
         buffer_addr[slot] = buffer.deviceAddress;
     }
 

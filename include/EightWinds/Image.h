@@ -17,9 +17,11 @@ namespace EWE{
     struct Image{
         LogicalDevice& logicalDevice;
         VkImage image;
+        std::string name; //directory, this is the hash key for an unordered_set
+
+        [[nodiscard]] explicit Image(LogicalDevice& logicalDevice) noexcept;
         
         bool readyForUsage = false;
-        [[nodiscard]] explicit Image(LogicalDevice& logicalDevice) noexcept;
         
         Image(Image const& copySrc) = delete;
         Image& operator=(Image const& copySrc) = delete;
@@ -32,14 +34,12 @@ namespace EWE{
             return image;
         }
 #if EWE_DEBUG_NAMING
+        std::stacktrace creation_trace{std::stacktrace::current(1)};
         void SetName(std::string_view name);
 #endif
 
 
         Queue* owningQueue;
-
-        std::string name; //directory, this is the hash key for an unordered_set
-        std::stacktrace creation_trace;
 
         VkExtent3D extent;
 

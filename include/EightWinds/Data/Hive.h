@@ -251,5 +251,23 @@ namespace EWE{
             comb->occupancy[iter.slotIndex] = false;
             comb->memory.DestroyAt(iter.slotIndex);
         }
+
+        void Clear(){
+            for(auto iter = begin(); iter != end(); ++iter){
+                DestroyElement(iter);
+            }
+        }
+
+        void ShrinkToFit(){
+            //remove combs
+            for(auto comb_iter = combs.begin(); comb_iter != combs.end(); ){
+                if(!(*comb_iter)->occupancy.any()){
+                    comb_iter = combs.erase(comb_iter);
+                }
+                else{
+                    comb_iter++;
+                }
+            }
+        }
     };
 }

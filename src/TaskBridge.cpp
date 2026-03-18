@@ -180,9 +180,7 @@ namespace EWE {
 					bool foundMatch = false;
 					for (auto& existing : imageBarriers) {
 						if (existing.image == rhsImage->image->image) {
-#if EWE_DEBUG_BOOL
-							assert(existing.newLayout == rhsImage->usage.layout); //need to rectify this if it's an isuse
-#endif
+							EWE_ASSERT(existing.newLayout == rhsImage->usage.layout); //need to rectify this if it's an isuse
 							foundMatch = true;
 							break;
 						}
@@ -336,11 +334,9 @@ namespace EWE {
 
 
 	void TaskBridge::Execute(CommandBuffer& cmdBuf){
-#if EWE_DEBUG_BOOL
 		if (rhs != nullptr) {
-			assert(cmdBuf.commandPool.queue == rhs->queue);
+			EWE_ASSERT(cmdBuf.commandPool.queue == rhs->queue);
 		}
-#endif
 
 		dependencyInfo.memoryBarrierCount = 0; //i could move this into the constructor but idk what this is even for tbh
 		dependencyInfo.imageMemoryBarrierCount = static_cast<uint32_t>(imageBarriers.size());
@@ -352,9 +348,7 @@ namespace EWE {
 
 		const uint32_t totalSize = dependencyInfo.memoryBarrierCount + dependencyInfo.imageMemoryBarrierCount + dependencyInfo.bufferMemoryBarrierCount;
 		if(totalSize > 0){
-#if EWE_DEBUG_BOOL
-			assert(!cmdBuf.debug_currentlyRendering);
-#endif
+			EWE_ASSERT(!cmdBuf.debug_currentlyRendering);
 			vkCmdPipelineBarrier2(cmdBuf, &dependencyInfo);		
 		}
 

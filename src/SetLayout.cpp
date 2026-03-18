@@ -1,9 +1,5 @@
 #include "EightWinds/Backend/Descriptor/SetLayout.h"
 
-#include <cassert>
-
-#include <stdexcept>
-
 namespace EWE{
     namespace Backend{
         namespace Descriptor{
@@ -52,7 +48,7 @@ namespace EWE{
                 moveSrc.vkDSL = VK_NULL_HANDLE;
             }
             SetLayout& SetLayout::operator=(SetLayout&& moveSrc) noexcept{
-                assert(pool == moveSrc.pool);
+                EWE_ASSERT(pool == moveSrc.pool);
 
                 printf("not fulyl setup, the old dsl needs to be deconstructed");
                 vkDSL = moveSrc.vkDSL;

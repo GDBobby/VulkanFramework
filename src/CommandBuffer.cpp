@@ -1,7 +1,5 @@
 #include "EightWinds/CommandBuffer.h"
 
-#include <cassert>
-
 namespace EWE{
 
     
@@ -20,11 +18,9 @@ namespace EWE{
     CommandBuffer::~CommandBuffer(){
         //vkEndCommandBuffer(cmdBuf); //i dont like this. it also needs to be submitted
 
-        assert(commandPool.allocatedBuffers > 0);
-#if EWE_DEBUG_BOOL
-        assert(state == CommandBuffer::State::Invalid || state == CommandBuffer::State::Initial
+        EWE_ASSERT(commandPool.allocatedBuffers > 0);
+        EWE_ASSERT(state == CommandBuffer::State::Invalid || state == CommandBuffer::State::Initial
                || state == CommandBuffer::State::Pending); //this one is just mean time, until i manage to automate up pending -> invalid transition
-#endif
     }
 
     void CommandBuffer::Reset() {
@@ -33,7 +29,7 @@ namespace EWE{
         and this would assert that the state is currently invalid
         UNTIL i get that setup, this is going to require state be in present
         */
-        assert(commandPool.flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+        EWE_ASSERT(commandPool.flags & VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
 #if EWE_DEBUG_BOOL
         if (state == State::Pending) {
 #else
@@ -42,22 +38,18 @@ namespace EWE{
             state = State::Initial;
             EWE_VK(vkResetCommandBuffer, cmdBuf, resetFlags);
 
-            assert(labelDepth == 0);
+            EWE_ASSERT(labelDepth == 0);
         }
     }
 
     void CommandBuffer::End() {
-#if EWE_DEBUG_BOOL
-        assert(state == State::Recording);
-#endif
+        EWE_ASSERT(state == State::Recording);
         state = State::Executable;
         EWE_VK(vkEndCommandBuffer, cmdBuf);
     }
 
     void CommandBuffer::Begin(VkCommandBufferBeginInfo const& beginInfo) {
-#if EWE_DEBUG_BOOL
-        assert(state == State::Initial);
-#endif
+        EWE_ASSERT(state == State::Initial);
         state = State::Recording;
 #if COMMAND_BUFFER_TRACING
         if (usageTracking.size() > 2) {

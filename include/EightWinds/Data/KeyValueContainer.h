@@ -2,7 +2,6 @@
 
 #include "EightWinds/Preprocessor.h"
 
-#include <cassert>
 #include <type_traits>
 #include <utility>
 #include <initializer_list>
@@ -91,7 +90,7 @@ namespace EWE {
 
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_copy_assignable_v<K> && std::is_copy_assignable_v<V>>>
 		KeyValuePair& operator=(const KeyValuePair& copySource) {
-			assert(this != &copySource);
+			EWE_ASSERT(this != &copySource);
 			key = copySource.key;
 			value = copySource.value;
 			return *this;
@@ -99,7 +98,7 @@ namespace EWE {
 
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_move_assignable_v<K>&& std::is_move_assignable_v<V>>>
 		KeyValuePair& operator=(KeyValuePair&& moveSource) noexcept {
-			assert(this != &moveSource);
+			EWE_ASSERT(this != &moveSource);
 			key = std::move(moveSource.key);
 			value = std::move(moveSource.value);
 			
@@ -114,6 +113,7 @@ namespace EWE {
 
 		using KVPair = KeyValuePair<Key, Value>;
 		std::vector<KVPair> inner_data;
+		using iterator = std::vector<KVPair>::iterator;
 	public:
 		constexpr KeyValueContainer() : inner_data{} {}
 		constexpr KeyValueContainer(std::size_t count) : inner_data{ count } { KV_Helper::CheckSizeCondition(count); }
@@ -160,18 +160,13 @@ namespace EWE {
 		void* data() {
 			return inner_data.data();
 		}
-		auto begin() {
-			return inner_data.begin();
-		}
-		auto end() {
-			return inner_data.end();
-		}
-		auto cbegin() const {
-			return inner_data.cbegin();
-		}
-		auto cend() const {
-			return inner_data.cend();
-		}
+		auto begin() { return inner_data.begin();}
+		auto end() { return inner_data.end(); }
+		auto cbegin() const { return inner_data.cbegin(); }
+		auto cend() const { return inner_data.cend(); }
+		auto begin() const { return inner_data.begin();}
+		auto end() const { return inner_data.end();}
+
 		std::size_t size() {
 			return inner_data.size();
 		}
@@ -179,8 +174,16 @@ namespace EWE {
 			inner_data.reserve(res);
 		}
 
-		void erase(std::vector<KVPair>::iterator iter) {
+		void erase(iterator iter) {
 			inner_data.erase(iter);
+		}
+		auto find(KVPair::KeyParamType key) const {
+			for(auto iter = begin(); iter != end(); iter++){
+				if(iter->key == key){
+					return iter;
+				}
+			}
+			return end();
 		}
 
 		void clear() {
@@ -212,14 +215,17 @@ namespace EWE {
 			inner_data.emplace_back(kvPair);
 		}
 
+		void Remove(iterator iter) {
+			inner_data.erase(iter);
+		}
 		void Remove(KVPair::KeyParamType key) {
 			for (auto iter = inner_data.begin(); iter != inner_data.end(); iter++) {
 				if (iter->key == key) {
-					inner_data.erase(iter);
+					Remove(iter);
 					return;
 				}
 			}
-			assert(false);
+			EWE_ASSERT(false);
 		}
 		bool Contains(KVPair::KeyParamType key) {
 			for (auto iter = inner_data.begin(); iter != inner_data.end(); iter++) {

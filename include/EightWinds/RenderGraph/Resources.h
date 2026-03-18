@@ -62,7 +62,7 @@ namespace EWE{
                 return images.size() - 1;
             }
             else {
-                assert(false && "invalid resource type");
+                EWE_ASSERT(false, "invalid resource type");
                 //static_assert(false && "invalid resource type");
             }
             return 69420;
@@ -79,7 +79,6 @@ namespace EWE{
                 return images.size() - 1;
             }
             else{
-                //assert(invalid_type_debugging_helper<Res> && "invalid resource type");
                 static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
             }
             return 69420;
@@ -95,7 +94,7 @@ namespace EWE{
                 return images.size() - 1;
             }
             else {
-                //assert(invalid_type_debugging_helper<Res> && "invalid resource type");
+                //EWE_ASSERT(invalid_type_debugging_helper<Res> && "invalid resource type");
                 static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
             }
             return 69420;
@@ -113,7 +112,7 @@ namespace EWE{
             if constexpr (std::is_same_v<Res, Buffer>) {
 #if EWE_DEBUG_BOOL
                 for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                    assert(lhs.buffers[lh_index].resource[i] == rhs.buffers[rh_index].resource[i]);
+                    EWE_ASSERT(lhs.buffers[lh_index].resource[i] == rhs.buffers[rh_index].resource[i]);
                 }
 #endif 
                 this->lhs = &lhs.buffers[lh_index];
@@ -122,7 +121,7 @@ namespace EWE{
             else if constexpr (std::is_same_v<Res, Image>) {
 #if EWE_DEBUG_BOOL
                 for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                    assert(lhs.images[lh_index].resource[i] == rhs.images[rh_index].resource[i]);
+                    EWE_ASSERT(lhs.images[lh_index].resource[i] == rhs.images[rh_index].resource[i]);
                 }
 #endif
                 this->lhs = &lhs.images[lh_index];

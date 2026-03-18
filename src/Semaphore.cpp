@@ -1,7 +1,5 @@
 #include "EightWinds/Backend/Semaphore.h"
 
-#include <cassert>
-
 namespace EWE{
     BinarySemaphore::BinarySemaphore(LogicalDevice& logicalDevice)
         :logicalDevice{logicalDevice}
@@ -28,7 +26,7 @@ namespace EWE{
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
     }
     BinarySemaphore& BinarySemaphore::operator=(BinarySemaphore&& moveSrc) noexcept{
-        assert(logicalDevice == moveSrc.logicalDevice);
+        EWE_ASSERT(logicalDevice == moveSrc.logicalDevice);
         vkSemaphore = moveSrc.vkSemaphore;
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
 
@@ -90,9 +88,7 @@ namespace EWE{
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
     }
     TimelineSemaphore& TimelineSemaphore::operator=(TimelineSemaphore&& moveSrc) noexcept{
-#if EWE_DEBUG
-        assert(logicalDevice == moveSrc.logicalDevice);
-#endif
+        EWE_ASSERT(logicalDevice == moveSrc.logicalDevice);
         vkSemaphore = moveSrc.vkSemaphore;
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
 

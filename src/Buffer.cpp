@@ -1,7 +1,6 @@
 #include "EightWinds/Buffer.h"
 
 #include "vma/include/vk_mem_alloc.h"
-#include <cassert>
 
 namespace EWE{
 
@@ -17,7 +16,7 @@ namespace EWE{
     }
 
     void Buffer::DestroyTheVkBuffer() {
-        assert(false && "not supported yet");
+        EWE_ASSERT(false, "not supported yet");
     }
 
     void Buffer::CreateTheVkBuffer(VmaAllocationCreateInfo const& vmaAllocCreateInfo) {
@@ -32,7 +31,7 @@ namespace EWE{
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE
         };
 
-        assert(bufferSize > 0);
+        EWE_ASSERT(bufferSize > 0);
 
         EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
 
@@ -93,12 +92,12 @@ namespace EWE{
 
     void* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {
         EWE_VK(vmaMapMemory, logicalDevice.vmaAllocator, vmaAlloc, &mapped);
-        assert(mapped != nullptr);
+        EWE_ASSERT(mapped != nullptr);
         return mapped;
     }
 
     void Buffer::Unmap() noexcept {
-        assert(mapped);
+        EWE_ASSERT(mapped);
         vmaUnmapMemory(logicalDevice.vmaAllocator, vmaAlloc);
         mapped = nullptr;
     }
@@ -151,9 +150,7 @@ namespace EWE{
     }
 
     void* Buffer::GetMapped(){
-#if EWE_DEBUG_BOOL
-        assert(mapped != nullptr);
-#endif
+        EWE_ASSERT(mapped != nullptr);
         return mapped;
     }
 

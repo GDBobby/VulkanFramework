@@ -26,9 +26,7 @@ namespace EWE{
 
             default:
                 //cube array usage?
-#if EWE_DEBUG_BOOL
-                assert(false);
-#endif
+                EWE_ASSERT(false);
                 return VK_IMAGE_VIEW_TYPE_MAX_ENUM;
         }
     }

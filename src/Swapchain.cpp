@@ -1,7 +1,6 @@
 #include "EightWinds/Swapchain.h"
 
 #include <algorithm>
-#include <cassert>
 #include <limits>
 
 

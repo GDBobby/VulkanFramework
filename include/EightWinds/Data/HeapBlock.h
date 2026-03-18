@@ -25,7 +25,6 @@ namespace EWE{
 	
 		[[nodiscard]] HeapBlock() 
 		: memory{nullptr}, size{0}
-		
 		{}
 
         [[nodiscard]] explicit HeapBlock(std::size_t size) : size{size}{
@@ -46,7 +45,7 @@ namespace EWE{
 		HeapBlock& operator=(HeapBlock& copySrc) = delete;
 		HeapBlock(HeapBlock&& moveSrc) noexcept
 			: memory{moveSrc.memory},
-			size{moveSrc.memory}
+			size{moveSrc.size}
 		{
 			moveSrc.memory = nullptr;
 			moveSrc.size = 0;

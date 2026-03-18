@@ -7,7 +7,7 @@
 
 namespace EWE{
     struct LogicalDevice;
-    enum class DescriptorType {
+    enum class DescriptorType : uint8_t {
         Sampler,
         Combined,
         Sampled,

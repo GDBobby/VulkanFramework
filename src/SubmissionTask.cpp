@@ -75,7 +75,7 @@ namespace EWE{
         //    ret = external_workload(submitInfo[frameIndex], frameIndex);
         //}
         //else{
-         //   assert(false && "no active workload"); 
+         //   EWE_ASSERT(false && "no active workload"); 
         //}
 
         return ret;
@@ -87,7 +87,7 @@ namespace EWE{
     {
         for (uint8_t i = 0; i < max_frames_in_flight; i++) {
             for (auto& lh : lhs) {
-                //assert(lh->signal); //i dont know if i want to force this or not
+                //EWE_ASSERT(lh->signal); //i dont know if i want to force this or not
                 rhs->submitInfo[i].WaitOnPrevious(lh->submitInfo[i]);
             }
         }

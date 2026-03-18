@@ -24,10 +24,8 @@ namespace EWE{
         }
 
         VkSubmitInfo2 SubmitInfo::Expand(){
-    #if EWE_DEBUG_BOOL
-            assert(commandInfos.size() == cmdBuffers.size());
-            assert(signalSemaphores.size() > 0 && "signaling with no context");
-    #endif
+            EWE_ASSERT(commandInfos.size() == cmdBuffers.size());
+            EWE_ASSERT(signalSemaphores.size() > 0 && "signaling with no context");
             ApplyWaitSemaphores();
 
             return VkSubmitInfo2{
@@ -43,9 +41,7 @@ namespace EWE{
         }
 
         VkSubmitInfo2 SubmitInfo::ExpandWithoutSignal(){
-#if EWE_DEBUG_BOOL
-            assert(commandInfos.size() == cmdBuffers.size());
-#endif
+            EWE_ASSERT(commandInfos.size() == cmdBuffers.size());
             ApplyWaitSemaphores();
             return VkSubmitInfo2{
                 .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,

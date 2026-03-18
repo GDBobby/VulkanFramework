@@ -7,7 +7,6 @@
 #include <algorithm>
 #endif
 
-#include <cassert>
 #include <cstring> //memcpy
 
 namespace EWE {

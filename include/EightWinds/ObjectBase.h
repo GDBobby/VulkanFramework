@@ -27,8 +27,8 @@ namespace EWE{
 		//void deferred_draw = nullptr;
 		
 		void BindToPush(GlobalPushConstant_Abstract& push, int8_t vertexIndex, int8_t indexIndex){
-			assert(!((vertexIndex >= 0 && vertexCount == 0) || (vertexIndex < 0 && vertexCount > 0)));
-			assert(!((indexIndex >= 0 && indexCount == 0) || (indexIndex < 0 && indexCount > 0)));
+			EWE_ASSERT(!((vertexIndex >= 0 && vertexCount == 0) || (vertexIndex < 0 && vertexCount > 0)));
+			EWE_ASERT(!((indexIndex >= 0 && indexCount == 0) || (indexIndex < 0 && indexCount > 0)));
 		}
 		
 		std::string name;
@@ -39,7 +39,7 @@ namespace EWE{
 			vertexBuffer{logicalDevice},
 			indexBuffer{logicalDevice}
 		{
-			assert(false && "not supported yet");
+			EWE_ASSERT(false, "not supported yet");
 		}
 		
 		/*
@@ -96,7 +96,7 @@ namespace EWE{
 			void Undefer(GlobalPushConstant_Abstract gpc, int8_t vertexPushIndex, int8_t indexPushIndex){
 			
 			if(meshlet){
-				assert(vertexCount < 256); //meshproperties.limits.verticesMaximum
+				EWE_ASSERT(vertexCount < 256); //meshproperties.limits.verticesMaximum
 				auto reint = reinterpret_cast<InstructionPointer<ParamPack::DrawMeshTasks>*>(params);
 				reint->GetRef().x = vertexCount;
 				if(vertexPushIndex >= 0 && model->HasVertexBuffer()){

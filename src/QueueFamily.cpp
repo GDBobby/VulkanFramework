@@ -1,7 +1,5 @@
 #include "EightWinds/Backend/QueueFamily.h"
 
-#include <cassert>
-
 namespace EWE {
 
 
@@ -98,7 +96,7 @@ namespace EWE {
             }
             currentIndex++;
         }
-        assert(foundDedicatedGraphicsPresent && "failed to find a graphics/present queue that could also do compute");
+        EWE_ASSERT(foundDedicatedGraphicsPresent && "failed to find a graphics/present queue that could also do compute");
 
         //re-searching for compute and transfer queues
         std::stack<int> dedicatedComputeFamilies{};
@@ -136,7 +134,7 @@ namespace EWE {
         }
         if (combinedTransferComputeFamilies.size() > 0) {
             if ((!found[Queue::compute]) && (!found[Queue::transfer])) {
-                //assert(combinedTransferComputeFamilies.size() >= 2 && "not enough queues for transfer and compute");
+                //EWE_ASSERT(combinedTransferComputeFamilies.size() >= 2 && "not enough queues for transfer and compute");
 
                 //vkObject->queueIndex[Queue::compute] = combinedTransferComputeFamilies.top();
                 //found[Queue::compute] = true;
@@ -157,8 +155,8 @@ namespace EWE {
                 found[Queue::transfer] = true;
             }
         }
-        //assert(found[Queue::compute] && found[Queue::transfer] && "did not find a dedicated transfer or compute queue");
-        //assert(vkObject->queueIndex[Queue::compute] != vkObject->queueIndex[Queue::transfer] && "compute queue and transfer q should not be the same");
+        //EWE_ASSERT(found[Queue::compute] && found[Queue::transfer] && "did not find a dedicated transfer or compute queue");
+        //EWE_ASSERT(vkObject->queueIndex[Queue::compute] != vkObject->queueIndex[Queue::transfer] && "compute queue and transfer q should not be the same");
 
         if (!found[Queue::compute]) {
             printf("missing dedicated compute queue, potentially fatal crash incoming if this hasn't been resolved yet (if you don't crash it has)\n");

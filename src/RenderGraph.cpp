@@ -70,11 +70,9 @@ namespace EWE{
                 //    subInfos.push_back(ind_sub->submitInfo[frameIndex].ExpandWithoutSignal());
                 //}
             }
-#if EWE_DEBUG_BOOL
-            assert(queue != nullptr);
-#endif
+            EWE_ASSERT(queue != nullptr);
             for (auto& subIn : subInfos) {
-                assert(subIn.commandBufferInfoCount > 0);
+                EWE_ASSERT(subIn.commandBufferInfoCount > 0);
             }
 
             if (i == (execution_order.size() - 1)) {

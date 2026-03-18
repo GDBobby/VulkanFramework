@@ -65,9 +65,9 @@ namespace EWE{
         T* end() noexcept { return GetMemory() + Size(); }
 
         T const* cbegin() const noexcept { return GetMemory();}
-        T* cend() const noexcept { return GetMemory() + Size(); }
-        T const* begin() const noexcept { return GetMemory(); }
-        T* end() const noexcept { return GetMemory() + Size(); }
+        T const* cend() const noexcept { return GetMemory() + Size(); }
+        T const* begin() const noexcept { return cbegin(); }
+        T const* end() const noexcept { return cend(); }
 	};
 
     template<typename Memory, typename T>

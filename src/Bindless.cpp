@@ -147,10 +147,7 @@ namespace EWE{
             
             const uint32_t occupancy_index = static_cast<uint32_t>(type);
             auto& bits = occupancy[occupancy_index];
-
-#if EWE_DEBUG_BOOL
-            assert(bits.test(index));
-#endif
+            EWE_ASSERT(bits.test(index));
             bits.reset(index);
 
             /*

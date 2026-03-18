@@ -4,7 +4,6 @@
 #include "EightWinds/Instance.h"
 
 #include <cstring>
-#include <cassert>
 
 namespace EWE {
 

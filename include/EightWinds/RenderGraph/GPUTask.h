@@ -11,7 +11,7 @@
 
 #include "EightWinds/GlobalPushConstant.h"
 
-
+#include <optional>
 #include <span>
 
 //equivalent a renderpass subpass?
@@ -30,7 +30,7 @@ namespace EWE{
         //i think i define a command pool here, or at least a queue
         Queue& queue;
 
-        Command::Executor commandExecutor;
+        std::optional<Command::Executor> commandExecutor; //this is optional
 
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);

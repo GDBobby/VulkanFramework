@@ -45,9 +45,7 @@ namespace EWE{
     }
 
     void PresentBridge::Execute(CommandBuffer& cmdBuf){
-#if EWE_DEBUG_BOOL
-        assert(!cmdBuf.debug_currentlyRendering);
-#endif
+        EWE_ASSERT(!cmdBuf.debug_currentlyRendering);
         vkCmdPipelineBarrier2(cmdBuf, &dependencyInfo);
     }
 

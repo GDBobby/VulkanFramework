@@ -16,7 +16,6 @@
 #include <type_traits>
 #include <vector>
 #include <string_view>
-#include <cassert> //remove after initial debug
 #include <algorithm>
 #include <array>
 
@@ -160,8 +159,7 @@ namespace EWE{
                 EWE_VK(vkEnumerateDeviceExtensionProperties, dev, nullptr, &propCount, extensionProperties.data());
 
                 devEval.supported_extensions = ExtensionMan::GetSupport(extensionProperties);
-                assert(devEval.supported_extensions.size() == extension_support.size());
-                //^internal dev check, remove the cassert
+                //EWE_ASSERT(devEval.supported_extensions.size() == extension_support.size()); //sanity check
 
                 for (uint16_t i = 0; i < extension_support.size(); i++) {
                     if (devEval.supported_extensions[i]) {
@@ -202,7 +200,7 @@ namespace EWE{
             auto propertyPack = properties.GetPropertyPack();
             
             //extension_support = deviceEval.supported_extensions;
-            assert(deviceEval.supported_extensions.size() == extension_support.size());
+            EWE_ASSERT(deviceEval.supported_extensions.size() == extension_support.size());
             for (uint16_t i = 0; i < deviceEval.supported_extensions.size(); i++) {
             //theres a smarter copy for this i just dont feel like loking for it rn
                 extension_support[i] = deviceEval.supported_extensions[i];

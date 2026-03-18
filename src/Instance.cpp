@@ -2,7 +2,6 @@
 
 #if EWE_DEBUG_BOOL
 #include <cstdio>
-#include <cassert>
 #endif
 #include <vector>
 #include <unordered_set>
@@ -92,7 +91,7 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
         if (!DebugMessenger::CheckValidationLayerSupport()) {
             printf("validation layers not available \n");
-            assert(false && "validation layers requested, but not available!");
+            EWE_ASSERT(false && "validation layers requested, but not available!");
         }
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = DebugMessenger::GetPopulatedDebugMessengerCreateInfo();
         const char* validationLayers[] = { "VK_LAYER_KHRONOS_validation" };

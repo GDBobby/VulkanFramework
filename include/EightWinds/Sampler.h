@@ -3,10 +3,12 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 
+#include <cstdint>
+
 namespace EWE{
     struct Sampler {
         LogicalDevice& logicalDevice;
-        VkSamplerCreateInfo const& samplerInfo;
+        const VkSamplerCreateInfo info;
         VkSampler sampler;
 
         [[nodiscard]] explicit Sampler(LogicalDevice& logicalDevice, VkSamplerCreateInfo const& samplerInfo);
@@ -20,5 +22,8 @@ namespace EWE{
         operator VkSampler() const {
             return sampler;
         }
+
+        static uint64_t Condense(VkSamplerCreateInfo const& info);
+        static VkSamplerCreateInfo Expand(uint64_t condensed);
     };
 }

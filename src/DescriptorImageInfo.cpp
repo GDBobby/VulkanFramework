@@ -1,9 +1,11 @@
 #include "EightWinds/DescriptorImageInfo.h"
 
+#include <fstream>
+
 namespace EWE{
-    DescriptorImageInfo::DescriptorImageInfo(LogicalDevice& logicalDevice, ImageView& view, DescriptorType type, VkImageLayout explicitLayout)
-        : logicalDevice{ logicalDevice },
-        sampler{ nullptr },
+
+    DescriptorImageInfo::DescriptorImageInfo(ImageView& view, DescriptorType type, VkImageLayout explicitLayout)
+        : sampler{ nullptr },
         view{ view },
         imageInfo{
             .sampler = VK_NULL_HANDLE,
@@ -11,12 +13,11 @@ namespace EWE{
             .imageLayout = explicitLayout
         },
         type{ type },
-        index{ logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
+        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
     {
     }
-    DescriptorImageInfo::DescriptorImageInfo(LogicalDevice& logicalDevice, Sampler& sampler, ImageView& view, DescriptorType type, VkImageLayout explicitLayout)
-        : logicalDevice{ logicalDevice },
-        sampler{ &sampler },
+    DescriptorImageInfo::DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type, VkImageLayout explicitLayout)
+        : sampler{ &sampler },
         view{ view },
         imageInfo{
             .sampler = sampler,
@@ -24,21 +25,20 @@ namespace EWE{
             .imageLayout = explicitLayout
         },
         type{ type },
-        index{ logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
+        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
     {
     }
-    DescriptorImageInfo::DescriptorImageInfo(LogicalDevice& logicalDevice, ImageView& view, DescriptorType type)
-        : DescriptorImageInfo(logicalDevice, view, type, view.image.layout)
+    DescriptorImageInfo::DescriptorImageInfo(ImageView& view, DescriptorType type)
+        : DescriptorImageInfo(view, type, view.image.layout)
     {
     }
-    DescriptorImageInfo::DescriptorImageInfo(LogicalDevice& logicalDevice, Sampler& sampler, ImageView& view, DescriptorType type)
-        : DescriptorImageInfo(logicalDevice, sampler, view, type, view.image.layout)
+    DescriptorImageInfo::DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type)
+        : DescriptorImageInfo(sampler, view, type, view.image.layout)
     {
     }
 
     DescriptorImageInfo::DescriptorImageInfo(DescriptorImageInfo&& moveSrc) noexcept
-        : logicalDevice{ moveSrc.logicalDevice },
-        sampler{ moveSrc.sampler },
+        : sampler{ moveSrc.sampler },
         view{ moveSrc.view },
         imageInfo{moveSrc.imageInfo},
         type{ moveSrc.type },
@@ -50,7 +50,7 @@ namespace EWE{
     DescriptorImageInfo::~DescriptorImageInfo() {
         //if it was moved, index will be invalid
         if (index != INVALID_DESCRIPTOR_INDEX) {
-            logicalDevice.bindlessDescriptor.Unbind(index, type);
+            view.image.logicalDevice.bindlessDescriptor.Unbind(index, type);
         }
     }
 }

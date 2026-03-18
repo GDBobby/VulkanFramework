@@ -5,50 +5,21 @@
 
 #include "EightWinds/RenderGraph/Resources.h"
 
-#include <cassert>
-
 namespace EWE{
 
     GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord)
     : name{ name },
         logicalDevice{logicalDevice},
         queue{queue},
-        commandExecutor{logicalDevice}
+        commandExecutor{std::in_place, logicalDevice, cmdRecord}
     {
-#if EWE_DEBUG_BOOL
-        //assert(!cmdRecord.hasBeenCompiled);
-#endif
-        //cmdRecord.Optimize(); <--- EVENTUALLY
-        
-        const uint64_t full_data_size = cmdRecord.CalculateSize();
-
-        commandExecutor.instructions = cmdRecord.records;
-        PerFlight<std::size_t> param_pool_addresses{};
-        for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-            commandExecutor.paramPool[i].Resize(full_data_size);
-            param_pool_addresses[i] = reinterpret_cast<std::size_t>(commandExecutor.paramPool[i].Data());
-        }
-        cmdRecord.FixDeferred(param_pool_addresses);
-        //for(auto& push_off : cmdRecord.push_offsets){
-            //std::size_t temp_addr = reinterpret_cast<std::size_t>(push_off);
-            //pushTrackers.emplace_back(reinterpret_cast<GlobalPushConstant*>(temp_addr + param_pool_address));
-        //}
-
-        //all validations will be here
-        //theres some non-validation stuff here, like collapsing empty branches
-        //maybe split out optimization into a different loop
-#if EWE_DEBUG_BOOL
-        assert(cmdRecord.ValidateInstructions());
-#endif
-       cmdRecord.hasBeenCompiled = true;
     }
 
 
     GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue)
     : name{ name },
         logicalDevice{ logicalDevice },
-        queue{ queue },
-        commandExecutor{ logicalDevice }
+        queue{ queue }
     {
     }
 
@@ -58,13 +29,13 @@ namespace EWE{
 #endif
     }
     void GPUTask::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
-        assert(cmdBuf.commandPool.queue == queue);
-        commandExecutor.Execute(cmdBuf, frameIndex);
+        EWE_ASSERT(cmdBuf.commandPool.queue == queue);
+        commandExecutor->Execute(cmdBuf, frameIndex);
     }
 
     /*
     void GPUTask::SetRenderInfo() {
-        assert(renderTracker != nullptr);
+        EWE_ASSERT(renderTracker != nullptr);
         renderTracker->compact.Expand(&renderTracker->vk_data);
         
         bool hasBeginRender = false;
@@ -78,7 +49,7 @@ namespace EWE{
                 break;
             }
         }
-        assert(hasBeginRender);
+        EWE_ASSERT(hasBeginRender);
     }
     void GPUTask::UpdateFrameIndex(uint8_t frameIndex) {
         renderTracker->compact.Update(&renderTracker->vk_data, frameIndex);
@@ -103,8 +74,8 @@ namespace EWE{
 
 
 #if EWE_DEBUG_BOOL
-        //assert(external_workload != nullptr);
-        if (commandExecutor.instructions.size() > 0) {
+        //EWE_ASSERT(external_workload != nullptr);
+        if (commandExecutor->record.records.size() > 0) {
             printf("warning : ignoring the command executor\n");
         }
 #endif

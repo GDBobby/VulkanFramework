@@ -2,8 +2,7 @@
 
 namespace EWE{
     Image::Image(LogicalDevice& logicalDevice) noexcept
-        : logicalDevice{logicalDevice},
-        creation_trace{std::stacktrace::current(1)}
+        : logicalDevice{logicalDevice}
     {
 
     }
@@ -63,9 +62,7 @@ namespace EWE{
             .pQueueFamilyIndices = &owningQueue->family.index,
             .initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED
         };
-#if EWE_DEBUG_BOOL
-        assert(false && "not readyy yet");
-#endif
+        EWE_ASSERT(false && "not readyy yet");
         return false;
     }
 

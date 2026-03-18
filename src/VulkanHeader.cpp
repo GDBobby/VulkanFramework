@@ -1,11 +1,5 @@
 #include "EightWinds/VulkanHeader.h"
 
-#include <string>
-#include <cassert>
-#include <iostream>
-#include <chrono>
-#include <thread>
-
 namespace EWE{
     //i think im going to change this to print out some history of the render graph
     //that would mean castign a type erased pointer (void*), along with a enum val (VK_OBJECT_TYPE similar)
@@ -66,7 +60,7 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
                 if (vkResult != VK_ERROR_DEVICE_LOST) {
                     //going to use the device lost extension here
-                    assert(vkResult == VK_SUCCESS);
+                    EWE_ASSERT(vkResult == VK_SUCCESS);
 
                 //the callstack isnt relevant for device lost
 #endif

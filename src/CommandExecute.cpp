@@ -8,17 +8,31 @@
 
 #include "EightWinds/Backend/RenderInfo.h"
 
-#include <cassert>
+#include "EightWinds/RenderGraph/Command/Record.h"
 
 //#define EXECUTOR_DEBUGGING
 
 namespace EWE{
 
     namespace Command{
-        Executor::Executor(LogicalDevice& logicalDevice) noexcept
-        : logicalDevice{logicalDevice}
+        Executor::Executor(LogicalDevice& logicalDevice, Record& record) noexcept
+        : logicalDevice{logicalDevice},
+            record{record}
         {
 
+            //EWE_ASSERT(!record.hasBeenCompiled);
+            //record.Optimize(); <--- EVENTUALLY
+            
+            const uint64_t full_data_size = record.CalculateSize();
+            
+            PerFlight<std::size_t> param_pool_addresses{};
+            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+                paramPool[i].Resize(full_data_size);
+                param_pool_addresses[i] = reinterpret_cast<std::size_t>(paramPool[i].Data());
+            }
+            record.FixDeferred(param_pool_addresses);
+            EWE_ASSERT(record.ValidateInstructions());
+            record.hasBeenCompiled = true;
         }
 
         namespace Exec{
@@ -109,8 +123,8 @@ namespace EWE{
             
             //&Exec::Barrier, 
             &Exec::Viewport,
-            &Exec::Scissor,
             &Exec::ViewportCount,
+            &Exec::Scissor,
             &Exec::ScissorCount,
             &Exec::BeginLabel,
             &Exec::EndLabel,
@@ -147,8 +161,8 @@ namespace EWE{
             void BindPipeline(ExecContext& ctx) {
                 auto const& pack = Instruction::GetData<Instruction::BindPipeline>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
                 //ParamPack::Pipeline const& pipePack = *reinterpret_cast<ParamPack::Pipeline const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-                assert(pack.pipe != VK_NULL_HANDLE);
-                assert(pack.layout != VK_NULL_HANDLE);
+                EWE_ASSERT(pack.pipe != VK_NULL_HANDLE);
+                EWE_ASSERT(pack.layout != VK_NULL_HANDLE);
                 ctx.boundPipeline = pack;
 
     #ifdef EXECUTOR_DEBUGGING
@@ -176,7 +190,7 @@ namespace EWE{
 
             void Push(ExecContext& ctx){
                 //auto* push = reinterpret_cast<GlobalPushConstant_Raw const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-                auto& push = Instruction::GetData<Instruction::PushConstant>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& push = Instruction::GetData<Instruction::Push>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -289,7 +303,7 @@ namespace EWE{
 
             void ViewportCount(ExecContext& ctx){
                 auto& data = Instruction::GetData<Instruction::DS_ViewportCount>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
-                assert(data.currentViewportCount < ParamPack::ViewportCount::ArbitraryViewportCountLimit);
+                EWE_ASSERT(data.currentViewportCount < ParamPack::ViewportCount::ArbitraryViewportCountLimit);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -297,7 +311,7 @@ namespace EWE{
             }
             void ScissorCount(ExecContext& ctx){
                 auto& data = Instruction::GetData<Instruction::DS_ScissorCount>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
-                assert(data.currentScissorCount < ParamPack::ScissorCount::ArbitraryScissorCountLimit);
+                EWE_ASSERT(data.currentScissorCount < ParamPack::ScissorCount::ArbitraryScissorCountLimit);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -338,7 +352,7 @@ namespace EWE{
     #endif
                 if(*condition){
                     while(ctx.iterator < ctx.instructions.size()){
-                        if(ctx.instructions[ctx.iterator].type == Command::Instruction::Type::EndIf){
+                        if(ctx.instructions[ctx.iterator].type == Instruction::Type::EndIf){
     #ifdef EXECUTOR_DEBUGGING
                             ctx.Print();
     #endif
@@ -384,7 +398,7 @@ namespace EWE{
         void Executor::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept {
             Exec::ExecContext ctx{
                 .device = logicalDevice, 
-                .instructions = instructions, 
+                .instructions = record.records, 
                 .cmdBuf = cmdBuf, 
                 .paramPool = paramPool[frameIndex],
                 //.barrierPool = barrierPool,
@@ -392,14 +406,16 @@ namespace EWE{
                 .frame = frameIndex
             };
 
-            while(ctx.iterator < instructions.size()){
+            while(ctx.iterator < ctx.instructions.size()){
                 //validate before creating the executor
-                //assert(instructions[iterator].type != CommandInstruction::Type::EndIf && "unscoped endif");
-                //assert(instructions[iterator].type != CommandInstruction::Type::LoopEnd && "unscoped loop end");
-                //assert(instructions[iterator].type != CommandInstruction::Type::SwitchEnd && "unscoped switch end");
+                //EWE_ASSERT(instructions[iterator].type != CommandInstruction::Type::EndIf && "unscoped endif");
+                //EWE_ASSERT(instructions[iterator].type != CommandInstruction::Type::LoopEnd && "unscoped loop end");
+                //EWE_ASSERT(instructions[iterator].type != CommandInstruction::Type::SwitchEnd && "unscoped switch end");
                 
                 //the cast doesnt matter at all, but it makes it easier to step thru in the debugger
-                Exec::CommandFunction* cmdFunc = dispatchTable[static_cast<std::size_t>(instructions[ctx.iterator].type)];
+                auto const& cmd_type = ctx.instructions[ctx.iterator].type;
+                std::size_t const& cmd_index = static_cast<std::size_t>(cmd_type);
+                Exec::CommandFunction* cmdFunc = dispatchTable[cmd_index];
                 cmdFunc(ctx);
                 ctx.iterator++;
             }

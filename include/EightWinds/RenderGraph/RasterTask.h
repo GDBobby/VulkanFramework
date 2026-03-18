@@ -73,13 +73,15 @@ namespace EWE{
 		//ObjectRasterData rasterData;//i dont really care about keeping the data, besides viewing in debug
 
 		InstructionPointer<ParamPack::Pipeline>* pipe_paramPack;
-		InstructionPointer<ParamPack::ViewportScissor>* vp_s_paramPack;
+		InstructionPointer<ParamPack::Viewport>* vp_paramPack;
+		InstructionPointer<ParamPack::Scissor>* sc_paramPack;
 
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
 			TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
 			InstructionPointer<ParamPack::Pipeline>* pipe_params,
-			InstructionPointer<ParamPack::ViewportScissor>* vp_params
+			InstructionPointer<ParamPack::Viewport>* vp_params,
+			InstructionPointer<ParamPack::Scissor>* sc_params
 		);
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,

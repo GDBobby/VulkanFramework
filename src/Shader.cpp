@@ -4,9 +4,6 @@
 #include "spirv_common.hpp"
 #include "spirvcross/spirv_reflect.hpp"
 
-#if EWE_DEBUG_BOOL
-#include <cassert>
-#endif
 #include <fstream>
 
 #include <iostream>
@@ -36,7 +33,7 @@ namespace EWE {
 		}
 		shaderFile.seekg(0, std::ios::end);
 		const std::size_t fileSize = static_cast<std::size_t>(shaderFile.tellg());
-		assert(fileSize > 0 && "shader is empty");
+		EWE_ASSERT(fileSize > 0 && "shader is empty");
 
 		shaderFile.seekg(0, std::ios::beg);
 		std::vector<char> returnVec(fileSize);
@@ -76,7 +73,7 @@ namespace EWE {
 				break;
 			}
 		}
-		assert(temp_set_ref != nullptr);
+		EWE_ASSERT(temp_set_ref != nullptr);
 		
 		//this readwrite feedback wont work with device buffer addresses
 		//bool isReadable  = !compiler.has_decoration(res.id, spv::DecorationNonReadable);
@@ -481,7 +478,7 @@ namespace EWE {
 			specInfo.mapEntryCount = 0;
 			specInfo.pData = nullptr;
 		}
-		assert(memPtr != 0);
+		EWE_ASSERT(memPtr != 0);
 
 		std::size_t offset = 0;
 		for (uint8_t i = 0; i < mapEntries.size(); i++) {

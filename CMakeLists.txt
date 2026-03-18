@@ -18,7 +18,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "In-source builds are disabled. Please create a build folder.")
 endif()
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -39,7 +39,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_BASE_DIR}/${CMAKE_BUILD_TYPE}")
 file(GLOB_RECURSE SOURCES ${PROJECT_SOURCE_DIR}/src/*.cpp ${PROJECT_SOURCE_DIR}/src/*.c)
 file(GLOB_RECURSE HEADER_FILES ${PROJECT_SOURCE_DIR}/include/*.h ${PROJECT_SOURCE_DIR}/include/*.hpp)
 
-message(STATUS "Found sources: ${SOURCES}")
+#message(STATUS "Found sources: ${SOURCES}")
 
 include(FetchContent)
 if(POLICY CMP0077)
@@ -101,8 +101,8 @@ endif()
 # 1. Set VULKAN_SDK_PATH in .env.cmake to target specific vulkan version
 if (DEFINED VULKAN_SDK_PATH)
   message(STATUS "vulkan sdk path - ${VULKAN_SDK_PATH}")
-  set(Vulkan_INCLUDE_DIR "${VULKAN_SDK_PATH}/include") # 1.1 Make sure this include path is correct
-  set(Vulkan_LIB_DIR "${VULKAN_SDK_PATH}/lib") # 1.2 Make sure lib path is correct
+  set(Vulkan_INCLUDE_DIR "${VULKAN_SDK_PATH}/include")
+  set(Vulkan_LIB_DIR "${VULKAN_SDK_PATH}/lib")
   set(Vulkan_FOUND "True")
   if(UNIX)
   	set(Vulkan_LIBRARY libvulkan.so)
@@ -137,6 +137,17 @@ target_link_directories(${PROJECT_NAME} PUBLIC
 	$<$<CONFIG:Debug>:${AFTERMATH_LIB_DIR}>
 	$<$<CONFIG:Debug>:${LinearAlgebra_SOURCE_DIR}/Debug>
 	$<$<CONFIG:Release>:${LinearAlgebra_SOURCE_DIR}/Release>
+)
+
+message(STATUS "vulkan sdk path : ${VULKAN_SDK_PATH}")
+
+target_precompile_headers(${PROJECT_NAME} PUBLIC 
+    <utility>
+    <vector>
+    <meta>
+    <array>
+    <cstdint>
+    <vulkan/vulkan.h>
 )
 
 message(STATUS "linking libs")
