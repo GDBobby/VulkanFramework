@@ -23,7 +23,8 @@ namespace EWE{
             return sampler;
         }
 
-        static uint64_t Condense(VkSamplerCreateInfo const& info);
-        static VkSamplerCreateInfo Expand(uint64_t condensed);
+        using CondensedType = uint64_t;
+        static CondensedType Condense(VkSamplerCreateInfo const& info);
+        static VkSamplerCreateInfo Expand(CondensedType condensed);
     };
 }

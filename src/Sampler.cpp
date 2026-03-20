@@ -14,7 +14,7 @@ namespace EWE{
         logicalDevice.garbageDisposal.Toss(sampler, VK_OBJECT_TYPE_SAMPLER);
     }
 
-    uint64_t Sampler::Condense(VkSamplerCreateInfo const& info){
+    Sampler::CondensedType Sampler::Condense(VkSamplerCreateInfo const& info){
         //we can ignore flags
         uint64_t ret = 0;
     
@@ -97,9 +97,9 @@ namespace EWE{
 
         return ret;
     }
-    VkSamplerCreateInfo Sampler::Expand(uint64_t condensed){
+    VkSamplerCreateInfo Sampler::Expand(CondensedType condensed){
 
-        auto ExpandFilter = [](uint64_t buffer, uint8_t bit_shift) -> VkFilter{
+        auto ExpandFilter = [](CondensedType buffer, uint8_t bit_shift) -> VkFilter{
             const auto temp = (buffer >> bit_shift) & 0b11;
             switch(temp){
                 case 0b01: return VK_FILTER_NEAREST;
@@ -109,7 +109,7 @@ namespace EWE{
             }
         };
 
-        auto address_mode_expander = [](uint64_t buffer, uint8_t bit_shift) -> VkSamplerAddressMode{
+        auto address_mode_expander = [](CondensedType buffer, uint8_t bit_shift) -> VkSamplerAddressMode{
             const auto temp = (buffer >> bit_shift) & 0b111;
             switch(temp){
                 case 0b000: return VK_SAMPLER_ADDRESS_MODE_REPEAT;

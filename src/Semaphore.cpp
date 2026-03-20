@@ -103,4 +103,56 @@ namespace EWE{
         }
 #endif
 
+
+    VkSemaphoreSubmitInfo TimelineSemaphore::GetSignalSubmitInfo(VkPipelineStageFlags2 stageMask) noexcept{
+        value++;
+        return VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = vkSemaphore,
+            .value = value++,
+            .stageMask = stageMask,
+            .deviceIndex = 0
+        };
+    }
+    VkSemaphoreSubmitInfo TimelineSemaphore::GetWaitSubmitInfo(VkPipelineStageFlags2 stageMask) const noexcept{
+        return VkSemaphoreSubmitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+            .pNext = nullptr,
+            .semaphore = vkSemaphore,
+            .value = value,
+            .stageMask = stageMask,
+            .deviceIndex = 0
+        };
+    }
+    VkSemaphoreSubmitInfo TimelineSemaphore::GetSubmitInfo(VkPipelineStageFlags2 stageMask, bool signal) noexcept{
+        if(signal){
+            return GetSignalSubmitInfo(stageMask);
+        }
+        return GetWaitSubmitInfo(stageMask);
+    }
+    
+    void TimelineSemaphore::WaitOn(uint64_t val){
+        VkSemaphoreWaitInfo waitInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .semaphoreCount = 1,
+            .pSemaphores = &vkSemaphore,
+            .pValues = &val
+        };
+        
+        //timeout isn't acceptable at such a high time
+        EWE_VK(vkWaitSemaphores, logicalDevice, &waitInfo, UINT64_MAX);
+    }
+    uint64_t TimelineSemaphore::GetCurrentValue() const {
+        uint64_t active_val;
+        EWE_VK(vkGetSemaphoreCounterValue, logicalDevice, vkSemaphore, &active_val);
+        return active_val;
+    }
+    bool TimelineSemaphore::Check(uint64_t val) const {
+        uint64_t current_val = GetCurrentValue();
+        return (val & current_val) == val;
+    }
+
 }

@@ -143,14 +143,14 @@ namespace EWE{
             auto& backImage = images[i];
 
             backImage.image = raw_images[i];
-            backImage.layout = VK_IMAGE_LAYOUT_UNDEFINED;
+            backImage.data.layout = VK_IMAGE_LAYOUT_UNDEFINED;
             backImage.owningQueue = nullptr; //i need to make sure this is handled properly
-            backImage.mipLevels = 1;
-            backImage.arrayLayers = 1;
-            backImage.format = swapCreateInfo.imageFormat;
-            backImage.type = VK_IMAGE_TYPE_2D;
-            backImage.extent.width = swapCreateInfo.imageExtent.width;
-            backImage.extent.height = swapCreateInfo.imageExtent.height;
+            backImage.data.mipLevels = 1;
+            backImage.data.arrayLayers = 1;
+            backImage.data.format = swapCreateInfo.imageFormat;
+            backImage.data.type = VK_IMAGE_TYPE_2D;
+            backImage.data.extent.width = swapCreateInfo.imageExtent.width;
+            backImage.data.extent.height = swapCreateInfo.imageExtent.height;
 
 #if EWE_DEBUG_NAMING
             std::string imageIndexStr = std::string("swap chain image [") + std::to_string(i) + ']';

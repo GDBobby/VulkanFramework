@@ -35,7 +35,7 @@ namespace EWE{
     VkImageSubresourceRange ImageView::GetDefaultSubresource(Image& image) noexcept{
 
         VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        switch (image.format) {
+        switch (image.data.format) {
             case VK_FORMAT_D16_UNORM:
             case VK_FORMAT_D16_UNORM_S8_UINT:
             case VK_FORMAT_D24_UNORM_S8_UINT:
@@ -53,8 +53,8 @@ namespace EWE{
         ret.aspectMask = aspectMask;
         ret.baseArrayLayer = 0;
         ret.baseMipLevel = 0;
-        ret.layerCount = image.arrayLayers;
-        ret.levelCount = image.mipLevels;
+        ret.layerCount = image.data.arrayLayers;
+        ret.levelCount = image.data.mipLevels;
 
         return ret;
     }
@@ -75,8 +75,8 @@ namespace EWE{
 
             //i think i need a function converting the type, but its simple
             //theres a conversion chart on that page
-            .viewType = ImageTypeToViewType(image.type, image.arrayLayers),
-            .format = image.format,
+            .viewType = ImageTypeToViewType(image.data.type, image.data.arrayLayers),
+            .format = image.data.format,
             .components = VkComponentMapping{
                                         .r = VK_COMPONENT_SWIZZLE_IDENTITY,
                                         .g = VK_COMPONENT_SWIZZLE_IDENTITY,

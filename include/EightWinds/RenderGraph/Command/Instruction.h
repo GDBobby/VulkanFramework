@@ -6,7 +6,7 @@
 #include "EightWinds/RenderGraph/Command/ParamPacks.h"
 #include "EightWinds/GlobalPushConstant.h"
 
-#include <meta>
+#include "EightWinds/Reflect/Enum.h"
 
 #include <cstdint>
 #include <vulkan/vulkan_core.h>
@@ -378,9 +378,10 @@ namespace EWE{
         }
         static constexpr std::vector<Type> GetValidInstructionsAtBackOf(const std::span<const Instruction::Type> instructions){
             std::vector<Type> ret{};
-            template for(constexpr auto inst : std::define_static_array(std::meta::enumerators_of(^^Instruction::Type))){
-                if(CheckInstructionValidAtBackOf(ret, [:inst:])){
-                    ret.push_back([:inst:]);
+            static constexpr auto enum_data = Reflect::Enum::enum_data<Instruction::Type>;
+            template for(constexpr auto inst : enum_data){
+                if(CheckInstructionValidAtBackOf(ret, inst.value)){
+                    ret.push_back(inst.value);
                 }
             }
             return ret;

@@ -1,6 +1,7 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
+#include <vulkan/vulkan_core.h>
 
 namespace EWE{
     struct BinarySemaphore {
@@ -69,29 +70,13 @@ namespace EWE{
         [[nodiscard]] TimelineSemaphore(TimelineSemaphore&& moveSrc) noexcept;
         TimelineSemaphore& operator=(TimelineSemaphore&& moveSrc) noexcept;
         ~TimelineSemaphore();
-        
-        void WaitOn(uint64_t val){
-            VkSemaphoreWaitInfo waitInfo{
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .semaphoreCount = 1,
-                .pSemaphores = &vkSemaphore,
-                .pValues = &val
-            };
-            
-            //timeout isn't acceptable at such a high time
-            EWE_VK(vkWaitSemaphores, logicalDevice, &waitInfo, UINT64_MAX);
-        }
-        uint64_t GetCurrentValue() const {
-            uint64_t active_val;
-            EWE_VK(vkGetSemaphoreCounterValue, logicalDevice, vkSemaphore, &active_val);
-            return active_val;
-        }
-        bool Check(uint64_t val) const {
-            uint64_t current_val = GetCurrentValue();
-            return (val & current_val) == val;
-        }
+
+        VkSemaphoreSubmitInfo GetSignalSubmitInfo(VkPipelineStageFlags2 stageMask) noexcept;
+        VkSemaphoreSubmitInfo GetWaitSubmitInfo(VkPipelineStageFlags2 stageMask) const noexcept;
+        VkSemaphoreSubmitInfo GetSubmitInfo(VkPipelineStageFlags2 stageMask, bool signal) noexcept;
+        void WaitOn(uint64_t val);
+        uint64_t GetCurrentValue() const;
+        bool Check(uint64_t val) const;
         
 #if EWE_DEBUG_NAMING
         std::string debugName;

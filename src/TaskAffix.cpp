@@ -51,7 +51,7 @@ namespace EWE{
 			vkCmdPipelineBarrier2(cmdBuf, &(barrier.dependencyInfo));
 		}
 		for (auto& upd : image_updates) {
-			upd.img->layout = upd.layout;
+			upd.img->data.layout = upd.layout;
 		}
 	}
 }

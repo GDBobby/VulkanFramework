@@ -1,8 +1,9 @@
 #include "EightWinds/DescriptorImageInfo.h"
 
-#include <fstream>
+
 
 namespace EWE{
+
 
     DescriptorImageInfo::DescriptorImageInfo(ImageView& view, DescriptorType type, VkImageLayout explicitLayout)
         : sampler{ nullptr },
@@ -29,11 +30,11 @@ namespace EWE{
     {
     }
     DescriptorImageInfo::DescriptorImageInfo(ImageView& view, DescriptorType type)
-        : DescriptorImageInfo(view, type, view.image.layout)
+        : DescriptorImageInfo(view, type, view.image.data.layout)
     {
     }
     DescriptorImageInfo::DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type)
-        : DescriptorImageInfo(sampler, view, type, view.image.layout)
+        : DescriptorImageInfo(sampler, view, type, view.image.data.layout)
     {
     }
 

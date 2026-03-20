@@ -101,11 +101,11 @@ namespace EWE{
 					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 					.mipLevel = 0,
 					.baseArrayLayer = 0,
-					.layerCount = img.arrayLayers
+					.layerCount = img.data.arrayLayers
 				},
 
 				.imageOffset = VkOffset3D{ 0, 0, 0 },
-				.imageExtent = img.extent
+				.imageExtent = img.data.extent
 			};
 			
 			CopyBufferToImage(cmdBuf, vkbuffer, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);

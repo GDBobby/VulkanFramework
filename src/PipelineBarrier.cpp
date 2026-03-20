@@ -184,7 +184,7 @@ namespace EWE {
 				.srcAccessMask = VK_ACCESS_2_NONE,
 				.dstStageMask = resource.usage.stage,
 				.dstAccessMask = resource.usage.accessMask, 
-				.oldLayout = img.layout,
+				.oldLayout = img.data.layout,
 				.newLayout = resource.usage.layout,
 				.srcQueueFamilyIndex = srcQueueFamilyIndex,
 				.dstQueueFamilyIndex = dstQueue.FamilyIndex(),
@@ -192,9 +192,9 @@ namespace EWE {
 				.subresourceRange = VkImageSubresourceRange{
 					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 					.baseMipLevel = 0,
-					.levelCount = img.mipLevels,
+					.levelCount = img.data.mipLevels,
 					.baseArrayLayer = 0,
-					.layerCount = img.arrayLayers
+					.layerCount = img.data.arrayLayers
 				}
 			};
 		}
@@ -239,9 +239,9 @@ namespace EWE {
 				.subresourceRange = VkImageSubresourceRange{
 					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 					.baseMipLevel = 0,
-					.levelCount = rh_img.mipLevels,
+					.levelCount = rh_img.data.mipLevels,
 					.baseArrayLayer = 0,
-					.layerCount = rh_img.arrayLayers
+					.layerCount = rh_img.data.arrayLayers
 				}
 			};
 		}

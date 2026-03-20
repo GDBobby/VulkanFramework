@@ -147,6 +147,7 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC
     <meta>
     <array>
     <cstdint>
+    <ranges>
     <vulkan/vulkan.h>
 )
 

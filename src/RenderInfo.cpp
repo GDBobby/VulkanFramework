@@ -28,7 +28,7 @@ namespace EWE{
 					.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 					.pNext = nullptr,
 					.imageView = caiv.view,
-					.imageLayout = caiv.image.layout,
+					.imageLayout = caiv.image.data.layout,
 					.resolveMode = VK_RESOLVE_MODE_NONE,
 					.resolveImageView = VK_NULL_HANDLE,
 					.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -43,7 +43,7 @@ namespace EWE{
 			.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			.pNext = nullptr,
 			.imageView = attachments.depth_views[0][frameIndex].view,
-			.imageLayout = attachments.depth_views[0][frameIndex].image.layout,
+			.imageLayout = attachments.depth_views[0][frameIndex].image.data.layout,
 			.resolveMode = VK_RESOLVE_MODE_NONE,
 			.resolveImageView = VK_NULL_HANDLE,
 			.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -92,15 +92,15 @@ namespace EWE{
 	}
 
 	void SetImageData(Image& image, Queue& queue, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VmaAllocationCreateInfo& vmaAllocCreateInfo) {
-		image.arrayLayers = 1;
-		image.extent = { width, height, 1 };
-		image.mipLevels = 1;
+		image.data.arrayLayers = 1;
+		image.data.extent = { width, height, 1 };
+		image.data.mipLevels = 1;
 		image.owningQueue = &queue;
-		image.samples = VK_SAMPLE_COUNT_1_BIT;
-		image.tiling = VK_IMAGE_TILING_OPTIMAL;
-		image.type = VK_IMAGE_TYPE_2D;
-		image.format = format;
-		image.usage = usage;
+		image.data.samples = VK_SAMPLE_COUNT_1_BIT;
+		image.data.tiling = VK_IMAGE_TILING_OPTIMAL;
+		image.data.type = VK_IMAGE_TYPE_2D;
+		image.data.format = format;
+		image.data.usage = usage;
 		image.Create(vmaAllocCreateInfo);
 	}
 
@@ -117,7 +117,7 @@ namespace EWE{
 		for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
 			for (uint8_t i = 0; i < color_images.Size(); i++) {
 				SetImageData(color_images[i][frame], graphicsQueue, width, height, setInfo.colors[i].format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vmaAllocCreateInfo);
-				color_images[i][frame].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				color_images[i][frame].data.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 #if EWE_DEBUG_NAMING
 				const std::string resource_name = "color[" + std::to_string(frame) + "][" + std::to_string(i) + "]";
 				color_images[i][frame].SetName(resource_name);
@@ -125,7 +125,7 @@ namespace EWE{
 #endif
 			}
 			SetImageData(depth_images[frame], graphicsQueue, width, height, setInfo.depth.format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, vmaAllocCreateInfo);
-			depth_images[frame].layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+			depth_images[frame].data.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 #if EWE_DEBUG_NAMING
 			std::string resource_name = "depth[" + std::to_string(frame) + "]";
 			depth_images[frame].SetName(resource_name);
@@ -214,7 +214,7 @@ namespace EWE{
 		for (uint8_t i = 0; i < color_image_count; i++) {
 			const std::size_t frame = i >= color_images.Size();
 			const std::size_t image_index = i % color_images.Size();
-			color_images[image_index][frame].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			color_images[image_index][frame].data.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 	}
 

@@ -38,25 +38,29 @@ namespace EWE{
         void SetName(std::string_view name);
 #endif
 
+        struct Data{
+            VkExtent3D extent;
+
+            uint32_t arrayLayers;
+            uint32_t mipLevels;
+
+            VkFormat format;
+
+            VkImageLayout layout;
+
+            VkImageCreateFlags createFlags;//this will specify if it's a cube or not. bunch of other flags, like 2d array. not sure what's necessary
+            VkImageUsageFlags usage;
+            VkImageType type;
+            VkSampleCountFlagBits samples;
+            VkImageTiling tiling;
+        };
+
+        Data data;
+
+        VmaAllocation memory;
 
         Queue* owningQueue;
 
-        VkExtent3D extent;
-
-        uint32_t arrayLayers;
-        uint32_t mipLevels;
-
-        VkFormat format;
-
-        VkImageLayout layout;
-
-		VmaAllocation memory;
-
-        VkImageCreateFlags createFlags;//this will specify if it's a cube or not. bunch of other flags, like 2d array. not sure what's necessary
-        VkImageUsageFlags usage;
-        VkImageType type;
-        VkSampleCountFlagBits samples;
-        VkImageTiling tiling;
         //Queue owningQueue; //necessary? need to see the rendergraph first
 
         bool Create(VmaAllocationCreateInfo const& allocCreateInfo);
@@ -64,7 +68,6 @@ namespace EWE{
         //this will handle the transfer behind the scenes
         bool Create(VmaAllocationCreateInfo const& allocCreateInfo, StagingBuffer* pixeldata);
     };
-
     
     /*
         i could create an abstraction for imagecreateinfo
