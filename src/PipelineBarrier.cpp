@@ -25,9 +25,9 @@ namespace EWE {
     {}
 	
 	PipelineBarrier::PipelineBarrier(
-		std::vector<VkImageMemoryBarrier2>&& imageBarriers
+		std::vector<VkImageMemoryBarrier2>&& _imageBarriers
 	)
-	: imageBarriers{ std::forward<std::vector<VkImageMemoryBarrier2>>(imageBarriers) },
+	: imageBarriers{ std::forward<std::vector<VkImageMemoryBarrier2>>(_imageBarriers) },
 		bufferBarriers{},
 		dependencyInfo{
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -42,11 +42,11 @@ namespace EWE {
 		}
 	{}
 	PipelineBarrier::PipelineBarrier(
-		std::vector<VkImageMemoryBarrier2>&& imageBarriers, 
-		std::vector<VkBufferMemoryBarrier2>&& bufferBarriers
+		std::vector<VkImageMemoryBarrier2>&& _imageBarriers, 
+		std::vector<VkBufferMemoryBarrier2>&& _bufferBarriers
 	)
-	: imageBarriers{ std::forward<std::vector<VkImageMemoryBarrier2>>(imageBarriers) },
-		bufferBarriers{ std::forward<std::vector<VkBufferMemoryBarrier2>>(bufferBarriers) },
+	: imageBarriers{ std::forward<std::vector<VkImageMemoryBarrier2>>(_imageBarriers) },
+		bufferBarriers{ std::forward<std::vector<VkBufferMemoryBarrier2>>(_bufferBarriers) },
 		dependencyInfo{
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 			.pNext = nullptr,
@@ -220,7 +220,7 @@ namespace EWE {
 			auto& rh_img = *rh_resource.resource[frameIndex];
 #if EWE_DEBUG_BOOL
 			if (lh_resource.resource[frameIndex]->image != rh_resource.resource[frameIndex]->image) {
-				printf("transitioning invalid? - {%s}:{%s}\n", lh_img.name.c_str(), rh_img.name.c_str());
+				Logger::Print<Logger::Error>("transitioning invalid? - {%s}:{%s}\n", lh_img.name.c_str(), rh_img.name.c_str());
 			}
 			EWE_ASSERT(lh_resource.resource[frameIndex]->image == rh_resource.resource[frameIndex]->image);
 #endif

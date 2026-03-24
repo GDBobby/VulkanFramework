@@ -74,18 +74,18 @@ namespace EWE{
 
 
 	RasterTask::RasterTask(
-		std::string_view name,
-		LogicalDevice& logicalDevice,
-		Queue& graphicsQueue,
+		std::string_view _name,
+		LogicalDevice& _logicalDevice,
+		Queue& _graphicsQueue,
 		TaskRasterConfig const& config,
-		FullRenderInfo* renderInfo
+		FullRenderInfo* _renderInfo
 	)
-		: name{ name },
-		logicalDevice{ logicalDevice },
-		graphicsQueue{ graphicsQueue },
-		config{ config },
-		ownsAttachmentLifetime{ renderInfo == nullptr },
-		renderInfo{ renderInfo }
+		: name{ _name },
+		logicalDevice{ _logicalDevice },
+		graphicsQueue{ _graphicsQueue },
+		task_config{ config },
+		renderInfo{ _renderInfo },
+		ownsAttachmentLifetime{ renderInfo == nullptr }
 	{
 		if (renderInfo == nullptr) {
 			renderInfo = new FullRenderInfo(
@@ -109,7 +109,7 @@ namespace EWE{
 
 			deferred_pipelines.ConstructAt(current_offset,
 				logicalDevice,
-				config, obj_config,
+				task_config, obj_config,
 				pipelineBind, vp_bind, sc_bind
 			);
 
@@ -231,7 +231,7 @@ namespace EWE{
 
 			deferred_pipelines.ConstructAt(current_offset, 
 				logicalDevice, 
-				config, obj_config, 
+				task_config, obj_config, 
 				pipelineBind, vp_bind, sc_bind
 			);
 
@@ -261,11 +261,11 @@ namespace EWE{
 
 		deferred_pipelines.Clear();
 
-		std::vector<VkFormat> formats(config.attachment_set_info.colors.size());
+		std::vector<VkFormat> formats(task_config.attachment_set_info.colors.size());
 		for (uint32_t i = 0; i < formats.size(); i++) {
-			formats[i] = config.attachment_set_info.colors[i].format;
+			formats[i] = task_config.attachment_set_info.colors[i].format;
 		}
-		config.pipelineRenderingCreateInfo.pColorAttachmentFormats = formats.data();
+		task_config.pipelineRenderingCreateInfo.pColorAttachmentFormats = formats.data();
 		//^pipelines will be constructed before this goes out of scope
 #if EWE_DEBUG_NAMING
 		if (labeled) {

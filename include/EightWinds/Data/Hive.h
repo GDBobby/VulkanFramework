@@ -123,8 +123,8 @@ namespace EWE{
             std::size_t combIndex = 0;
             std::size_t slotIndex = 0;
 
-            iterator(Hive* hive, std::size_t combIndex, std::size_t slotIndex)
-                : hive(hive), combIndex(combIndex), slotIndex(slotIndex) {
+            iterator(Hive* _hive, std::size_t _combIndex, std::size_t _slotIndex)
+                : hive(_hive), combIndex(_combIndex), slotIndex(_slotIndex) {
                 if (combIndex < hive->combs.size())
                     advance_to_valid();
             }
@@ -173,8 +173,8 @@ namespace EWE{
             std::size_t combIndex = 0;
             std::size_t slotIndex = 0;
 
-            const_iterator(Hive const* hive, std::size_t combIndex, std::size_t slotIndex)
-                : hive(hive), combIndex(combIndex), slotIndex(slotIndex) {
+            const_iterator(Hive const* _hive, std::size_t _combIndex, std::size_t _slotIndex)
+                : hive(_hive), combIndex(_combIndex), slotIndex(_slotIndex) {
                 if (combIndex < hive->combs.size())
                     advance_to_valid();
             }

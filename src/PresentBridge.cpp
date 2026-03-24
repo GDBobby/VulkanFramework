@@ -4,9 +4,9 @@
 #include "EightWinds/Image.h"
 
 namespace EWE{
-    PresentBridge::PresentBridge(LogicalDevice& logicalDevice, Queue& presentQueue) noexcept
-    : logicalDevice{logicalDevice},
-        presentQueue{presentQueue},
+    PresentBridge::PresentBridge(LogicalDevice& _logicalDevice, Queue& _presentQueue) noexcept
+    : logicalDevice{_logicalDevice},
+        presentQueue{_presentQueue},
         name{"present bridge"}
     {
 		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;

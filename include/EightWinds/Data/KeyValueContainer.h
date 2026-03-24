@@ -68,10 +68,10 @@ namespace EWE {
 		>;
 
 
-		KeyValuePair(KeyParamType key, ValueParamType value) : key{ key }, value{ value } {}
+		KeyValuePair(KeyParamType _key, ValueParamType _value) : key{ _key }, value{ _value } {}
 
 		template<typename = std::enable_if_t<std::is_default_constructible_v<Value>>>
-		explicit KeyValuePair(KeyParamType key) : key{ key }, value{ } {}
+		explicit KeyValuePair(KeyParamType _key) : key{ _key }, value{ } {}
 
 		template<typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_default_constructible_v<K> && std::is_default_constructible_v<V>>>
 		KeyValuePair() : key{}, value{} {}
@@ -130,17 +130,17 @@ namespace EWE {
 		KeyValueContainer& operator=(KeyValueContainer&& other) = delete;
 		~KeyValueContainer() = default;
 
-		KVPair& at(KVPair::KeyParamType key) {
+		KVPair& at(KVPair::KeyParamType _key) {
 			for (auto& point : inner_data) {
-				if (point.key == key) {
+				if (point.key == _key) {
 					return point;
 				}
 			}
 			EWE_UNREACHABLE;
 		}
-		KVPair const& at(KVPair::KeyParamType key) const {
+		KVPair const& at(KVPair::KeyParamType _key) const {
 			for (auto& point : inner_data) {
-				if (point.key == key) {
+				if (point.key == _key) {
 					return point;
 				}
 			}
@@ -150,11 +150,11 @@ namespace EWE {
 		auto operator[](std::size_t i) {
 			return inner_data[i];
 		}
-		Value& GetValue(KVPair::KeyParamType key) {
-			return at(key).value;
+		Value& GetValue(KVPair::KeyParamType _key) {
+			return at(_key).value;
 		}
-		Value const& GetValue(KVPair::KeyParamType key) const {
-			return at(key).value;
+		Value const& GetValue(KVPair::KeyParamType _key) const {
+			return at(_key).value;
 		}
 
 		void* data() {
@@ -177,9 +177,9 @@ namespace EWE {
 		void erase(iterator iter) {
 			inner_data.erase(iter);
 		}
-		auto find(KVPair::KeyParamType key) const {
+		auto find(KVPair::KeyParamType _key) const {
 			for(auto iter = begin(); iter != end(); iter++){
-				if(iter->key == key){
+				if(iter->key == _key){
 					return iter;
 				}
 			}
@@ -190,26 +190,26 @@ namespace EWE {
 			inner_data.clear();
 		}
 		template<typename = std::enable_if_t<std::is_default_constructible_v<Value>>>
-		Value& push_back(KVPair::KeyParamType key) {
+		Value& push_back(KVPair::KeyParamType _key) {
 
-			return inner_data.emplace_back(key).value;
+			return inner_data.emplace_back(_key).value;
 		}
 		template<typename = std::enable_if_t<std::is_default_constructible_v<Value>>>
-		Value& emplace_back(KVPair::KeyParamType key) {
+		Value& emplace_back(KVPair::KeyParamType _key) {
 
-			return inner_data.emplace_back(key).value;
+			return inner_data.emplace_back(_key).value;
 		}
 		void push_back(KVPair const& kvPair) {
 			inner_data.push_back(kvPair);
 		}
 
 
-		void push_back(KVPair::KeyParamType key, Value value) {
-			inner_data.push_back(KVPair(key, value));
+		void push_back(KVPair::KeyParamType _key, Value _value) {
+			inner_data.push_back(KVPair(_key, _value));
 		}
 
-		void emplace_back(Key&& key, Value&& value) {
-			inner_data.emplace_back(KVPair(key, value));
+		void emplace_back(Key&& _key, Value&& _value) {
+			inner_data.emplace_back(KVPair(_key, _value));
 		}
 		void emplace_back(KVPair&& kvPair) {
 			inner_data.emplace_back(kvPair);
@@ -218,26 +218,26 @@ namespace EWE {
 		void Remove(iterator iter) {
 			inner_data.erase(iter);
 		}
-		void Remove(KVPair::KeyParamType key) {
+		void Remove(KVPair::KeyParamType _key) {
 			for (auto iter = inner_data.begin(); iter != inner_data.end(); iter++) {
-				if (iter->key == key) {
+				if (iter->key == _key) {
 					Remove(iter);
 					return;
 				}
 			}
 			EWE_ASSERT(false);
 		}
-		bool Contains(KVPair::KeyParamType key) {
+		bool Contains(KVPair::KeyParamType _key) {
 			for (auto iter = inner_data.begin(); iter != inner_data.end(); iter++) {
-				if (iter->key == key) {
+				if (iter->key == _key) {
 					return true;
 				}
 			}
 			return false;
 		}
-		bool Contains(KVPair::KeyParamType key) const {
+		bool Contains(KVPair::KeyParamType _key) const {
 			for (auto iter = inner_data.begin(); iter != inner_data.end(); iter++) {
-				if (iter->key == key) {
+				if (iter->key == _key) {
 					return true;
 				}
 			}

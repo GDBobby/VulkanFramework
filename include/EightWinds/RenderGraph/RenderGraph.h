@@ -15,6 +15,7 @@
 #include "EightWinds/RenderGraph/SynchronizationManager.h"
 
 #include "EightWinds/Backend/Semaphore.h"
+#include "EightWinds/Backend/SingleTimeCommand.h"
 
 #include "EightWinds/Data/Hive.h"
 
@@ -67,6 +68,9 @@ namespace EWE{
         //this needs to be ran every frame
         void UpdateSemaphores(uint8_t frameIndex);
 
+        template<typename R>
+        void ResourceOwnershipTransfer(VkDependencyInfo depenInfo, Resource<R> res);
+
         template<typename T>
         void ChangeResource(GPUTask& task, uint32_t res_index, T* resource, uint8_t frameIndex) {
             if constexpr (std::is_same_v<T, Image>) {
@@ -80,4 +84,7 @@ namespace EWE{
 
         friend struct ImguiExtension;
     };
+
+    template <> void RenderGraph::ResourceOwnershipTransfer(VkDependencyInfo depenInfo, Resource<Image> res);
+    // not ready yet template <> void RenderGraph::ResourceOwnershipTransfer(VkDependencyInfo depenInfo, Resource<Buffer>);
 }//namespace EWE

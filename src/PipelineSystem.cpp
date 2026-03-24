@@ -69,12 +69,12 @@ namespace EWE{
 
 							if (pipe->stalePipeline != VK_NULL_HANDLE) {
 								pipe->framesSinceSwap++;
-								printf("ticking stale pipeline for destruction - %d : %s\n", pipe->framesSinceSwap, pipeName.c_str());
+								Logger::Print<Logger::Debug>("ticking stale pipeline for destruction - %d : %s\n", pipe->framesSinceSwap, pipeName.c_str());
 								if (pipe->framesSinceSwap > (MAX_FRAMES_IN_FLIGHT * 2 + 1)) {
 									//if (pipe->pipe->framesSinceSwap > 200) {
 									EWE_VK(vkDestroyPipeline, VK::Object->vkDevice, pipe->stalePipeline, nullptr);
 
-									printf("destroying stale pipeline, sleeping\n");
+									Logger::Print<Logger::Debug>("destroying stale pipeline, sleeping\n");
 									//std::this_thread::sleep_for(std::chrono::seconds(2));
 									pipe->stalePipeline = VK_NULL_HANDLE;
 									pipe->framesSinceSwap = 0;

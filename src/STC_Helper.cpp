@@ -18,9 +18,9 @@ namespace EWE{
 		EWE::CommandPool cmdPool;
 		EWE::CommandBuffer cmdBuf;
 		
-		STC_Helper(LogicalDevice& logicalDevice, Queue& queue)
-		: logicalDevice{logicalDevice},
-			queue{queue},
+		STC_Helper(LogicalDevice& _logicalDevice, Queue& _queue)
+		: logicalDevice{_logicalDevice},
+			queue{_queue},
 			cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
 			cmdBuf{cmdPool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY)}
 		{

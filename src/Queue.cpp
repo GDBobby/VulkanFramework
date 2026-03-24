@@ -2,10 +2,10 @@
 #include "EightWinds/LogicalDevice.h"
 
 namespace EWE {
-    Queue::Queue(LogicalDevice& logicalDevice, QueueFamily const& family, float priority)
-        : logicalDevice{ logicalDevice }, 
-        family {family}, 
-        priority{ priority }
+    Queue::Queue(LogicalDevice& _logicalDevice, QueueFamily const& _family, float _priority)
+        : logicalDevice{ _logicalDevice }, 
+        family {_family}, 
+        priority{ _priority }
     {
         vkGetDeviceQueue(logicalDevice.device, family.index, 0, &queue);
     }

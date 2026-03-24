@@ -1,9 +1,9 @@
 #include "EightWinds/RenderGraph/PresentSubmission.h"
 
 namespace EWE{
-    PresentSubmission::PresentSubmission(Swapchain& swapchain, Queue& presentQueue)
-        : swapchain{ swapchain },
-        presentQueue{ presentQueue },
+    PresentSubmission::PresentSubmission(Swapchain& _swapchain, Queue& _presentQueue)
+        : swapchain{ _swapchain },
+        presentQueue{ _presentQueue },
         incomingSemaphores{},
         presentInfo{
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,

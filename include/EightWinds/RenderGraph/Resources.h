@@ -30,17 +30,17 @@ namespace EWE{
         PerFlight<T*> resource;
         UsageData<T> usage;
 
-        [[nodiscard]] explicit Resource(UsageData<T> const& usage)
+        [[nodiscard]] explicit Resource(UsageData<T> const& _usage)
             :resource{nullptr},
-            usage{usage}
+            usage{_usage}
         {}
-        [[nodiscard]] explicit Resource(T& resource, UsageData<T> const& usage)
-            : resource{ &resource },
-            usage{ usage }
+        [[nodiscard]] explicit Resource(T& _resource, UsageData<T> const& _usage)
+            : resource{ &_resource },
+            usage{ _usage }
         {}
-        [[nodiscard]] explicit Resource(PerFlight<T>& resource, UsageData<T> const& usage)
-        :resource{&resource[0], &resource[1]},
-            usage{ usage }
+        [[nodiscard]] explicit Resource(PerFlight<T>& _resource, UsageData<T> const& _usage)
+        :resource{&_resource[0], &_resource[1]},
+            usage{ _usage }
         {}
     };
 
@@ -107,25 +107,25 @@ namespace EWE{
         Resource<Res>* lhs;
         Resource<Res>* rhs;
 
-        ResourceTransition(TaskResourceUsage& lhs, uint32_t lh_index, TaskResourceUsage& rhs, uint32_t rh_index)
+        ResourceTransition(TaskResourceUsage& _lhs, uint32_t lh_index, TaskResourceUsage& _rhs, uint32_t rh_index)
         {
             if constexpr (std::is_same_v<Res, Buffer>) {
 #if EWE_DEBUG_BOOL
                 for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                    EWE_ASSERT(lhs.buffers[lh_index].resource[i] == rhs.buffers[rh_index].resource[i]);
+                    EWE_ASSERT(_lhs.buffers[lh_index].resource[i] == _rhs.buffers[rh_index].resource[i]);
                 }
 #endif 
-                this->lhs = &lhs.buffers[lh_index];
-                this->rhs = &rhs.buffers[rh_index];
+                this->lhs = &_lhs.buffers[lh_index];
+                this->rhs = &_rhs.buffers[rh_index];
             }
             else if constexpr (std::is_same_v<Res, Image>) {
 #if EWE_DEBUG_BOOL
                 for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                    EWE_ASSERT(lhs.images[lh_index].resource[i] == rhs.images[rh_index].resource[i]);
+                    EWE_ASSERT(_lhs.images[lh_index].resource[i] == _rhs.images[rh_index].resource[i]);
                 }
 #endif
-                this->lhs = &lhs.images[lh_index];
-                this->rhs = &rhs.images[rh_index];
+                this->lhs = &_lhs.images[lh_index];
+                this->rhs = &_rhs.images[rh_index];
             }
             else {
   //              static_assert(false);
@@ -147,12 +147,12 @@ namespace EWE{
     struct ResourceAcquisition{
         Resource<Res>* rhs;
 
-        ResourceAcquisition(TaskResourceUsage& rhs, uint32_t rh_index) {
+        ResourceAcquisition(TaskResourceUsage& _rhs, uint32_t rh_index) {
             if constexpr (std::is_same_v<Res, Buffer>) {
-                this->rhs = &rhs.buffers[rh_index];
+                this->rhs = &_rhs.buffers[rh_index];
             }
             else if constexpr (std::is_same_v<Res, Image>) {
-                this->rhs = &rhs.images[rh_index];
+                this->rhs = &_rhs.images[rh_index];
             }
             else {
   //              static_assert(false);

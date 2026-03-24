@@ -52,9 +52,9 @@ namespace EWE{
     };
 
 	struct RenderAttachments {
+		const std::string name;
 		LogicalDevice& logicalDevice;
 		Queue& graphicsQueue;
-		const std::string name;
 
 		[[nodiscard]] explicit RenderAttachments(
 			std::string_view name,
@@ -71,7 +71,7 @@ namespace EWE{
 
 		AttachmentSetInfo setInfo; //do I even need this here?
 
-		void CreateImages(std::string_view name, uint32_t width, uint32_t height, AttachmentSetInfo const& setInfo);
+		void CreateImages(uint32_t width, uint32_t height);
 		void CreateImageViews();
 		void InitialTransition();
 	};

@@ -6,9 +6,9 @@
 
 namespace EWE{
 
-    [[nodiscard]] CommandPool::CommandPool(LogicalDevice& logicalDevice, Queue& queue, VkCommandPoolCreateFlags createFlags)
-        : logicalDevice{logicalDevice}, 
-        queue{queue},
+    [[nodiscard]] CommandPool::CommandPool(LogicalDevice& _logicalDevice, Queue& _queue, VkCommandPoolCreateFlags createFlags)
+        : logicalDevice{_logicalDevice}, 
+        queue{_queue},
         flags{ createFlags }
     {
         VkCommandPoolCreateInfo commandPoolCreateInfo{

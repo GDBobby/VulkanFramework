@@ -35,8 +35,8 @@ namespace EWE{
                 }
             }
 
-            SetLayout::SetLayout(DescriptorPool& pool) noexcept 
-                : pool{ pool }, bindless{ false } 
+            SetLayout::SetLayout(DescriptorPool& _pool) noexcept 
+                : pool{ _pool }, bindless{ false } 
             {
             
             }
@@ -50,7 +50,7 @@ namespace EWE{
             SetLayout& SetLayout::operator=(SetLayout&& moveSrc) noexcept{
                 EWE_ASSERT(pool == moveSrc.pool);
 
-                printf("not fulyl setup, the old dsl needs to be deconstructed");
+                Logger::Print<Logger::Error>("not fulyl setup, the old dsl needs to be deconstructed");
                 vkDSL = moveSrc.vkDSL;
                 return *this;
             }

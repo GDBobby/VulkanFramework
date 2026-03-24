@@ -49,14 +49,13 @@ namespace EWE{
         }
         
 
-        VkImageSubresourceRange ret;
-        ret.aspectMask = aspectMask;
-        ret.baseArrayLayer = 0;
-        ret.baseMipLevel = 0;
-        ret.layerCount = image.data.arrayLayers;
-        ret.levelCount = image.data.mipLevels;
-
-        return ret;
+        return VkImageSubresourceRange{
+            .aspectMask = aspectMask,
+            .baseMipLevel = 0,
+            .levelCount = image.data.mipLevels,
+            .baseArrayLayer = 0,
+            .layerCount = image.data.arrayLayers
+        };
     }
 
     VkImageViewCreateInfo ImageView::GetDefaultFullImageViewCreateInfo(Image& image) noexcept {
@@ -88,23 +87,23 @@ namespace EWE{
         };
     }
 
-    ImageView::ImageView(Image& image, VkImageViewCreateInfo const& createInfo) 
-        : image{image},
+    ImageView::ImageView(Image& _image, VkImageViewCreateInfo const& createInfo) 
+        : image{_image},
         subresource{createInfo.subresourceRange}
     { 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
     }
     
-    ImageView::ImageView(Image& image) 
-        : image{image}
+    ImageView::ImageView(Image& _image) 
+        : image{_image}
     {
         const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
         subresource = createInfo.subresourceRange;
 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
     }
-    ImageView::ImageView(Image& image, bool readyForConstruction) noexcept
-        : image{image}
+    ImageView::ImageView(Image& _image, bool readyForConstruction) noexcept
+        : image{_image}
     {
         //the creation of the view on the GPU is postponed, most likely because the image has not yet been created on the GPU
     }
@@ -126,8 +125,8 @@ namespace EWE{
 
 
 #if EWE_DEBUG_NAMING
-    void ImageView::SetName(std::string_view name) {
-        name = name;
+    void ImageView::SetName(std::string_view _name) {
+        name = _name;
         image.logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE_VIEW, name);
     }
 #endif

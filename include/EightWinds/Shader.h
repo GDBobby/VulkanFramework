@@ -55,6 +55,7 @@ namespace EWE {
                     case Bits::Mesh:		return VK_SHADER_STAGE_MESH_BIT_EXT;
                     case Bits::Fragment:    return VK_SHADER_STAGE_FRAGMENT_BIT;
                     case Bits::Compute:		return VK_SHADER_STAGE_COMPUTE_BIT;
+                    default: EWE_UNREACHABLE;
                 }
                 EWE_UNREACHABLE;
             }

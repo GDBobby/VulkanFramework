@@ -25,12 +25,12 @@ namespace EWE{
 
         return queueFamilies;
     }
-    PhysicalDevice::PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface)
-        : instance{ instance }, device{ physicalDevice }, queueFamilies{ EnumerateQueueFamilies(instance, device, surface) }
+    PhysicalDevice::PhysicalDevice(Instance& _instance, VkPhysicalDevice _physicalDevice, VkSurfaceKHR surface)
+        : instance{ _instance }, device{ _physicalDevice }, queueFamilies{ EnumerateQueueFamilies(instance, device, surface) }
     {
     }
-    PhysicalDevice::PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, std::vector<QueueFamily> const& queueFamilies)
-        : instance{ instance }, device{ physicalDevice }, queueFamilies{ queueFamilies }
+    PhysicalDevice::PhysicalDevice(Instance& _instance, VkPhysicalDevice _physicalDevice, std::vector<QueueFamily> const& _queueFamilies)
+        : instance{ _instance }, device{ _physicalDevice }, queueFamilies{ _queueFamilies }
     {}
 
     PhysicalDevice::PhysicalDevice(PhysicalDevice&& moveSrc) noexcept

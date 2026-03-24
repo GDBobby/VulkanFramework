@@ -28,7 +28,7 @@ namespace EWE {
 		rasterizationInfo = other.rasterizationInfo;
 		multisampleInfo = other.multisampleInfo;
 		if (other.multisampleInfo.pSampleMask != other.sampleMask) {
-			printf("invalid copy of sampel mask, BE WARNED\n");
+			Logger::Print<Logger::Warning>("invalid copy of sampel mask, BE WARNED\n");
 		}
 		memcpy(sampleMask, other.sampleMask, sizeof(uint32_t) * 2);
 		multisampleInfo.pSampleMask = sampleMask;          // Optional
@@ -307,14 +307,14 @@ namespace EWE {
 
 
 	GraphicsPipeline::GraphicsPipeline(
-        LogicalDevice& logicalDevice, 
+        LogicalDevice& _logicalDevice, 
         PipelineID pipeID, 
         PipeLayout* layout, //the layout SHOULD cover the input assembly
 		TaskRasterConfig const& passConfig,
 		ObjectRasterConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState//deduced maybe?
     ) noexcept
-     : Pipeline{ logicalDevice, pipeID, layout }
+     : Pipeline{ _logicalDevice, pipeID, layout }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif
@@ -323,7 +323,7 @@ namespace EWE {
 		CreateVkPipeline(passConfig, objectConfig, dynamicState);
 	}
 	GraphicsPipeline::GraphicsPipeline(
-        LogicalDevice& logicalDevice, 
+        LogicalDevice& _logicalDevice, 
         PipelineID pipeID, 
         PipeLayout* layout, //the layout SHOULD cover the input assembly
 		TaskRasterConfig const& passConfig,
@@ -331,7 +331,7 @@ namespace EWE {
         std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
         std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
     ) noexcept
-    : Pipeline{ logicalDevice, pipeID, layout, specInfo }
+    : Pipeline{ _logicalDevice, pipeID, layout, specInfo }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif

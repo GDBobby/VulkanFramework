@@ -42,7 +42,7 @@ namespace EWE{
         }
     
 
-        constexpr DeviceWeight(WeightType required, uint64_t score) : required{required}, score{score} {}
+        constexpr DeviceWeight(WeightType _required, uint64_t _score) : required{_required}, score{_score} {}
     };
 
     //static consteval auto DW_GetMembers(){

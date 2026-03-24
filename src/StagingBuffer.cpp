@@ -6,8 +6,8 @@
 #include <cstring>
 
 namespace EWE{
-	StagingBuffer::StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size, const void* data)
-        : logicalDevice{logicalDevice}
+	StagingBuffer::StagingBuffer(LogicalDevice& _logicalDevice, VkDeviceSize size, const void* data)
+        : logicalDevice{_logicalDevice}
     {
         VkBufferCreateInfo bufferCreateInfo{
         	.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -27,8 +27,8 @@ namespace EWE{
 
         Stage(data, size);
     }
-    StagingBuffer::StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size)
-        : logicalDevice{ logicalDevice } 
+    StagingBuffer::StagingBuffer(LogicalDevice& _logicalDevice, VkDeviceSize size)
+        : logicalDevice{ _logicalDevice } 
     {
         VkBufferCreateInfo bufferCreateInfo{
         	.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -64,8 +64,9 @@ namespace EWE{
         vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, vmaAlloc);
 	}
 	
-    void StagingBuffer::Stage(const void* data, uint64_t bufferSize) {
+    void StagingBuffer::Stage(const void* data, uint64_t _bufferSize) {
         void* stagingData;
+        EWE_ASSERT(_bufferSize <= bufferSize);
 
         EWE_VK(vmaMapMemory, logicalDevice.vmaAllocator, vmaAlloc, &stagingData);
         memcpy(stagingData, data, bufferSize);

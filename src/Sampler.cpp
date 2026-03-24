@@ -3,8 +3,8 @@
 #include "LAB/Support/Generic.h"
 
 namespace EWE{
-    Sampler::Sampler(LogicalDevice& logicalDevice, VkSamplerCreateInfo const& samplerInfo)
-        : logicalDevice{logicalDevice},
+    Sampler::Sampler(LogicalDevice& _logicalDevice, VkSamplerCreateInfo const& samplerInfo)
+        : logicalDevice{_logicalDevice},
         info{samplerInfo}
     {
         EWE_VK(vkCreateSampler, logicalDevice, &info, nullptr, &sampler);
@@ -20,7 +20,7 @@ namespace EWE{
     
         std::size_t current_bit_placement = 0;
 
-        auto AddFilter = [](uint64_t& ret, std::size_t& current_bit_placement, VkFilter filter){
+        auto AddFilter = [](uint64_t& _ret, std::size_t& _current_bit_placement, VkFilter filter){
             uint64_t temp = 0;
             switch(filter){
                 case VK_FILTER_NEAREST: temp = 0b01; break;
@@ -28,8 +28,8 @@ namespace EWE{
                 case VK_FILTER_CUBIC_EXT: temp = 0b11; break;
                 default: EWE_UNREACHABLE;
             }
-            ret |= temp << current_bit_placement;
-            current_bit_placement += 2;
+            _ret |= temp << _current_bit_placement;
+            _current_bit_placement += 2;
         };
         AddFilter(ret, current_bit_placement, info.magFilter);
         AddFilter(ret, current_bit_placement, info.minFilter);
@@ -38,7 +38,6 @@ namespace EWE{
         ret |= info.mipmapMode << current_bit_placement;
         current_bit_placement++;
 
-        uint8_t address_mode_val = 0;
         auto address_mode_condenser = [](VkSamplerAddressMode const& am){
             switch(am){
                 case VK_SAMPLER_ADDRESS_MODE_REPEAT: return 0b000;
@@ -85,10 +84,10 @@ namespace EWE{
         uint8_t maxAni = static_cast<uint8_t>(info.maxAnisotropy);
 
         //if i keep it uint8 and shift it, i'll get math errors. so i need to re-cast it
-        auto float_emplacer = [](uint64_t& ret, uint8_t condensed_float, std::size_t& current_bit_placement){
+        auto float_emplacer = [](uint64_t& _ret, uint8_t condensed_float, std::size_t& _current_bit_placement){
             uint64_t float_buffer = condensed_float;
-            ret |= float_buffer << current_bit_placement;
-            current_bit_placement += 8;
+            _ret |= float_buffer << _current_bit_placement;
+            _current_bit_placement += 8;
         };
         float_emplacer(ret, mipLodBias, current_bit_placement);
         float_emplacer(ret, maxAni, current_bit_placement);

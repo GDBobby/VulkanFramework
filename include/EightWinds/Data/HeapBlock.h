@@ -27,7 +27,7 @@ namespace EWE{
 		: memory{nullptr}, size{0}
 		{}
 
-        [[nodiscard]] explicit HeapBlock(std::size_t size) : size{size}{
+        [[nodiscard]] explicit HeapBlock(std::size_t _size) : size{_size}{
 			if(size == 0){
 				memory = nullptr;	
 			}

@@ -1,8 +1,5 @@
 #include "EightWinds/Instance.h"
 
-#if EWE_DEBUG_BOOL
-#include <cstdio>
-#endif
 #include <vector>
 #include <unordered_set>
 #include <stdexcept>
@@ -27,14 +24,7 @@ namespace EWE{
         for (const auto& required : requiredExtensions) {
             //std::cout << "\t" << required << std::endl;
             if (available.find(required) == available.end()) {
-#if GPU_LOGGING
-                std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
-                logFile << "Extension is not available! : " << required << std::endl;
-                logFile.close();
-#endif
-#if EWE_DEBUG_BOOL
-                printf("failed to find extension[%s]\n", required);
-#endif
+                Logger::Print<Logger::Error>("failed to find extension[%s]\n", required);
                 throw std::runtime_error("missing required extension");
                 return false;
             }
@@ -90,7 +80,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if (!DebugMessenger::CheckValidationLayerSupport()) {
-            printf("validation layers not available \n");
+            Logger::Print<Logger::Error>("validation layers not available \n");
             EWE_ASSERT(false && "validation layers requested, but not available!");
         }
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = DebugMessenger::GetPopulatedDebugMessengerCreateInfo();
@@ -105,9 +95,9 @@ namespace EWE{
         return instance;
     }
 
-    Instance::Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) 
-        : api_version{api_version},
-        instance{CreateInstance(api_version, requiredExtensions, optionalExtensions)}
+    Instance::Instance(const uint32_t _api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) 
+        : api_version{_api_version},
+        instance{CreateInstance(_api_version, requiredExtensions, optionalExtensions)}
 #if EWE_DEBUG_BOOL
         ,debugMessenger{*this}
 #endif

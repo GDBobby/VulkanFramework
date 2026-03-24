@@ -34,9 +34,9 @@ namespace EWE {
 	}
 //#endif
 
-	Pipeline::Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout) 
+	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID id, PipeLayout* layout) 
 	: 
-		logicalDevice{logicalDevice},
+		logicalDevice{_logicalDevice},
 		myID{ id },
 		pipeLayout{ layout }
 //#if PIPELINE_HOT_RELOAD
@@ -44,9 +44,9 @@ namespace EWE {
 //#endif
 	{}
 
-	Pipeline::Pipeline(LogicalDevice& logicalDevice, PipelineID pipeID, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo)
+	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo)
 	: 
-		logicalDevice{logicalDevice},
+		logicalDevice{_logicalDevice},
 		myID{ pipeID }, 
 		pipeLayout{ layout }, 
 		copySpecInfo{ specInfo }

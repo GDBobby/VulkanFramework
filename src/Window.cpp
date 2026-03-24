@@ -20,7 +20,10 @@ namespace EWE {
 		}
 	}
 
-	Window::Window(Instance& instance, uint32_t width, uint32_t height, std::string_view name) : instance{instance}, screenDimensions{width, height} {
+	Window::Window(Instance& _instance, uint32_t width, uint32_t height, std::string_view name) 
+	: instance{_instance}, 
+	screenDimensions{width, height} 
+	{
 		int count;
 		GLFWmonitor** monitors = glfwGetMonitors(&count);
 		auto mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -37,7 +40,7 @@ namespace EWE {
 				screenDimensions.height = mode->height;
 			}
 			else {
-				printf("failed to find primary monitor \n");
+				Logger::Print<Logger::Error>("failed to find primary monitor \n");
 				screenDimensions.width = 1280;
 				screenDimensions.height = 720;
 			}
@@ -58,5 +61,10 @@ namespace EWE {
 
 
 		EWE_VK(glfwCreateWindowSurface, instance, window, nullptr, &surface);
+	}
+
+	void Window::SetResizeable(bool _resizeable){
+		this->resizeable = _resizeable;
+		glfwSetWindowAttrib(window, GLFW_RESIZABLE, resizeable);
 	}
 }

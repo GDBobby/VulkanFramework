@@ -7,25 +7,25 @@
 
 namespace EWE{
 
-    GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord)
-    : name{ name },
-        logicalDevice{logicalDevice},
-        queue{queue},
+    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::Record& cmdRecord)
+    : name{ _name },
+        logicalDevice{_logicalDevice},
+        queue{_queue},
         commandExecutor{std::in_place, logicalDevice, cmdRecord}
     {
     }
 
 
-    GPUTask::GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue)
-    : name{ name },
-        logicalDevice{ logicalDevice },
-        queue{ queue }
+    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue)
+    : name{ _name },
+        logicalDevice{ _logicalDevice },
+        queue{ _queue }
     {
     }
 
     GPUTask::~GPUTask(){
 #if EWE_DEBUG_BOOL
-        printf("need to destruct deferred pointers from CommandRecord, currently memory leak\n");
+        Logger::Print<Logger::Error>("need to destruct deferred pointers from CommandRecord, currently memory leak\n");
 #endif
     }
     void GPUTask::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
@@ -73,12 +73,9 @@ namespace EWE{
     void GPUTask::GenerateExternalWorkload() {
 
 
-#if EWE_DEBUG_BOOL
-        //EWE_ASSERT(external_workload != nullptr);
         if (commandExecutor->record.records.size() > 0) {
-            printf("warning : ignoring the command executor\n");
+            Logger::Print<Logger::Warning>("ignoring a non-empty command executor\n");
         }
-#endif
         workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
             prefix.Execute(cmdBuf, frameIndex);
             external_workload(cmdBuf, frameIndex);

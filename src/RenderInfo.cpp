@@ -105,7 +105,7 @@ namespace EWE{
 	}
 
 
-	void RenderAttachments::CreateImages(std::string_view name, uint32_t width, uint32_t height, AttachmentSetInfo const& setInfo) {
+	void RenderAttachments::CreateImages(uint32_t width, uint32_t height) {
 		VmaAllocationCreateInfo vmaAllocCreateInfo{
 		//if(imageCreateInfo.width * height > some amount){
 			.flags = static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) |
@@ -134,24 +134,24 @@ namespace EWE{
 	}
 
 	RenderAttachments::RenderAttachments(
-		std::string_view name,
-		LogicalDevice& logicalDevice,
-		Queue& graphicsQueue,
-		AttachmentSetInfo const& setInfo
+		std::string_view _name,
+		LogicalDevice& _logicalDevice,
+		Queue& _graphicsQueue,
+		AttachmentSetInfo const& _setInfo
 	)
-		: name{ name },
-		logicalDevice{ logicalDevice },
-		graphicsQueue{ graphicsQueue },
+		: name{ _name },
+		logicalDevice{ _logicalDevice },
+		graphicsQueue{ _graphicsQueue },
 		//this should pass args to PerFlight
 		//which puts the args to each (per frame in flight) RuntimeArray
 		//which will construct a color_formats.size() amount of images with the argument, logicalDevice
-		color_images{ setInfo.colors.size(), logicalDevice },
-		color_views{ setInfo.colors.size() },
-		depth_images{ logicalDevice },
+		color_images{ _setInfo.colors.size(), logicalDevice },
+		color_views{ _setInfo.colors.size() },
+		depth_images{ _logicalDevice },
 		depth_views{ 1 },
-		setInfo{setInfo}
+		setInfo{_setInfo}
 	{
-		CreateImages(name, setInfo.width, setInfo.height, setInfo);
+		CreateImages(setInfo.width, setInfo.height);
 
 		InitialTransition();
 		CreateImageViews();
@@ -227,13 +227,13 @@ namespace EWE{
 	}
 
 	FullRenderInfo::FullRenderInfo(
-		std::string_view name,
-		LogicalDevice& logicalDevice,
-		Queue& graphicsQueue,
-		AttachmentSetInfo const& setInfo
+		std::string_view _name,
+		LogicalDevice& _logicalDevice,
+		Queue& _graphicsQueue,
+		AttachmentSetInfo const& _setInfo
 	)
-	: full{name, logicalDevice, graphicsQueue, setInfo},
-		render_data{full, setInfo.renderingFlags}
+	: full{_name, _logicalDevice, _graphicsQueue, _setInfo},
+		render_data{full, _setInfo.renderingFlags}
 	{
 
 	}

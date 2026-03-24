@@ -92,14 +92,14 @@ namespace EWE{
     LogicalDevice::LogicalDevice(
         PhysicalDevice&& physDevice,
         VkDeviceCreateInfo& deviceCreateInfo,
-        uint32_t api_version,
+        uint32_t _api_version,
         VmaAllocatorCreateFlags allocatorFlags,
         Backend::FeaturePack const& featurePack,
         Backend::PropertyPack const& propertyPack
     ) noexcept
     : instance{physDevice.instance},
         physicalDevice{std::forward<PhysicalDevice>(physDevice)},
-        api_version{api_version},
+        api_version{_api_version},
         queues{deviceCreateInfo.queueCreateInfoCount},
         device{CreateDevice(deviceCreateInfo)},
         
@@ -138,9 +138,7 @@ namespace EWE{
             .vulkanApiVersion = api_version
         };
 
-#if EWE_DEBUG_BOOL
-        printf("vma vk version : %zu\n", VMA_VULKAN_VERSION);
-#endif
+        Logger::Print<Logger::Normal>("vma vk version : %zu\n", VMA_VULKAN_VERSION);
 
         VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
         EWE_VK_RESULT(result);
@@ -173,7 +171,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if (renderExcept.result == VK_ERROR_DEVICE_LOST) {
-            printf("ERROR : device was lost\n");
+            Logger::Print<Logger::Error>("device was lost\n");
             PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfo = nullptr;
             GetDeviceFaultInfo = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(device, "vkGetDeviceFaultInfoEXT"));
             if (GetDeviceFaultInfo == nullptr) {
@@ -210,15 +208,15 @@ namespace EWE{
             }
             GetDeviceFaultInfo(device, &faultCounts, &faultInfo);
 
-            printf("fault info ~~~\n");
+            Logger::Print<Logger::Error>("fault info ~~~\n");
             if (faultInfo.description != nullptr && faultInfo.description[0] != '\0') {
-                printf("\tdescription - %s\n", faultInfo.description);
+                Logger::Print<Logger::Error>("\tdescription - %s\n", faultInfo.description);
             }
             else {
-                printf("\tblank description\n");
+                Logger::Print<Logger::Error>("\tblank description\n");
             }
 
-            printf("address info - %u\n", faultCounts.addressInfoCount);
+            Logger::Print<Logger::Error>("address info - %u\n", faultCounts.addressInfoCount);
             for (uint32_t i = 0; i < faultCounts.addressInfoCount; i++) {
                 auto& addrInfo = faultInfo.pAddressInfos[i];
                 std::string addrType;
@@ -232,19 +230,19 @@ namespace EWE{
                     case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT: addrType = "pointer fault"; break;
                     default: addrType = "unknown address type?"; break;
                 }
-                printf("\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n", i, addrType.c_str(), addrInfo.reportedAddress, addrInfo.addressPrecision);
+                Logger::Print<Logger::Error>("\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n", i, addrType.c_str(), addrInfo.reportedAddress, addrInfo.addressPrecision);
             }
 
-            printf("\nvendor description - %u\n", faultCounts.vendorInfoCount);
+            Logger::Print<Logger::Error>("\nvendor description - %u\n", faultCounts.vendorInfoCount);
             for (uint32_t i = 0; i < faultCounts.vendorInfoCount; i++) {
                 auto& vendorInfo = faultInfo.pVendorInfos[i];
                 if (vendorInfo.description[0] != '\0') {
-                    printf("[%u]\t %s\n", i, vendorInfo.description);
+                    Logger::Print<Logger::Error>("[%u]\t %s\n", i, vendorInfo.description);
                 }
-                printf("\t\tcode[%zu] - data[%zu]\n", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultData);
+                Logger::Print<Logger::Error>("\t\tcode[%zu] - data[%zu]\n", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultData);
             }
 
-            printf("vendor binary data address and size - [%zu][%zu]\n", reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData), faultCounts.vendorBinarySize);
+            Logger::Print<Logger::Error>("vendor binary data address and size - [%zu][%zu]\n", reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData), faultCounts.vendorBinarySize);
             //once finished with it, probably move this
             free(faultInfo.pAddressInfos);
             free(faultInfo.pVendorInfos);

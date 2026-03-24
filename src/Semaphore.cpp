@@ -1,8 +1,8 @@
 #include "EightWinds/Backend/Semaphore.h"
 
 namespace EWE{
-    BinarySemaphore::BinarySemaphore(LogicalDevice& logicalDevice)
-        :logicalDevice{logicalDevice}
+    BinarySemaphore::BinarySemaphore(LogicalDevice& _logicalDevice)
+        :logicalDevice{_logicalDevice}
     {
         VkSemaphoreCreateInfo semaphoreCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -47,8 +47,8 @@ namespace EWE{
 
 
 
-    TimelineSemaphore::TimelineSemaphore(LogicalDevice& logicalDevice, uint64_t initialValue)
-        : logicalDevice{logicalDevice}
+    TimelineSemaphore::TimelineSemaphore(LogicalDevice& _logicalDevice, uint64_t initialValue)
+        : logicalDevice{_logicalDevice}
     {
         //VK_SEMAPHORE_TYPE_BINARY = 0,
         //VK_SEMAPHORE_TYPE_TIMELINE = 1,
@@ -106,16 +106,22 @@ namespace EWE{
 
     VkSemaphoreSubmitInfo TimelineSemaphore::GetSignalSubmitInfo(VkPipelineStageFlags2 stageMask) noexcept{
         value++;
+#if EWE_DEBUG_BOOL
+        Logger::Print("semaphore[%s] subinfo signaling : %zu\n", debugName.c_str(), value);
+#endif
         return VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .pNext = nullptr,
             .semaphore = vkSemaphore,
-            .value = value++,
+            .value = value,
             .stageMask = stageMask,
             .deviceIndex = 0
         };
     }
     VkSemaphoreSubmitInfo TimelineSemaphore::GetWaitSubmitInfo(VkPipelineStageFlags2 stageMask) const noexcept{
+#if EWE_DEBUG_BOOL
+        Logger::Print("semaphore[%s] subinfo waiting : %zu\n", debugName.c_str(), value);
+#endif
         return VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
             .pNext = nullptr,
@@ -133,6 +139,9 @@ namespace EWE{
     }
     
     void TimelineSemaphore::WaitOn(uint64_t val){
+#if EWE_DEBUG_BOOL
+        Logger::Print("semaphore[%s] waiting : %zu\n", debugName.c_str(), value);
+#endif
         VkSemaphoreWaitInfo waitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
             .pNext = nullptr,
@@ -142,8 +151,8 @@ namespace EWE{
             .pValues = &val
         };
         
-        //timeout isn't acceptable at such a high time
-        EWE_VK(vkWaitSemaphores, logicalDevice, &waitInfo, UINT64_MAX);
+        //timeout isn't acceptable, 2s is when the failure will be reported
+        EWE_VK(vkWaitSemaphores, logicalDevice, &waitInfo, std::chrono::nanoseconds(std::chrono::seconds(2)).count());//UINT64_MAX);
     }
     uint64_t TimelineSemaphore::GetCurrentValue() const {
         uint64_t active_val;
@@ -152,7 +161,14 @@ namespace EWE{
     }
     bool TimelineSemaphore::Check(uint64_t val) const {
         uint64_t current_val = GetCurrentValue();
-        return (val & current_val) == val;
+#if EWE_DEBUG_BOOL
+        Logger::Print("semaphore[%s] checking : %zu : [%zu : %zu]\n", debugName.c_str(), value, val, current_val);
+#endif
+        if(current_val >= val){
+            //potentially check current_val <-> this->value?
+            return true;
+        }
+        return false;
     }
 
 }

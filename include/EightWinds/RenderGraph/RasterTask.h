@@ -107,7 +107,7 @@ namespace EWE{
 		LogicalDevice& logicalDevice;
 		Queue& graphicsQueue;
 
-		TaskRasterConfig config; //temp rename
+		TaskRasterConfig task_config; //temp rename
 		//i need a better way to handle dynamic state
 
 		VkViewport viewport; //is viewport x/y going to be permanently tied to attachment width/height?

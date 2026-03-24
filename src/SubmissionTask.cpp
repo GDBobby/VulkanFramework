@@ -15,15 +15,15 @@ namespace EWE{
     }
     */
 
-    SubmissionTask::SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name)
-        : logicalDevice{logicalDevice}, queue{queue},
+    SubmissionTask::SubmissionTask(LogicalDevice& _logicalDevice, Queue& _queue, std::string_view _name)
+        : logicalDevice{_logicalDevice}, queue{_queue},
         cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
         cmdBuffers{ cmdPool.AllocateCommandsPerFlight(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },
         //signal{signals},
         //full_workload{nullptr},
         //external_workload{nullptr},
         packaged_tasks{},
-        name{name}
+        name{_name}
     {
 #if EWE_DEBUG_NAMING
         for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
@@ -82,8 +82,8 @@ namespace EWE{
     }
 
 
-    SubmissionBridge::SubmissionBridge(std::span<SubmissionTask*> lhs, SubmissionTask* rhs)
-        : lhs{lhs}, rhs{rhs}
+    SubmissionBridge::SubmissionBridge(std::span<SubmissionTask*> _lhs, SubmissionTask* _rhs)
+        : lhs{_lhs}, rhs{_rhs}
     {
         for (uint8_t i = 0; i < max_frames_in_flight; i++) {
             for (auto& lh : lhs) {

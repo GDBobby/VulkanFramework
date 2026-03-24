@@ -16,10 +16,10 @@ namespace EWE {
         return supportsSurface;
     }
 
-    QueueFamily::QueueFamily(uint32_t index, VkQueueFamilyProperties const& properties, bool supportsSurface) 
-      : index{index}, 
-        properties{properties},
-        supportsSurface{supportsSurface}
+    QueueFamily::QueueFamily(uint32_t _index, VkQueueFamilyProperties const& _properties, bool _supportsSurface) 
+      : index{_index}, 
+        properties{_properties},
+        supportsSurface{_supportsSurface}
     {}
     
 /*
@@ -73,7 +73,7 @@ namespace EWE {
         bool foundDedicatedGraphicsPresent = false;
 #ifdef EWE_DEBUG
         for (const auto& family : families) {
-            printf("queue properties - %d:%d:%d\n", family.queueFlags & VK_QUEUE_GRAPHICS_BIT, family.queueFlags & VK_QUEUE_COMPUTE_BIT, family.queueFlags & VK_QUEUE_TRANSFER_BIT);
+            Logger::Print<Logger::Debug>("queue properties - %d:%d:%d\n", family.queueFlags & VK_QUEUE_GRAPHICS_BIT, family.queueFlags & VK_QUEUE_COMPUTE_BIT, family.queueFlags & VK_QUEUE_TRANSFER_BIT);
 
         }
 #endif
@@ -82,7 +82,7 @@ namespace EWE {
         for (const auto& queueFamily : queueFamilies) {
             VkBool32 presentSupport = false;
             EWE_VK(vkGetPhysicalDeviceSurfaceSupportKHR, device, currentIndex, surface, &presentSupport);
-            printf("queue present support[%d] : %d\n", currentIndex, presentSupport);
+            Logger::Print<Logger::Debug>("queue present support[%d] : %d\n", currentIndex, presentSupport);
             bool graphicsSupport = (queueFamily.queueFlags & vkQueueFlagBits::eGraphics) == vkQueueFlagBits::eGraphics;
             bool computeSupport = queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT;
             const bool computeSupport = queueFamily.queueFlags & vkQueueFlagBits::eCompute;
@@ -111,7 +111,7 @@ namespace EWE {
             }
             bool computeSupport = family.queueFlags & VK_QUEUE_COMPUTE_BIT;
             bool transferSupport = family.queueFlags & VK_QUEUE_TRANSFER_BIT;
-            printf("queue support[%d] - %d:%d \n", currentIndex, computeSupport, transferSupport);
+            Logger::Print<Logger::Debug>("queue support[%d] - %d:%d \n", currentIndex, computeSupport, transferSupport);
             if (computeSupport && transferSupport) {
                 combinedTransferComputeFamilies.push(currentIndex);
             }
@@ -123,7 +123,7 @@ namespace EWE {
             }
             currentIndex++;
         }
-        printf("after the queue family \n");
+        Logger::Print<Logger::Debug>("after the queue family \n");
         if (dedicatedComputeFamilies.size() > 0) {
             vkObject->queueIndex[Queue::compute] = dedicatedComputeFamilies.top();
             found[Queue::compute] = true;
@@ -159,7 +159,7 @@ namespace EWE {
         //EWE_ASSERT(vkObject->queueIndex[Queue::compute] != vkObject->queueIndex[Queue::transfer] && "compute queue and transfer q should not be the same");
 
         if (!found[Queue::compute]) {
-            printf("missing dedicated compute queue, potentially fatal crash incoming if this hasn't been resolved yet (if you don't crash it has)\n");
+            Logger::Print<Logger::Debug>("missing dedicated compute queue, potentially fatal crash incoming if this hasn't been resolved yet (if you don't crash it has)\n");
         }
         for (uint8_t i = 0; i < Queue::_count; i++) {
             vkObject->queueEnabled[i] = found[i];

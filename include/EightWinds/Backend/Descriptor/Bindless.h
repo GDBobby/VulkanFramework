@@ -21,8 +21,8 @@ namespace EWE{
             case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return DescriptorType::Combined;
             case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: return DescriptorType::Sampled;
             case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: return DescriptorType::Storage;
+            default: EWE_UNREACHABLE;
         }
-
         EWE_UNREACHABLE;
     }
     constexpr VkDescriptorType VkExpandDescriptorType(DescriptorType type) {
@@ -31,6 +31,7 @@ namespace EWE{
             case DescriptorType::Combined: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             case DescriptorType::Sampled: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
             case DescriptorType::Storage: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            default: EWE_UNREACHABLE;
         }
         EWE_UNREACHABLE;
         return VK_DESCRIPTOR_TYPE_SAMPLER; //error silencer

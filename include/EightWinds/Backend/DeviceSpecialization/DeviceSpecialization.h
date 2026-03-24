@@ -35,8 +35,8 @@ namespace EWE{
         FeatureMan features;
         PropertyMan properties;
 
-        [[nodiscard]] explicit DeviceEvaluation(FeatureMan const& features, PropertyMan const& properties)
-        : features{features}, properties{properties}
+        [[nodiscard]] explicit DeviceEvaluation(FeatureMan const& _features, PropertyMan const& _properties)
+        : features{_features}, properties{_properties}
         {}
 
         /*

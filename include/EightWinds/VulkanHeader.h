@@ -107,7 +107,7 @@ namespace EWE{
         //call a preliminary function
         //if constexpr ((ewe_castable_to_size_t<Args> || ...)) {
         //    if ((ewe_arg_matches_magic(args) || ...)) {
-        //        printf("pause\n");
+        //        Logger::Print<Logger::Warning>("pause\n");
         //    }
         //}
     #endif

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <vulkan/vulkan_core.h>
 
 
 namespace EWE{
@@ -14,10 +15,10 @@ namespace EWE{
         };
     }
 
-    Swapchain::Swapchain(LogicalDevice& logicalDevice, Window& window, Queue& presentQueue) noexcept
-        : logicalDevice{logicalDevice},
-        window{window},
-        presentQueue{presentQueue},
+    Swapchain::Swapchain(LogicalDevice& _logicalDevice, Window& _window, Queue& _presentQueue) noexcept
+        : logicalDevice{_logicalDevice},
+        window{_window},
+        presentQueue{_presentQueue},
         swapCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, 
             .pNext = nullptr,
@@ -74,13 +75,6 @@ namespace EWE{
         i think im gonna do 2
         */
 
-
-        VkSemaphoreCreateInfo semCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0
-        };
-
         return RecreateSwapchain();
     }
 
@@ -132,12 +126,21 @@ namespace EWE{
         std::vector<VkImage> raw_images(swapImageCount);
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, raw_images.data());
         if (images.Size() > 0) {
-            images.DestroyAll();
+            //im going to skip the destructor for Image
+            //images.DestroyAll();
+            //instead of using the default destructor, I'm going to manually handle the destruction
+            for(auto& image : images){
+                logicalDevice.images.Remove(&image);
+            }
+            
+            
             imageViews.DestroyAll();
         }
         images.Resize(swapImageCount);
         images.ConstructAll(logicalDevice);
         imageViews.Resize(swapImageCount);
+
+        vkDestroySwapchainKHR(logicalDevice, swapCreateInfo.oldSwapchain, nullptr);
 
         for (uint8_t i = 0; i < swapImageCount; i++) {
             auto& backImage = images[i];
@@ -219,9 +222,9 @@ namespace EWE{
             vkDestroySwapchainKHR
         */
        
-        //printf("lock queue mutex here\n");
+        //Logger::Print<Logger::Debug>("lock queue mutex here\n");
         VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, acquire_semaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &image_index);
-        //printf("unlock queue mutex\n");
+        //Logger::Print<Logger::Debug>("unlock queue mutex\n");
         
         switch(acquireResult){
             case VK_SUCCESS: break; //dont do anything
@@ -231,7 +234,7 @@ namespace EWE{
         }
 
 #if EWE_DEBUG_BOOL
-        //printf("acquired image index : %u\n", image_index);
+        //Logger::Print<Logger::Debug>("acquired image index : %u\n", image_index);
 #endif
 
         imageIndex = image_index; //object index equal to local index
@@ -272,7 +275,7 @@ namespace EWE{
         }
 
 #if EWE_DEBUG_BOOL
-        printf("potentially need to debug this default return, idk how it behaves\n");
+        Logger::Print<Logger::Debug>("potentially need to debug this default return, idk how it behaves\n");
 #endif
         return VkSurfaceFormatKHR{};
     }

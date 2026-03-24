@@ -1,11 +1,13 @@
 #include "EightWinds/CommandBuffer.h"
 
+#include "EightWinds/Reflect/Enum.h"
+
 namespace EWE{
 
     
-    CommandBuffer::CommandBuffer(CommandPool& commandPool, VkCommandBuffer cmdBuf) noexcept
-        : commandPool{commandPool},
-        cmdBuf{cmdBuf}
+    CommandBuffer::CommandBuffer(CommandPool& _commandPool, VkCommandBuffer _cmdBuf) noexcept
+        : commandPool{_commandPool},
+        cmdBuf{_cmdBuf}
     {
     }
     CommandBuffer::CommandBuffer(CommandBuffer&& moveSrc) noexcept
@@ -20,7 +22,7 @@ namespace EWE{
 
         EWE_ASSERT(commandPool.allocatedBuffers > 0);
         EWE_ASSERT(state == CommandBuffer::State::Invalid || state == CommandBuffer::State::Initial
-               || state == CommandBuffer::State::Pending); //this one is just mean time, until i manage to automate up pending -> invalid transition
+               || state == CommandBuffer::State::Pending, Reflect::Enum::ToString(state)); //this one is just mean time, until i manage to automate up pending -> invalid transition
     }
 
     void CommandBuffer::Reset() {

@@ -138,6 +138,7 @@ namespace EWE{
                 case Type::If: return sizeof(bool);
                 //other loop controls
                 case Type::EndIf: return 0;
+                default: return 0;
 
                 //bunch of dynamic state that i havent got to yet
             }
@@ -379,11 +380,24 @@ namespace EWE{
         static constexpr std::vector<Type> GetValidInstructionsAtBackOf(const std::span<const Instruction::Type> instructions){
             std::vector<Type> ret{};
             static constexpr auto enum_data = Reflect::Enum::enum_data<Instruction::Type>;
+
+#if defined(__clang__) || defined(__GNUC__)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wshadow"
+#elif defined(_MSC_VER)
+    #pragma warning(push)
+    #pragma warning(disable : 4456 4457 4458 4459)
+#endif
             template for(constexpr auto inst : enum_data){
                 if(CheckInstructionValidAtBackOf(ret, inst.value)){
                     ret.push_back(inst.value);
                 }
             }
+#if defined(__clang__) || defined(__GNUC__)
+    #pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
             return ret;
         }
 
@@ -396,8 +410,8 @@ namespace EWE{
         Instruction::Type type;
         InstructionPointerAdjuster* instruction_pointer = nullptr;
 
-        [[nodiscard]] explicit Instruction(Instruction::Type type, InstructionPointerAdjuster* instruction_pointer)
-            : type{type}, instruction_pointer{instruction_pointer}
+        [[nodiscard]] explicit Instruction(Instruction::Type _type, InstructionPointerAdjuster* _instruction_pointer)
+            : type{_type}, instruction_pointer{_instruction_pointer}
         {}
 
         Instruction(Instruction const& copySrc) = delete;

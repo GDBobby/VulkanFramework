@@ -38,7 +38,7 @@ namespace EWE{
         struct Tracking {
             std::string funcName;
             std::stacktrace stackTrace;
-            Tracking(std::string const& funcName) : funcName{ funcName } { printf("need to set up stack trace here\n"); }
+            Tracking(std::string const& funcName) : funcName{ funcName } { Logger::Print<Logger::Error>("need to set up stack trace here\n"); }
         };
         std::queue<std::vector<Tracking>> usageTracking;
 

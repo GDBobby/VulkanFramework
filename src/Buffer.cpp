@@ -47,13 +47,13 @@ namespace EWE{
     void Buffer::Init(
         VkDeviceSize instanceSize, uint32_t instanceCount,
         VmaAllocationCreateInfo const& vmaAllocCreateInfo,
-        VkBufferUsageFlags usageFlags
+        VkBufferUsageFlags _usageFlags
     ) {
         if (existsOnTheGPU) {
             //deinit on the gpu
             DestroyTheVkBuffer();
         }
-        this->usageFlags = usageFlags;
+        this->usageFlags = _usageFlags;
         alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits);
         bufferSize = alignmentSize * instanceCount;
         existsOnTheGPU = true;
@@ -61,8 +61,8 @@ namespace EWE{
         CreateTheVkBuffer(vmaAllocCreateInfo);
     }
     
-    Buffer::Buffer(LogicalDevice& logicalDevice)
-        : logicalDevice{ logicalDevice },
+    Buffer::Buffer(LogicalDevice& _logicalDevice)
+        : logicalDevice{ _logicalDevice },
         usageFlags{0},
         alignmentSize{0},
         bufferSize{0},
@@ -76,9 +76,9 @@ namespace EWE{
         vmaAlloc = VK_NULL_HANDLE;
     }
 
-    Buffer::Buffer(LogicalDevice& logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags usageFlags)
-        : logicalDevice{ logicalDevice },
-        usageFlags{ usageFlags },
+    Buffer::Buffer(LogicalDevice& _logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags _usageFlags)
+        : logicalDevice{ _logicalDevice },
+        usageFlags{ _usageFlags },
         alignmentSize{ CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits) },
         bufferSize{ alignmentSize * instanceCount },
         existsOnTheGPU{ true }
@@ -161,8 +161,8 @@ namespace EWE{
     }
 
 #if EWE_DEBUG_NAMING
-    void Buffer::SetName(std::string_view name) {
-        this->name = name;
+    void Buffer::SetName(std::string_view _name) {
+        name = _name;
         logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);
     }
 #endif

@@ -15,9 +15,9 @@
 namespace EWE{
 
     namespace Command{
-        Executor::Executor(LogicalDevice& logicalDevice, Record& record) noexcept
-        : logicalDevice{logicalDevice},
-            record{record}
+        Executor::Executor(LogicalDevice& _logicalDevice, Record& _record) noexcept
+        : logicalDevice{_logicalDevice},
+            record{_record}
         {
 
             //EWE_ASSERT(!record.hasBeenCompiled);
@@ -52,7 +52,7 @@ namespace EWE{
             
     #ifdef EXECUTOR_DEBUGGING
                 void Print(){
-                    printf("\t[%d]:[%zu]:[%zu]:[%zu]\n", iterator, paramPool.data(), instructions[iterator].paramOffset, &paramPool[instructions[iterator].paramOffset]);
+                    Logger::Print<Logger::Debug>("\t[%d]:[%zu]:[%zu]:[%zu]\n", iterator, paramPool.data(), instructions[iterator].paramOffset, &paramPool[instructions[iterator].paramOffset]);
                 }
     #endif
             };
@@ -372,25 +372,17 @@ namespace EWE{
             
             void LoopBegin(ExecContext& ctx){
                 //i need to wait and see how this pans out before i code it
-    #if EWE_DEBUG_BOOL
-                printf("not enabled currently\n");
-    #endif
+                Logger::Print<Logger::Error>("not enabled currently\n");
             }
 
             void Switch(ExecContext& ctx){
-    #if EWE_DEBUG_BOOL
-                printf("not enabled currently\n");
-    #endif
+                Logger::Print<Logger::Error>("not enabled currently\n");
             }
             void Case(ExecContext& ctx){
-    #if EWE_DEBUG_BOOL
-                printf("not enabled currently\n");
-    #endif
+                Logger::Print<Logger::Error>("not enabled currently\n");
             }
             void Default(ExecContext& ctx){
-    #if EWE_DEBUG_BOOL
-                printf("not enabled currently\n");
-    #endif
+                Logger::Print<Logger::Error>("not enabled currently\n");
             }
 
         } //namespace Exec

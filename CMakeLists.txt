@@ -54,6 +54,9 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
 set(GLFW_INSTALL OFF CACHE BOOL "")
 set(GLFW_VULKAN_STATIC ON CACHE BOOL "")
+if(UNIX AND NOT APPLE)
+    set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
+endif()
 
 add_subdirectory(external/glfw)
 
@@ -85,7 +88,17 @@ endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADER_FILES})
 
-
+target_compile_options(${PROJECT_NAME} PRIVATE
+	$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:
+        -Wall 
+        -Wextra 
+        -Wshadow -Werror=shadow
+    >
+    $<$<CXX_COMPILER_ID:MSVC>:
+        /W4 
+        /we4456 /we4457 /we4458 /we4459
+    >
+)
 
 option(USING_ASAN "address sanitizer" OFF)
 if(USING_ASAN)

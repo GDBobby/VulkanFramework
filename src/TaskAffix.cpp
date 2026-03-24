@@ -5,9 +5,9 @@
 
 namespace EWE{
 
-	BarrierObject::BarrierObject(std::vector<VkImageMemoryBarrier2>&& imageBarriers, std::vector<VkBufferMemoryBarrier2>&& bufferBarriers)
-	: imageBarriers{ std::forward<std::vector<VkImageMemoryBarrier2>>(imageBarriers) },
-		bufferBarriers{ std::forward<std::vector<VkBufferMemoryBarrier2>>(bufferBarriers) },
+	BarrierObject::BarrierObject(std::vector<VkImageMemoryBarrier2>&& _imageBarriers, std::vector<VkBufferMemoryBarrier2>&& _bufferBarriers)
+	: imageBarriers{ std::forward<std::vector<VkImageMemoryBarrier2>>(_imageBarriers) },
+		bufferBarriers{ std::forward<std::vector<VkBufferMemoryBarrier2>>(_bufferBarriers) },
 		dependencyInfo{
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
 			.pNext = nullptr,

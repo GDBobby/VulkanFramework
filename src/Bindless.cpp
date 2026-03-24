@@ -99,12 +99,12 @@ namespace EWE{
                 .pSetLayouts = &layout
             };
 
-            VkDescriptorSet bindlessSet;
+            //VkDescriptorSet bindlessSet;
             EWE_VK(vkAllocateDescriptorSets, logicalDevice, &allocInfo, &set);
         }
 
-        BindlessDescriptor::BindlessDescriptor(LogicalDevice& logicalDevice)
-            : logicalDevice{logicalDevice}
+        BindlessDescriptor::BindlessDescriptor(LogicalDevice& _logicalDevice)
+            : logicalDevice{_logicalDevice}
         {
             CreateLayout();
             CreatePool();

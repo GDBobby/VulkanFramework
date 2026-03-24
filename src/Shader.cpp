@@ -16,7 +16,8 @@
 #include <filesystem>
 
 #if EWE_DEBUG_BOOL
-#define SPV_REFLECT(func, ...) {auto result = func(__VA_ARGS__); if (result != SPV_REFLECT_RESULT_SUCCESS) {printf("failed to read reflected shader data - %s - %s\n", #func, magic_enum::enum_name(result).data());}}
+#define SPV_REFLECT(func, ...) {auto result = func(__VA_ARGS__); \
+	if (result != SPV_REFLECT_RESULT_SUCCESS) {Logger::Print<Logger::Error>("failed to read reflected shader data - %s - %s\n", #func, magic_enum::enum_name(result).data());}}
 #endif
 
 namespace EWE {
@@ -27,7 +28,7 @@ namespace EWE {
 		shaderFile.open(filepath.data(), std::ios::binary);
 		if (!shaderFile.is_open()) {
 #if EWE_DEBUG_BOOL
-			printf("failed ot open shader file - %s : %s\n", std::filesystem::current_path().string().c_str(), filepath.data());
+			Logger::Print<Logger::Error>("failed ot open shader file - %s : %s\n", std::filesystem::current_path().string().c_str(), filepath.data());
 			EWE_ASSERT(shaderFile.is_open(), "failed to open shader");
 #endif
 		}
@@ -216,7 +217,7 @@ namespace EWE {
 		std::size_t arraySize = compiler.get_declared_struct_size_runtime_array(struct_type, 2);
 #if EWE_DEBUG_BOOL
 		if (strBack.size != arraySize) {
-			printf("figure out what array size means\n");
+			Logger::Print<Logger::Debug>("figure out what array size means\n");
 		}
 #endif
 
@@ -352,7 +353,6 @@ namespace EWE {
 		spirv_cross::Compiler compiler(reinterpret_cast<const uint32_t*>(data), dataSize / sizeof(uint32_t));
 		auto entryPoints = compiler.get_entry_points_and_stages();
 		for (auto& entryPoint : entryPoints) {
-			std::string name = entryPoint.name;
 			switch (entryPoint.execution_model)	{
 				case spv::ExecutionModelVertex:   shaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; break;
 				case spv::ExecutionModelFragment: shaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT; break;
@@ -402,8 +402,11 @@ namespace EWE {
 	}
 
 
-	Shader::Shader(LogicalDevice& logicalDevice, std::string_view fileLocation) 
-    : logicalDevice{logicalDevice}, filepath{ fileLocation.data() }, descriptorSets{} {
+	Shader::Shader(LogicalDevice& _logicalDevice, std::string_view fileLocation) 
+    : logicalDevice{_logicalDevice}, 
+		filepath{ fileLocation.data() }, 
+		descriptorSets{} 
+	{
 		std::vector<char> shaderData = ReadShaderFile(fileLocation);
 		ReadReflection(shaderData.size(), shaderData.data());
 		CompileModule(shaderData.size(), shaderData.data());
@@ -414,8 +417,10 @@ namespace EWE {
 
 	}
 
-	Shader::Shader(LogicalDevice& logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data) 
-    : logicalDevice{logicalDevice}, filepath{ fileLocation.data() }, descriptorSets{} 
+	Shader::Shader(LogicalDevice& _logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data) 
+    : logicalDevice{_logicalDevice}, 
+		filepath{ fileLocation.data() }, 
+		descriptorSets{} 
 	{
 		ReadReflection(dataSize, data);
 		CompileModule(dataSize, data);
@@ -425,8 +430,8 @@ namespace EWE {
 		logicalDevice.shaders.Add(this);
 	}
 
-	Shader::Shader(LogicalDevice& logicalDevice) 
-    : logicalDevice{logicalDevice}, filepath{} 
+	Shader::Shader(LogicalDevice& _logicalDevice) 
+    : logicalDevice{_logicalDevice}, filepath{} 
 	{
 		logicalDevice.shaders.Add(this);}
 	
@@ -473,7 +478,7 @@ namespace EWE {
 		}
 		catch (const std::runtime_error& e) {
 #if EWE_DEBUG_BOOL
-			printf("malloc error - %s\n", e.what());
+			Logger::Print<Logger::Error>("malloc error - %s\n", e.what());
 #endif
 			specInfo.mapEntryCount = 0;
 			specInfo.pData = nullptr;
@@ -519,8 +524,8 @@ namespace EWE {
 	}
 
 #if EWE_DEBUG_NAMING
-	void Shader::SetDebugName(std::string_view name) {
-		this->name = name;
+	void Shader::SetDebugName(std::string_view _name) {
+		this->name = _name;
 		logicalDevice.SetObjectName(shaderStageCreateInfo.module, VK_OBJECT_TYPE_SHADER_MODULE, name);
 	}
 #endif

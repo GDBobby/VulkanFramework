@@ -2,8 +2,8 @@
 
 namespace EWE{
 
-    Fence::Fence(LogicalDevice& logicalDevice, VkFenceCreateInfo const& fenceCreateInfo)
-        : logicalDevice{ logicalDevice }
+    Fence::Fence(LogicalDevice& _logicalDevice, VkFenceCreateInfo const& fenceCreateInfo)
+        : logicalDevice{ _logicalDevice }
     {
         EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &vkFence);
     }
@@ -24,7 +24,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if(vkFence == VK_NULL_HANDLE){
-            printf("invalid fence?\n");
+            Logger::Print<Logger::Error>("invalid fence?\n");
         }
 #endif
         VkResult ret = vkWaitForFences(logicalDevice.device, 1, &vkFence, true, time);

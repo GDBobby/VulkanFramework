@@ -1,8 +1,8 @@
 #include "EightWinds/Image.h"
 
 namespace EWE{
-    Image::Image(LogicalDevice& logicalDevice) noexcept
-        : logicalDevice{logicalDevice}
+    Image::Image(LogicalDevice& _logicalDevice) noexcept
+        : logicalDevice{_logicalDevice}
     {
 
     }
@@ -67,8 +67,8 @@ namespace EWE{
     }
 
 #if EWE_DEBUG_NAMING
-    void Image::SetName(std::string_view name) {
-        this->name = name;
+    void Image::SetName(std::string_view _name) {
+        name = _name;
         logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE, name);
     }
 #endif

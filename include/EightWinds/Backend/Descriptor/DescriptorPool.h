@@ -12,8 +12,8 @@ namespace EWE{
 
         LogicalDevice& logicalDevice;
 
-        [[nodiscard]] explicit DescriptorPool(LogicalDevice& logicalDevice) noexcept
-         : logicalDevice{ logicalDevice },
+        [[nodiscard]] explicit DescriptorPool(LogicalDevice& _logicalDevice) noexcept
+         : logicalDevice{ _logicalDevice },
             pool{VK_NULL_HANDLE}
         {}
         

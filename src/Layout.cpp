@@ -21,8 +21,8 @@ namespace EWE {
 		//case PipelineType::MeshWithMeshDisabled: return VK_PIPELINE_BIND_POINT_GRAPHICS; //this is a bit more ambiguous
 		case PipelineType::Raytracing: return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
 			//Scheduler, //graph/scheduling - distinct? idk
+			default: EWE_UNREACHABLE;
 		}
-		EWE_UNREACHABLE;
 		return VK_PIPELINE_BIND_POINT_GRAPHICS;//error silencer
 	}
 
@@ -145,11 +145,11 @@ namespace EWE {
 		return merged;
 	}
 
-	PipeLayout::PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<::EWE::Shader*> shaders, VkDescriptorSetLayout dsl) noexcept
-		: logicalDevice{logicalDevice}
+	PipeLayout::PipeLayout(LogicalDevice& _logicalDevice, std::initializer_list<::EWE::Shader*> _shaders, VkDescriptorSetLayout dsl) noexcept
+		: logicalDevice{_logicalDevice}
 	{
 		this->shaders.fill(nullptr);
-		for (auto& shader : shaders) {
+		for (auto& shader : _shaders) {
 			this->shaders[Shader::Stage(shader->shaderStageCreateInfo.stage).value] = shader;
 		}
 		descriptorSets = MergeDescriptorSets(this->shaders);
@@ -197,7 +197,7 @@ namespace EWE {
 			pipelineType = PipelineType::Compute;
 		}
 		else {
-			printf("this is going to be raytracing i guess?\n");
+			Logger::Print<Logger::Error>("this is going to be raytracing i guess?\n");
 			EWE_ASSERT(false);
 		}
 
@@ -225,7 +225,7 @@ namespace EWE {
 				shader->HotReload();
 			}
 		}
-		printf("memory leak here - descriptor sets not freed before recreated\n");
+		Logger::Print<Logger::Error>("memory leak here - descriptor sets not freed before recreated\n");
 		//Deconstruct(descriptorSets); //need this to be stored then deleted stale
 		pushConstantRanges.clear();
 

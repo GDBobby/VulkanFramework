@@ -7,7 +7,7 @@
 #endif
 
 
-#include <string_view>
+#include "EightWinds/Backend/Logger.h"
 
 #define EWE_USING_EXCEPTIONS true
 
@@ -48,18 +48,32 @@ static inline void EWE_Debug_Breakpoint() {
 }
 
 
-#if EWE_DEBUG_BOOL
-    #include <cstdio> //printf
-#endif
-
-inline void EWE_ASSERT(bool statement, std::string_view print = "failed assert") {
+inline void EWE_ASSERT_BACK_2(bool statement, std::string_view print = "") {
 #if EWE_DEBUG_BOOL
     if (!statement) {
-        printf("%s\n", print.data());
+        EWE::Logger::Print<EWE::Logger::Error>("Assert failed : %s\n", print.data());
         EWE_Debug_Breakpoint();
     }
 #endif
 }
+inline void EWE_ASSERT_BACK(bool statement, std::string_view statement_print, std::string_view print = ""){
+#if EWE_DEBUG_BOOL
+    if (!statement) {
+        if(print != ""){
+            EWE::Logger::Print<EWE::Logger::Error>("Assert failed[%s] : %s\n", statement_print.data(), print.data());  
+        }
+        else{
+            EWE::Logger::Print<EWE::Logger::Error>("Assert failed[%s]\n", statement_print.data());
+        }
+        EWE_Debug_Breakpoint();
+    }
+#endif
+}
+#if EWE_DEBUG_BOOL
+#define EWE_ASSERT(statement, ...) EWE_ASSERT_BACK(statement, #statement, ##__VA_ARGS__)
+#else
+#define EWE_ASSERT(statement, ...)
+#endif
 
 
 #if EWE_DEBUG_BOOL

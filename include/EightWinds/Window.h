@@ -32,6 +32,10 @@ namespace EWE {
 		VkSurfaceKHR surface;
 		Instance& instance;
 
+		bool resizeable = false;
+
+		void SetResizeable(bool resizeable);
+
 		std::function<void(GLFWwindow* windowPtr, int width, int height)> ResizeCallback = nullptr;
 	};
 }

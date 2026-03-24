@@ -5,36 +5,36 @@
 namespace EWE{
 
 
-    DescriptorImageInfo::DescriptorImageInfo(ImageView& view, DescriptorType type, VkImageLayout explicitLayout)
+    DescriptorImageInfo::DescriptorImageInfo(ImageView& _view, DescriptorType _type, VkImageLayout explicitLayout)
         : sampler{ nullptr },
-        view{ view },
+        view{ _view },
         imageInfo{
             .sampler = VK_NULL_HANDLE,
             .imageView = view,
             .imageLayout = explicitLayout
         },
-        type{ type },
+        type{ _type },
         index{ view.image.logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
     {
     }
-    DescriptorImageInfo::DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type, VkImageLayout explicitLayout)
-        : sampler{ &sampler },
-        view{ view },
+    DescriptorImageInfo::DescriptorImageInfo(Sampler& _sampler, ImageView& _view, DescriptorType _type, VkImageLayout explicitLayout)
+        : sampler{ &_sampler },
+        view{ _view },
         imageInfo{
-            .sampler = sampler,
+            .sampler = *sampler,
             .imageView = view,
             .imageLayout = explicitLayout
         },
-        type{ type },
+        type{ _type },
         index{ view.image.logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
     {
     }
-    DescriptorImageInfo::DescriptorImageInfo(ImageView& view, DescriptorType type)
-        : DescriptorImageInfo(view, type, view.image.data.layout)
+    DescriptorImageInfo::DescriptorImageInfo(ImageView& _view, DescriptorType _type)
+        : DescriptorImageInfo(_view, _type, view.image.data.layout)
     {
     }
-    DescriptorImageInfo::DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type)
-        : DescriptorImageInfo(sampler, view, type, view.image.data.layout)
+    DescriptorImageInfo::DescriptorImageInfo(Sampler& _sampler, ImageView& _view, DescriptorType _type)
+        : DescriptorImageInfo(_sampler, _view, _type, view.image.data.layout)
     {
     }
 
