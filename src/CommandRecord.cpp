@@ -3,10 +3,10 @@
 #include "EightWinds/VulkanHeader.h"
 
 namespace EWE{
-    
     namespace Command{
-    
-        Record::Record(std::string_view file_location) {
+        Record::Record(std::string_view file_location) 
+        : name{file_location}
+        {
             auto const& temp_insts = ReadInstructions(file_location);
             for(auto const& inst : temp_insts){
                 Add(inst);
@@ -38,9 +38,9 @@ namespace EWE{
                         EWE_ASSERT(if_command_length.size() == current_if_depth); //unnecessary, sanity check
                         continue;
                     case Instruction::Type::EndIf:
+                        EWE_ASSERT(current_if_depth >= 1);
                         EWE_ASSERT(if_command_length.size() == current_if_depth); //unnecessary, sanity check
                         current_if_depth--;
-                        EWE_ASSERT(current_if_depth >= 0);
                         if(if_command_length.back() == 0){
                             //if its 0, the if and endif instruction can be erased
                         }
@@ -175,6 +175,54 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
             EWE_ASSERT(current_offset = CalculateSize());
 #endif
+        }
+
+        static constexpr std::size_t record_file_version = 0;
+        void Record::WriteInstructions(std::string_view file_location, const std::span<const Instruction::Type> instructions){
+            std::ofstream stream_base{file_location.data(), std::ios::binary};
+            EWE_ASSERT(stream_base.is_open());
+            Stream::Operator<std::ofstream> stream{ stream_base };
+
+            std::size_t temp_buffer = record_file_version;
+            stream.Process(temp_buffer);
+            EWE_ASSERT(temp_buffer == record_file_version);
+
+            temp_buffer = instructions.size();
+            stream.Process(temp_buffer);
+
+            for(auto& inst : instructions){
+                stream.Process(inst);
+            }
+            stream_base.close();
+        }
+
+        void Record::WriteInstructions(std::string_view file_location){
+            
+            RuntimeArray<Instruction::Type> instructions{records.size()};
+            for(std::size_t i = 0; i < records.size(); i++){
+                instructions[i] = records[i].type;
+            }
+            WriteInstructions(file_location, instructions);
+        }
+
+        RuntimeArray<Instruction::Type> Record::ReadInstructions(std::string_view file_location){
+            std::ifstream stream_base{file_location.data(), std::ios::binary};
+            EWE_ASSERT(stream_base.is_open());
+            Stream::Operator<std::ifstream> stream{ stream_base };
+
+            std::size_t temp_buffer = record_file_version;
+            stream.Process(temp_buffer);
+            EWE_ASSERT(temp_buffer == record_file_version);
+
+            stream.Process(temp_buffer);
+
+            RuntimeArray<Instruction::Type> ret{temp_buffer};
+
+            for (std::size_t i = 0; i < temp_buffer; i++){
+                stream.Process(ret[i]);
+            }
+            stream_base.close();
+            return ret;
         }
     }//namespace Command
 } //namespace EWE

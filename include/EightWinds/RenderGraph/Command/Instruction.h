@@ -221,74 +221,11 @@ namespace EWE{
 
         template<Type IType>
         static constexpr decltype(auto) GetData(InstructionPointerAdjuster* inst_ptr, uint8_t frame) noexcept{
-            if constexpr(IType == Instruction::BindPipeline){
-                return *reinterpret_cast<ParamPack::Pipeline*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::BindDescriptor){
-                return nullptr;
-            }
-            else if constexpr(IType == Instruction::Push){
-                return *reinterpret_cast<GlobalPushConstant_Raw*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::BeginRender){
-                return *reinterpret_cast<VkRenderingInfo*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::EndRender){
-                return nullptr;
-            }
-            else if constexpr(IType == Instruction::Draw){
-                return *reinterpret_cast<ParamPack::VertexDraw*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawIndexed){
-                return *reinterpret_cast<ParamPack::IndexDraw*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::Dispatch){
-                return *reinterpret_cast<ParamPack::Dispatch*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawMeshTasks){
-                return *reinterpret_cast<ParamPack::DrawMeshTasks*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawIndirect){
-                return *reinterpret_cast<ParamPack::DrawIndirect*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawIndexedIndirect){
-                return *reinterpret_cast<ParamPack::DrawIndirect*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DispatchIndirect){
-                return *reinterpret_cast<ParamPack::DispatchIndirect*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawMeshTasksIndirect){
-                return *reinterpret_cast<ParamPack::DrawIndirect*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawIndirectCount){
-                return *reinterpret_cast<ParamPack::DrawIndirectCount*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawIndexedIndirectCount){
-                return *reinterpret_cast<ParamPack::DrawIndirectCount*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DrawMeshTasksIndirectCount){
-                return *reinterpret_cast<ParamPack::DrawIndirectCount*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DS_Viewport){
-                return *reinterpret_cast<ParamPack::Viewport*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DS_ViewportCount){
-                return *reinterpret_cast<ParamPack::ViewportCount*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DS_Scissor){
-                return *reinterpret_cast<ParamPack::Scissor*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::DS_ScissorCount){
-                return *reinterpret_cast<ParamPack::ScissorCount*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::BeginLabel){
-                return *reinterpret_cast<ParamPack::Label*>(inst_ptr->data[frame]);
-            }
-            else if constexpr(IType == Instruction::EndLabel){
-                return nullptr;//this is a logical device function. potentially could make it static in logicaldevice?
+            if constexpr (std::meta::is_complete_type(^^ParamPack<IType>)){
+                return *reinterpret_cast<ParamPack<IType>*>(inst_ptr->data[frame]);
             }
             else{
-                return nullptr;
+                nullptr;
             }
         }
 

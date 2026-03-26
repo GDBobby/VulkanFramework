@@ -4,6 +4,8 @@
 
 #include "EightWinds/Reflect/Enum.h"
 
+//https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2025/p2996r13.html <-- best resource for reflection
+
 namespace Reflect{
 
   /*

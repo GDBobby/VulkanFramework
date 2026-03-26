@@ -23,6 +23,7 @@
 #include <unordered_set>
 
 namespace EWE{
+
 	
 	struct DrawBase : public GlobalPushConstant_Abstract {
 		bool use_labelPack = false;

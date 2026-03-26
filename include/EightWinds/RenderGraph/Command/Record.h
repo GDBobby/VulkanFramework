@@ -39,6 +39,8 @@ namespace EWE{
             Record(Record&&) = delete;
             Record& operator=(Record&&) = delete;
 
+            std::string name;
+
             //i dont know how to handle command lists that are going to be duplicated, or only slightly modified
             //so im going to disable it
             bool hasBeenCompiled = false;
@@ -129,56 +131,9 @@ namespace EWE{
             bool ValidateInstructions() const;
 #endif
 
-
-
-            static constexpr std::size_t file_version = 0;
-
-            static void WriteInstructions(std::string_view file_location, const std::span<const Instruction::Type> instructions){
-                std::ofstream stream_base{file_location.data(), std::ios::binary};
-                EWE_ASSERT(stream_base.is_open());
-                Stream::Operator<std::ofstream> stream{ stream_base };
-
-                std::size_t temp_buffer = file_version;
-                stream.Process(temp_buffer);
-                EWE_ASSERT(temp_buffer == file_version);
-
-                temp_buffer = instructions.size();
-                stream.Process(temp_buffer);
-
-                for(auto& inst : instructions){
-                    stream.Process(inst);
-                }
-                stream_base.close();
-            }
-
-            void WriteInstructions(std::string_view file_location){
-                
-                RuntimeArray<Instruction::Type> instructions{records.size()};
-                for(std::size_t i = 0; i < records.size(); i++){
-                    instructions[i] = records[i].type;
-                }
-                WriteInstructions(file_location, instructions);
-            }
-
-            static RuntimeArray<Instruction::Type> ReadInstructions(std::string_view file_location){
-                std::ifstream stream_base{file_location.data(), std::ios::binary};
-                EWE_ASSERT(stream_base.is_open());
-                Stream::Operator<std::ifstream> stream{ stream_base };
-
-                std::size_t temp_buffer = file_version;
-                stream.Process(temp_buffer);
-                EWE_ASSERT(temp_buffer == file_version);
-
-                stream.Process(temp_buffer);
-
-                RuntimeArray<Instruction::Type> ret{temp_buffer};
-
-                for (std::size_t i = 0; i < temp_buffer; i++){
-                    stream.Process(ret[i]);
-                }
-                stream_base.close();
-                return ret;
-            }
+            static void WriteInstructions(std::string_view file_location, const std::span<const Instruction::Type> instructions);
+            void WriteInstructions(std::string_view file_location);
+            static RuntimeArray<Instruction::Type> ReadInstructions(std::string_view file_location);
         };
     }//namespace Command
 }//namespace EWE
