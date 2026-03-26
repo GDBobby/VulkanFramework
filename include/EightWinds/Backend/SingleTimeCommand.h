@@ -8,13 +8,11 @@ namespace EWE{
 
 
     struct SingleTimeCommand {
-        Queue::Type queueType; //i dont think this is necessary (2/12)
         CommandPool* cmdPool;
         CommandBuffer cmdBuf;
         TimelineSemaphore* semaphore;
-        [[nodiscard]] explicit SingleTimeCommand(Queue::Type _queueType, CommandPool* _cmdPool, TimelineSemaphore* _semaphore) 
-        : queueType{ _queueType }, 
-            cmdPool { _cmdPool }, 
+        [[nodiscard]] explicit SingleTimeCommand(CommandPool* _cmdPool, TimelineSemaphore* _semaphore) 
+        : cmdPool { _cmdPool }, 
             cmdBuf{ cmdPool->AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },
             semaphore{_semaphore}
         {} //construct the commandbuffer here

@@ -48,7 +48,8 @@ namespace EWE{
 
 
     TimelineSemaphore::TimelineSemaphore(LogicalDevice& _logicalDevice, uint64_t initialValue)
-        : logicalDevice{_logicalDevice}
+        : logicalDevice{_logicalDevice},
+        value{initialValue}
     {
         //VK_SEMAPHORE_TYPE_BINARY = 0,
         //VK_SEMAPHORE_TYPE_TIMELINE = 1,

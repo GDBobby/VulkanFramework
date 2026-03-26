@@ -16,6 +16,8 @@ namespace EWE{
     }
 
     struct Buffer{
+        using Barrier = VkBufferMemoryBarrier2;
+
         LogicalDevice& logicalDevice;
         Queue* owningQueue;
         std::string name;

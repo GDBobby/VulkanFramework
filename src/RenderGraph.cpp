@@ -1,14 +1,16 @@
 #include "EightWinds/RenderGraph/RenderGraph.h"
 #include "EightWinds/VulkanHeader.h"
+#include <vulkan/vulkan_core.h>
 
-#include <format>
+#include "LAB/Support/Generic.h"
 
 namespace EWE{
 
 
-    RenderGraph::RenderGraph(LogicalDevice& _logicalDevice, Swapchain& _swapchain)
+    RenderGraph::RenderGraph(LogicalDevice& _logicalDevice, Swapchain& _swapchain, Queue& _renderQueue, Queue& _computeQueue)
         : logicalDevice{_logicalDevice},
         swapchain{_swapchain},
+        renderQueue{_renderQueue}, computeQueue{_computeQueue},
         presentBridge{logicalDevice, swapchain.presentQueue},
         //presentSubmission{ swapchain, swapchain.presentQueue },
         presentInfo{
@@ -32,7 +34,13 @@ namespace EWE{
                 .deviceIndex = 0
             }
         },
-        semaphores{0, logicalDevice}//,
+        semaphores{0, logicalDevice},
+        stc_management{
+            logicalDevice,
+            renderQueue, computeQueue,
+            submissions.AddElement(logicalDevice, renderQueue, "graphics STC task"), submissions.AddElement(logicalDevice, computeQueue, "compute STC task")
+        },
+        current_stc_manager{stc_management.GetNext()}
         //binary_semaphores{0, logicalDevice}
     {
 #if EWE_DEBUG_BOOL
@@ -50,7 +58,30 @@ namespace EWE{
 
     void RenderGraph::Execute(uint8_t frameIndex) {
 
-        UpdateSemaphores(frameIndex);
+        auto frame_stc_manager = current_stc_manager;
+        current_stc_manager = stc_management.GetNext();
+        frame_stc_manager->CollectSTCs();
+
+        UpdateSemaphores(frameIndex, frame_stc_manager);
+
+        const bool submitting_compute_stc = frame_stc_manager->CheckSize(Queue::Compute);
+        const bool submitting_graphics_stc = frame_stc_manager->CheckSize(Queue::Graphics);
+        if(submitting_compute_stc){
+            frame_stc_manager->compute_stc_task.packaged_tasks.clear();
+            frame_stc_manager->compute_stc_task.packaged_tasks.push_back(frame_stc_manager->compute_task);
+            frame_stc_manager->compute_stc_task.Execute(frameIndex);
+            computeQueue.Submit2(frame_stc_manager->compute_stc_task.submitInfo[frameIndex].Expand());
+        }
+        if(submitting_graphics_stc){
+            frame_stc_manager->graphics_stc_task.packaged_tasks.clear();
+            frame_stc_manager->graphics_stc_task.packaged_tasks.push_back(frame_stc_manager->graphics_task);
+            frame_stc_manager->graphics_stc_task.Execute(frameIndex);
+            auto& stc_subInfo = frame_stc_manager->graphics_stc_task.submitInfo[frameIndex];
+            renderQueue.Submit2(stc_subInfo.Expand());
+        }
+
+        frame_stc_manager->UpdateResources();
+        stc_management.Return(frame_stc_manager);
 
         for (std::size_t i = 0; i < execution_order.size(); i++) {
             std::vector<VkSubmitInfo2> subInfos{};
@@ -132,6 +163,7 @@ namespace EWE{
                     max_width = sub_group.size();
                 }
             }
+            max_width = lab::Max(max_width, std::size_t(1));
             if(max_width != semaphores[0].Size()){
                 for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
                     semaphores[frame].ClearAndResize(max_width, logicalDevice);
@@ -142,13 +174,6 @@ namespace EWE{
             //the binary semaphores aren't per flight, they're per swap image
             EWE_ASSERT(execution_order.back().size() == 1);
 
-            /*
-            if(binary_semaphores[0].Size() != execution_order.back().size()){
-                for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                    binary_semaphores[frame].ClearAndResize(execution_order.back().size(), logicalDevice);
-                }
-            }
-            */
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
                 present_wait_raw_semaphore_data[frame].clear();
             }
@@ -157,8 +182,42 @@ namespace EWE{
         std::size_t present_image_used_index = execution_order.size();
 
         for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+
+            //stcs
+            if(execution_order.size() == 0){
+                //this is valid
+                EWE_ASSERT(false, "not supported yet");
+            }
+            else{
+                //the graphics stc task is the same per all managers
+                stc_management.data[0].graphics_stc_task.submitInfo[frame].signalSemaphores.emplace_back(
+                    VkSemaphoreSubmitInfo{
+                        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                        .pNext = nullptr,
+                        .semaphore = semaphores[frame][0],
+                        .value = 1,
+                        .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                        .deviceIndex = 0
+                    }   
+                );
+            }
+            auto& d_first_sub = stc_management.data[0];
+            auto& d_second_sub = stc_management.data[1];
+            auto& d_third_sub = stc_management.data[2];
+
             for(std::size_t i = 0; i < execution_order.size(); i++){
                 auto& sub_group = execution_order[i];
+                if(first_graphics_task_group < 0){
+                    if(sub_group[0]->queue == renderQueue){
+                        first_graphics_task_group = i;
+                    }
+                }
+                if(first_compute_task_group < 0){
+                    if(sub_group[0]->queue == computeQueue){
+                        first_compute_task_group = i;
+                    }
+                }
+
                 for(std::size_t j = 0; j < sub_group.size(); j++){
                     auto& ind_sub = sub_group[j];
                     ind_sub->submitInfo[frame].signalSemaphores.clear();
@@ -171,7 +230,7 @@ namespace EWE{
                                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                                 .pNext = nullptr,
                                 .semaphore = VK_NULL_HANDLE,//binary_semaphores[frame][j],
-                                .value = i + 1,
+                                .value = i + 2,
                                 .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                 .deviceIndex = 0
                             }
@@ -184,7 +243,7 @@ namespace EWE{
                                 .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                                 .pNext = nullptr,
                                 .semaphore = semaphores[frame][j],
-                                .value = i + 1,
+                                .value = i + 2, //i + 2, the first submission (the STC, not included in execution_groups) is equal to 1
                                 .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
                                 .deviceIndex = 0
                             }
@@ -199,20 +258,25 @@ namespace EWE{
                             ind_sub->submitInfo[frame].waitSemaphores.emplace_back(&prev_ind_sub->submitInfo[frame].signalSemaphores[0]);
                         }
                     }
+                    /* i think ill need to update this every frame
+                    else{
+                        if(ind_sub->queue == stc_management.renderQueue){
+                            ind_sub->submitInfo[frame].waitSemaphores.emplace_back(&stc_management)
+                        }
+                        else if(ind_sub->queue == stc_management.computeQueue){
+
+                        }
+                    }
+                        */
+
                     if(ind_sub->uses_present_image){
                         if(present_image_used_index > i){
                             present_image_used_index = i;
                         }
-
-
-
                         if(present_image_used_index == i){
                             ind_sub->submitInfo[frame].waitSemaphores.emplace_back( //this is a binary semaphore? waits on acquire
                                 &present_wait_semaphore_data[frame]
                             );
-
-
-                            //present_acquire_waits[frame].push_back(&ind_sub->submitInfo[frame].waitSemaphores.back()->semaphore);
                         }
                     }
                 }
@@ -224,7 +288,74 @@ namespace EWE{
         }
     }
 
-    void RenderGraph::UpdateSemaphores(uint8_t frameIndex){
+    void RenderGraph::UpdateSemaphores(uint8_t frameIndex, STCManagement* frame_stc_manager){
+
+
+        const bool submitting_compute_stc = frame_stc_manager->CheckSize(Queue::Compute);
+        const bool submitting_graphics_stc = frame_stc_manager->CheckSize(Queue::Graphics);
+
+        EWE_ASSERT(!submitting_compute_stc, "not ready for compute commands yet");
+
+        if(first_graphics_task_group > 0){
+            auto& first_graphics_group = execution_order[first_graphics_task_group];
+            const auto stc_receiver_size = first_graphics_group[0]->submitInfo[frameIndex].waitSemaphores.size();
+            const auto stc_prev_size = execution_order[first_graphics_task_group - 1][0]->submitInfo[frameIndex].signalSemaphores.size();
+            if(stc_receiver_size > stc_prev_size){
+                for(auto& current_group_member : first_graphics_group){
+                    current_group_member->submitInfo[frameIndex].waitSemaphores.pop_back();
+                }
+            }
+        }
+        else if(first_graphics_task_group == 0){
+            for(auto& ind_sub : execution_order[0]){
+                ind_sub->submitInfo[frameIndex].waitSemaphores.clear();
+            }
+        }
+
+        if(first_compute_task_group > 0){
+            auto& first_compute_group = execution_order[first_compute_task_group];
+            const auto stc_receiver_size = first_compute_group[0]->submitInfo[frameIndex].waitSemaphores.size();
+            const auto stc_prev_size = execution_order[first_compute_task_group - 1][0]->submitInfo[frameIndex].signalSemaphores.size();
+            if(stc_receiver_size > stc_prev_size){
+                for(auto& current_group_member : first_compute_group){
+                    current_group_member->submitInfo[frameIndex].waitSemaphores.pop_back();
+                }
+            }
+        }
+        else if(first_compute_task_group == 0){
+            for(auto& ind_sub : execution_order[0]){
+                ind_sub->submitInfo[frameIndex].waitSemaphores.clear();
+            }
+        }
+
+
+        if(first_graphics_task_group >= 0){
+            auto& sig_sem = frame_stc_manager->graphics_stc_task.submitInfo[frameIndex].signalSemaphores[0];
+            if(submitting_graphics_stc){
+                auto& first_graphics_group = execution_order[first_graphics_task_group];
+                for(auto& ind_sub : first_graphics_group){
+                    ind_sub->submitInfo[frameIndex].waitSemaphores.push_back(&sig_sem);
+                }
+            }
+            auto& ref_sem = semaphores[frameIndex][0];
+            sig_sem.value = ref_sem.value + 1;
+            ref_sem.value++;
+        }
+
+        if(first_compute_task_group >= 0){
+            auto& sig_sem = frame_stc_manager->compute_stc_task.submitInfo[frameIndex].signalSemaphores[0];             
+            if(submitting_compute_stc){
+                auto& first_compute_group = execution_order[first_compute_task_group];
+                for(auto& ind_sub : first_compute_group){
+                    ind_sub->submitInfo[frameIndex].waitSemaphores.push_back(&sig_sem);
+                }
+            }
+            auto& ref_sem = semaphores[frameIndex][0];
+            sig_sem.value = ref_sem.value + 1;
+            ref_sem.value++;
+        }
+        
+
         for(std::size_t i = 0; i < execution_order.size(); i++){
             if(i != (execution_order.size() - 1)){
                 auto& sub_group = execution_order[i];
@@ -245,7 +376,9 @@ namespace EWE{
     }
 
 
-    template <> void RenderGraph::ResourceOwnershipTransfer(VkDependencyInfo depenInfo, Resource<Image> res){
+    template <> void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Image> data) {
         //do flip flop storage
+        current_stc_manager->image_ownership.push_back(data);
+
     }
 }

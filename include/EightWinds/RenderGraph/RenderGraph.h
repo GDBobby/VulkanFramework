@@ -16,15 +16,17 @@
 
 #include "EightWinds/Backend/Semaphore.h"
 #include "EightWinds/Backend/SingleTimeCommand.h"
+#include "EightWinds/RenderGraph/STCs.h"
 
 #include "EightWinds/Data/Hive.h"
+#include "EightWinds/Data/RingBuffer.h"
 
 namespace EWE{
 
     struct ImguiExtension;
 
     struct RenderGraph{
-        [[nodiscard]] explicit RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain); //this cant be noexcept because Hive can throw if malloc fails
+        [[nodiscard]] explicit RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain, Queue& renderQueue, Queue& computeQueue); //this cant be noexcept because Hive can throw if malloc fails
         RenderGraph(RenderGraph const& copySrc) = delete;
         RenderGraph(RenderGraph&& moveSrc) = delete;
         RenderGraph& operator=(RenderGraph const& copySrc) = delete;
@@ -34,30 +36,29 @@ namespace EWE{
 
         LogicalDevice& logicalDevice;
         Swapchain& swapchain;
+        Queue& renderQueue;
+        Queue& computeQueue;
 
         //its important that task dont get moved or copied
         Hive<GPUTask> tasks;
-        
         Hive<SubmissionTask> submissions;
         //PresentSubmission presentSubmission;
 
         PresentBridge presentBridge;
-
         SynchronizationManager syncManager;
 
         //each inner vector needs to use only one queue
         std::vector<std::vector<SubmissionTask*>> execution_order;
 
-
         PerFlight<VkSemaphoreSubmitInfo> present_wait_semaphore_data;
         VkResult presentResult = VK_SUCCESS;
+        PerFlight<VkPresentInfoKHR> presentInfo;
         PerFlight<std::vector<VkSemaphore>> present_wait_raw_semaphore_data{};
         //PerFlight<std::vector<VkSemaphore*>> present_acquire_waits{};
-        PerFlight<VkPresentInfoKHR> presentInfo{};
-
 
         PerFlight<RuntimeArray<TimelineSemaphore>> semaphores;
-        //PerFlight<RuntimeArray<BinarySemaphore>> binary_semaphores; //for present
+        int first_graphics_task_group = -1; //under 0 means it's invalid
+        int first_compute_task_group = -1;
 
         void Execute(uint8_t frameIndex);
 
@@ -66,10 +67,13 @@ namespace EWE{
 
         void InitializeSemaphores(); //this prevents needing to branch every frame
         //this needs to be ran every frame
-        void UpdateSemaphores(uint8_t frameIndex);
+        void UpdateSemaphores(uint8_t frameIndex, STCManagement* frame_stc_manager);
+
+        RingBuffer<STCManagement, max_frames_in_flight + 1> stc_management;
+        STCManagement* current_stc_manager;
 
         template<typename R>
-        void ResourceOwnershipTransfer(VkDependencyInfo depenInfo, Resource<R> res);
+        void ResourceOwnershipTransfer(STCManagement::Helper<R> data);
 
         template<typename T>
         void ChangeResource(GPUTask& task, uint32_t res_index, T* resource, uint8_t frameIndex) {
@@ -85,6 +89,6 @@ namespace EWE{
         friend struct ImguiExtension;
     };
 
-    template <> void RenderGraph::ResourceOwnershipTransfer(VkDependencyInfo depenInfo, Resource<Image> res);
-    // not ready yet template <> void RenderGraph::ResourceOwnershipTransfer(VkDependencyInfo depenInfo, Resource<Buffer>);
+    template <> void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Image> data);
+    template <> void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Buffer> data);
 }//namespace EWE

@@ -48,7 +48,7 @@ namespace EWE{
 	void TaskAffix::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex){
 		auto& barrier = barriers[frameIndex];
 		if (!barrier.Empty()) {
-			vkCmdPipelineBarrier2(cmdBuf, &(barrier.dependencyInfo));
+			vkCmdPipelineBarrier2(cmdBuf, &barrier.dependencyInfo);
 		}
 		for (auto& upd : image_updates) {
 			upd.img->data.layout = upd.layout;

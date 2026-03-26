@@ -21,14 +21,6 @@ namespace EWE{
             std::vector<VkSemaphoreSubmitInfo*> waitSemaphores;
             std::vector<VkSemaphoreSubmitInfo> signalSemaphores;
 
-            /*
-            std::vector<BinarySemaphore*> wait_binaries;
-            std::vector<TimelineSemaphore*> wait_timelines;
-            std::vector<BinarySemaphore*> signal_binaries;
-            std::vector<TimelineSemaphore*> signal_timelines;
-            */
-
-
             void AddCommandBuffer(CommandBuffer& cmdBuf);
 
             void WaitOnPrevious(SubmitInfo& previous);

@@ -15,6 +15,8 @@ namespace EWE{
     struct StagingBuffer;
 
     struct Image{
+        using Barrier = VkImageMemoryBarrier2;
+        
         LogicalDevice& logicalDevice;
         VkImage image;
         std::string name; //directory, this is the hash key for an unordered_set
