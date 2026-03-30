@@ -44,15 +44,13 @@ namespace EWE{
         void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
 
         std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
-        std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload = nullptr;
-        std::function<bool(uint8_t frameIndex)> independent_workload = nullptr;
         
         TaskResourceUsage resources;
 
         TaskAffix prefix{};
         TaskAffix suffix{};
         void GenerateWorkload();
-        void GenerateExternalWorkload();
+        void GenerateExternalWorkload(std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload);
     };
 
 

@@ -9,9 +9,9 @@ namespace EWE{
 	DeferredPipelineExecute::DeferredPipelineExecute(
 		LogicalDevice& logicalDevice, 
 		TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-		InstructionPointer<ParamPack::Pipeline>* pipe_params,
-		InstructionPointer<ParamPack::Viewport>* vp_params,
-		InstructionPointer<ParamPack::Scissor>* sc_params
+		InstructionPointer<ParamPack<Inst::BindPipeline>>* pipe_params,
+		InstructionPointer<ParamPack<Inst::DS_Viewport>>* vp_params,
+		InstructionPointer<ParamPack<Inst::DS_Scissor>>* sc_params
 	)
 		: pipeline{
 			new GraphicsPipeline(
@@ -39,9 +39,9 @@ namespace EWE{
 				std::vector<VkDynamicState>{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR}
 			)
 		},
-		pipe_paramPack{ record.Add<Instruction::BindPipeline>()},
-		vp_paramPack{ record.Add<Instruction::DS_Viewport>()},
-		sc_paramPack{record.Add<Instruction::DS_Scissor>()}
+		pipe_paramPack{ record.Add<Inst::BindPipeline>()},
+		vp_paramPack{ record.Add<Inst::DS_Viewport>()},
+		sc_paramPack{record.Add<Inst::DS_Scissor>()}
 	{
 	}
 
@@ -103,9 +103,9 @@ namespace EWE{
 		std::size_t current_offset = 0;
 
 		for (auto const& obj_config : unique_configs_vertex) {
-			auto* pipelineBind = record.Add<Instruction::BindPipeline>();
-			auto* vp_bind = record.Add<Instruction::DS_Viewport>();
-			auto* sc_bind = record.Add<Instruction::DS_Scissor>();
+			auto* pipelineBind = record.Add<Inst::BindPipeline>();
+			auto* vp_bind = record.Add<Inst::DS_Viewport>();
+			auto* sc_bind = record.Add<Inst::DS_Scissor>();
 
 			deferred_pipelines.ConstructAt(current_offset,
 				logicalDevice,
@@ -116,20 +116,20 @@ namespace EWE{
 			auto& vert_ex_back = deferred_pipelines[current_offset++];
 
 			if (vert_ex_back.pipeline->pipeLayout->descriptorSets.sets.size() > 0) {
-				record.Add<Instruction::BindDescriptor>();
+				record.Add<Inst::BindDescriptor>();
 			}
 
 			if (vert_draws.Contains(obj_config)) {
 				for (auto* draw : vert_draws.at(obj_config).value) {
 					if (draw->use_labelPack) {
-						draw->deferred_label = record.Add<Instruction::BeginLabel>();
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::Draw>();
-						record.Add<Instruction::EndLabel>();
+						draw->deferred_label = record.Add<Inst::BeginLabel>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::Draw>();
+						record.Add<Inst::EndLabel>();
 					}
 					else {
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::Draw>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::Draw>();
 					}
 				}
 			}
@@ -137,85 +137,72 @@ namespace EWE{
 			if (indexed_draws.Contains(obj_config)) {
 				for (auto* draw : indexed_draws.at(obj_config).value) {
 					if (draw->use_labelPack) {
-						draw->deferred_label = record.Add<Instruction::BeginLabel>();
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndexed>();
-						record.Add<Instruction::EndLabel>();
+						draw->deferred_label = record.Add<Inst::BeginLabel>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndexed>();
+						record.Add<Inst::EndLabel>();
 					}
 					else {
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndexed>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndexed>();
 					}
 				}
-			}
-			if (vert_draw_counts.Contains(obj_config)) {
-				EWE_ASSERT(false, "unsupported");
-				//for (auto* draw : vert_draw_counts.at(config).value) {
-				//	record.Draw();
-				//}
-			}
-
-			if (index_draw_counts.Contains(obj_config)) {
-				EWE_ASSERT(false, "unsupported");
-				//for (auto* draw : index_draw_counts.at(config).value) {
-				//	record.DrawIndexed();
-				//}
 			}
 
 
 			if (indirect_vert_draws.Contains(obj_config)) {
 				for (auto* draw : indirect_vert_draws.at(obj_config).value) {
 					if (draw->use_labelPack) {
-						draw->deferred_label = record.Add<Instruction::BeginLabel>();
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndirect>();
-						record.Add<Instruction::EndLabel>();
+						draw->deferred_label = record.Add<Inst::BeginLabel>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndirect>();
+						record.Add<Inst::EndLabel>();
 					}
 					else {
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndirect>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndirect>();
 					}
 				}
 			}
 			if (indirect_indexed_draws.Contains(obj_config)) {
 				for (auto* draw : indirect_indexed_draws.at(obj_config).value) {
 					if (draw->use_labelPack) {
-						draw->deferred_label = record.Add<Instruction::BeginLabel>();
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndexedIndirect>();
-						record.Add<Instruction::EndLabel>();
+						draw->deferred_label = record.Add<Inst::BeginLabel>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndexedIndirect>();
+						record.Add<Inst::EndLabel>();
 					}
 					else {
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndexedIndirect>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndexedIndirect>();
 					}
 				}
 			}
 			if (indirect_count_vert_draws.Contains(obj_config)) {
 				for (auto* draw : indirect_count_vert_draws.at(obj_config).value) {
 					if (draw->use_labelPack) {
-						draw->deferred_label = record.Add<Instruction::BeginLabel>();
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndirectCount>();
-						record.Add<Instruction::EndLabel>();
+						draw->deferred_label = record.Add<Inst::BeginLabel>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndirectCount>();
+						record.Add<Inst::EndLabel>();
 					}
 					else {
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndirectCount>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndirectCount>();
 					}
 				}
 			}
 			if (indirect_count_indexed_draws.Contains(obj_config)) {
 				for (auto* draw : indirect_count_indexed_draws.at(obj_config).value) {
 					if (draw->use_labelPack) {
-						draw->deferred_label = record.Add<Instruction::BeginLabel>();
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndexedIndirectCount>();
-						record.Add<Instruction::EndLabel>();
+						draw->deferred_label = record.Add<Inst::BeginLabel>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndexedIndirectCount>();
+						record.Add<Inst::EndLabel>();
 					}
 					else {
-						draw->deferred_push = record.Add<Instruction::Push>();
-						draw->paramPack = record.Add<Instruction::DrawIndexedIndirectCount>();
+						draw->deferred_push = record.Add<Inst::Push>();
+						draw->paramPack = record.Add<Inst::DrawIndexedIndirectCount>();
 					}
 				}
 			}
@@ -225,9 +212,9 @@ namespace EWE{
 	void RasterTask::Record_Mesh(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs_mesh, std::size_t current_offset) {
 
 		for (auto const& obj_config : unique_configs_mesh) {
-			auto* pipelineBind = record.Add<Instruction::BindPipeline>();
-			auto* vp_bind = record.Add<Instruction::DS_Viewport>();
-			auto* sc_bind = record.Add<Instruction::DS_Scissor>();
+			auto* pipelineBind = record.Add<Inst::BindPipeline>();
+			auto* vp_bind = record.Add<Inst::DS_Viewport>();
+			auto* sc_bind = record.Add<Inst::DS_Scissor>();
 
 			deferred_pipelines.ConstructAt(current_offset, 
 				logicalDevice, 
@@ -238,21 +225,14 @@ namespace EWE{
 			auto& mesh_ex_back = deferred_pipelines[current_offset++];
 
 			if (mesh_ex_back.pipeline->pipeLayout->descriptorSets.sets.size() > 0) {
-				record.Add<Instruction::BindDescriptor>();
+				record.Add<Inst::BindDescriptor>();
 			}
 
 			if (mesh_draws.Contains(obj_config)) {
 				for (auto* draw : mesh_draws.at(obj_config).value) {
-					draw->deferred_push = record.Add<Instruction::Push>();
-					draw->paramPack = record.Add<Instruction::DrawMeshTasks>();
+					draw->deferred_push = record.Add<Inst::Push>();
+					draw->paramPack = record.Add<Inst::DrawMeshTasks>();
 				}
-			}
-			if (mesh_draw_counts.Contains(obj_config)) {
-				EWE_ASSERT(false, "unsupported");
-				//for (auto* draw : mesh_draw_counts.at(config).value) {
-				//	auto& emp = mesh_ex_back.mesh_draws.emplace_back(record.DrawMeshTasks());
-				//	draw->paramPack = emp;
-				//}
 			}
 		}
 	}
@@ -269,29 +249,29 @@ namespace EWE{
 		//^pipelines will be constructed before this goes out of scope
 #if EWE_DEBUG_NAMING
 		if (labeled) {
-			deferred_label = record.Add<Instruction::BeginLabel>();
+			deferred_label = record.Add<Inst::BeginLabel>();
 		}
 #endif
-		deferred_vk_render_info = record.Add<Instruction::BeginRender>();
+		deferred_vk_render_info = record.Add<Inst::BeginRender>();
 
 		//i need to pre-record unique_configs so that I can resize the deferred_pipeline_execute runtimearray
 		std::unordered_set<ObjectRasterData> unique_configs_vertex{};
 		for (auto& [obj_config, _] : vert_draws) unique_configs_vertex.insert(obj_config);
 		for (auto& [obj_config, _] : indexed_draws) unique_configs_vertex.insert(obj_config);
-		for (auto& [obj_config, _] : vert_draw_counts) unique_configs_vertex.insert(obj_config);
-		for (auto& [obj_config, _] : index_draw_counts)	unique_configs_vertex.insert(obj_config);
+		//for (auto& [obj_config, _] : vert_draw_counts) unique_configs_vertex.insert(obj_config);
+		//for (auto& [obj_config, _] : index_draw_counts)	unique_configs_vertex.insert(obj_config);
 
 		std::unordered_set<ObjectRasterData> unique_configs_mesh{};
 		for (auto& [obj_config, _] : mesh_draws) unique_configs_mesh.insert(obj_config);
-		for (auto& [obj_config, _] : mesh_draw_counts) unique_configs_mesh.insert(obj_config);
+		//for (auto& [obj_config, _] : mesh_draw_counts) unique_configs_mesh.insert(obj_config);
 
 		deferred_pipelines.Resize(unique_configs_vertex.size() + unique_configs_mesh.size());
 		Record_Vertices(record, unique_configs_vertex);
 		Record_Mesh(record, unique_configs_mesh, unique_configs_vertex.size());
-		record.Add<Instruction::EndRender>();
+		record.Add<Inst::EndRender>();
 #if EWE_DEBUG_NAMING
 		if (labeled) {
-			record.Add<Instruction::EndLabel>();
+			record.Add<Inst::EndLabel>();
 		}
 #endif
 

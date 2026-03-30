@@ -2,14 +2,12 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/Buffer.h"
-#include "EightWinds/Image.h"
-
-#include "EightWinds/DescriptorImageInfo.h"
-
 #include "EightWinds/RenderGraph/Command/InstructionPointer.h"
 
 namespace EWE{
+
+    struct Buffer;
+    struct DescriptorImageInfo;
 
     struct GlobalPushConstant_Raw{
         static constexpr uint8_t buffer_count = 8;

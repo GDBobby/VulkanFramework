@@ -201,9 +201,6 @@ namespace EWE{
                     }   
                 );
             }
-            auto& d_first_sub = stc_management.data[0];
-            auto& d_second_sub = stc_management.data[1];
-            auto& d_third_sub = stc_management.data[2];
 
             for(std::size_t i = 0; i < execution_order.size(); i++){
                 auto& sub_group = execution_order[i];

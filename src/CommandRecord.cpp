@@ -2,6 +2,8 @@
 #include "EightWinds/RenderGraph/Command/Record.h"
 #include "EightWinds/VulkanHeader.h"
 
+#include "EightWinds/Data/StreamHelper.h"
+
 namespace EWE{
     namespace Command{
         Record::Record(std::string_view file_location) 
@@ -32,12 +34,12 @@ namespace EWE{
             bool currently_rendering = false;
             for(auto& rec : records){
                 switch(rec.type){
-                    case Instruction::Type::If:
+                    case Inst::Type::If:
                         current_if_depth++;
                         if_command_length.push_back(0);
                         EWE_ASSERT(if_command_length.size() == current_if_depth); //unnecessary, sanity check
                         continue;
-                    case Instruction::Type::EndIf:
+                    case Inst::Type::EndIf:
                         EWE_ASSERT(current_if_depth >= 1);
                         EWE_ASSERT(if_command_length.size() == current_if_depth); //unnecessary, sanity check
                         current_if_depth--;
@@ -46,43 +48,43 @@ namespace EWE{
                         }
                         if_command_length.pop_back();
                         continue;
-                    case Instruction::Type::BeginLabel:
+                    case Inst::Type::BeginLabel:
                         current_label_depth++;
                         break;
-                    case Instruction::Type::EndLabel:
+                    case Inst::Type::EndLabel:
                         current_label_depth--;
                         EWE_ASSERT(current_label_depth >= 0);
                         break;
 
-                    case Instruction::Type::BeginRender:
+                    case Inst::Type::BeginRender:
                         EWE_ASSERT(!currently_rendering);
                         currently_rendering = true;
                         break;
-                    case Instruction::Type::EndRender:
+                    case Inst::Type::EndRender:
                         EWE_ASSERT(currently_rendering);
                         currently_rendering = false;
                         break;
-                    case Instruction::Type::BindPipeline:
+                    case Inst::Type::BindPipeline:
                         pipeline_bound = true;
                         break;
 
-                    case Instruction::Type::BindDescriptor:
-                    case Instruction::Type::Push:
-                    case Instruction::Type::DS_Viewport:
-                    case Instruction::Type::DS_ViewportCount:
-                    case Instruction::Type::DS_Scissor:
-                    case Instruction::Type::DS_ScissorCount:
-                    case Instruction::Type::Draw:
-                    case Instruction::Type::DrawIndexed:
-                    case Instruction::Type::Dispatch:
-                    case Instruction::Type::DrawMeshTasks:
-                    case Instruction::Type::DrawIndirect:
-                    case Instruction::Type::DrawIndexedIndirect:
-                    case Instruction::Type::DispatchIndirect:
-                    case Instruction::Type::DrawMeshTasksIndirect:
-                    case Instruction::Type::DrawIndirectCount:
-                    case Instruction::Type::DrawIndexedIndirectCount:
-                    case Instruction::Type::DrawMeshTasksIndirectCount:
+                    case Inst::Type::BindDescriptor:
+                    case Inst::Type::Push:
+                    case Inst::Type::DS_Viewport:
+                    case Inst::Type::DS_ViewportCount:
+                    case Inst::Type::DS_Scissor:
+                    case Inst::Type::DS_ScissorCount:
+                    case Inst::Type::Draw:
+                    case Inst::Type::DrawIndexed:
+                    case Inst::Type::Dispatch:
+                    case Inst::Type::DrawMeshTasks:
+                    case Inst::Type::DrawIndirect:
+                    case Inst::Type::DrawIndexedIndirect:
+                    case Inst::Type::DispatchIndirect:
+                    case Inst::Type::DrawMeshTasksIndirect:
+                    case Inst::Type::DrawIndirectCount:
+                    case Inst::Type::DrawIndexedIndirectCount:
+                    case Inst::Type::DrawMeshTasksIndirectCount:
 
                         EWE_ASSERT(pipeline_bound);
                         break;
@@ -121,10 +123,10 @@ namespace EWE{
             }
             uint64_t blitIndex = 0;
             for (auto const& inst : records) {
-                if (inst.type == Instruction::Type::BeginRender) {
+                if (inst.type == Inst::Type::BeginRender) {
                     ret.renderTracker = new RenderTracker();
                 }
-                if(inst.type == Instruction::Type::Blit) {
+                if(inst.type == Inst::Type::Blit) {
                     auto& blitBack = ret.blitTrackers.emplace_back();
                     blitBack.dstImage.resource = nullptr;
                     blitBack.srcImage.resource = nullptr;
@@ -143,7 +145,7 @@ namespace EWE{
         }
         */
 
-        InstructionPointerAdjuster* Record::Add(Instruction::Type type, bool external_memory /*= false*/) {
+        InstructionPointerAdjuster* Record::Add(Inst::Type type, bool external_memory /*= false*/) {
             if(Instruction::GetParamSize(type) == 0){
                 records.push_back(
                     Instruction{type, nullptr}
@@ -155,7 +157,7 @@ namespace EWE{
                 );
                 records.back().instruction_pointer->internal = !external_memory;
             }
-            return records.back().instruction_pointer;
+            return records.back().instruction_pointer.get();
         }
 
         void Record::FixDeferred(const PerFlight<std::size_t> pool_address) noexcept {
@@ -177,8 +179,10 @@ namespace EWE{
 #endif
         }
 
+
+
         static constexpr std::size_t record_file_version = 0;
-        void Record::WriteInstructions(std::string_view file_location, const std::span<const Instruction::Type> instructions){
+        void Record::WriteInstructions(std::string_view file_location, const std::span<const Inst::Type> instructions){
             std::ofstream stream_base{file_location.data(), std::ios::binary};
             EWE_ASSERT(stream_base.is_open());
             Stream::Operator<std::ofstream> stream{ stream_base };
@@ -198,14 +202,14 @@ namespace EWE{
 
         void Record::WriteInstructions(std::string_view file_location){
             
-            RuntimeArray<Instruction::Type> instructions{records.size()};
+            RuntimeArray<Inst::Type> instructions{records.size()};
             for(std::size_t i = 0; i < records.size(); i++){
                 instructions[i] = records[i].type;
             }
             WriteInstructions(file_location, instructions);
         }
 
-        RuntimeArray<Instruction::Type> Record::ReadInstructions(std::string_view file_location){
+        RuntimeArray<Inst::Type> Record::ReadInstructions(std::string_view file_location){
             std::ifstream stream_base{file_location.data(), std::ios::binary};
             EWE_ASSERT(stream_base.is_open());
             Stream::Operator<std::ifstream> stream{ stream_base };
@@ -216,7 +220,7 @@ namespace EWE{
 
             stream.Process(temp_buffer);
 
-            RuntimeArray<Instruction::Type> ret{temp_buffer};
+            RuntimeArray<Inst::Type> ret{temp_buffer};
 
             for (std::size_t i = 0; i < temp_buffer; i++){
                 stream.Process(ret[i]);
@@ -224,5 +228,11 @@ namespace EWE{
             stream_base.close();
             return ret;
         }
+
+
+        void Record::Append(Record const& other){
+            records.insert(records.end(), other.records.begin(), other.records.end());
+        }
+
     }//namespace Command
 } //namespace EWE

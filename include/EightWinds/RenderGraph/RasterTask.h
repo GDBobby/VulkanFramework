@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EightWinds/RenderGraph/Command/InstructionType.h"
 #include "EightWinds/RenderGraph/Command/ParamPacks.h"
 #include "EightWinds/VulkanHeader.h"
 
@@ -27,22 +28,23 @@ namespace EWE{
 	
 	struct DrawBase : public GlobalPushConstant_Abstract {
 		bool use_labelPack = false;
-		InstructionPointer<ParamPack::Label>* deferred_label = nullptr;
+		InstructionPointer<ParamPack<Inst::BeginLabel>>* deferred_label = nullptr;
 	};
 
-	template<typename ParamPack>
+	template<Inst::Type IType>
 	struct DrawData : public DrawBase {
-		InstructionPointer<ParamPack>* paramPack = nullptr;
+		InstructionPointer<ParamPack<IType>>* paramPack = nullptr;
 	};
 	
-	using VertexDrawData = DrawData<ParamPack::VertexDraw>;
-	using IndexedDrawData = DrawData<ParamPack::IndexDraw>;
-	using MeshDrawData = DrawData<ParamPack::DrawMeshTasks>;
-	using VertexIndirectDrawData = DrawData<ParamPack::DrawIndirect>;
-	using IndexedIndirectDrawData = DrawData<ParamPack::DrawIndexedIndirect>;
-	using MeshIndirectDrawData = DrawData<ParamPack::DrawMeshTasksIndirect>;
-	using VertexIndirectCountDrawData = DrawData<ParamPack::DrawIndirectCount>;
-	using IndexedIndirectCountDrawData = DrawData<ParamPack::DrawIndexedIndirectCount>;
+	using VertexDrawData = DrawData<Inst::Draw>;
+	using IndexedDrawData = DrawData<Inst::DrawIndexed>;
+	using MeshDrawData = DrawData<Inst::DrawMeshTasks>;
+	using VertexIndirectDrawData = DrawData<Inst::DrawIndirect>;
+	using IndexedIndirectDrawData = DrawData<Inst::DrawIndexedIndirect>;
+	using MeshIndirectDrawData = DrawData<Inst::DrawMeshTasksIndirect>;
+	using VertexIndirectCountDrawData = DrawData<Inst::DrawIndirectCount>;
+	using IndexedIndirectCountDrawData = DrawData<Inst::DrawIndexedIndirectCount>;
+	using MeshIndirectCountDrawData = DrawData<Inst::DrawMeshTasksIndirectCount>;
 
 		//i should do validaiton to ensure this layout is only used with vert draws or mesh draws appropriately
 	struct ObjectRasterData{
@@ -59,30 +61,25 @@ namespace EWE{
 	
 	//count is for using 1 push constant with multiple objects
 	//i dont think that will ever happen?
-	struct VertexDrawCount : public DrawBase {
-		std::vector<ParamPack::VertexDraw> data;
-	};
-	struct IndexDrawCount : public DrawBase{
-		std::vector<ParamPack::IndexDraw> data;
-	};
-	struct MeshDrawCount : public DrawBase{
-		std::vector<ParamPack::DrawMeshTasks> data;
+	template<Inst::Type IType>
+	struct DrawDataCount : public DrawBase {
+		std::vector<ParamPack<IType>> data;
 	};
 
 	struct DeferredPipelineExecute {
 		Pipeline* pipeline; //needs to be deleted
 		//ObjectRasterData rasterData;//i dont really care about keeping the data, besides viewing in debug
 
-		InstructionPointer<ParamPack::Pipeline>* pipe_paramPack;
-		InstructionPointer<ParamPack::Viewport>* vp_paramPack;
-		InstructionPointer<ParamPack::Scissor>* sc_paramPack;
+		InstructionPointer<ParamPack<Inst::BindPipeline>>* pipe_paramPack;
+		InstructionPointer<ParamPack<Inst::DS_Viewport>>* vp_paramPack;
+		InstructionPointer<ParamPack<Inst::DS_Scissor>>* sc_paramPack;
 
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
 			TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
-			InstructionPointer<ParamPack::Pipeline>* pipe_params,
-			InstructionPointer<ParamPack::Viewport>* vp_params,
-			InstructionPointer<ParamPack::Scissor>* sc_params
+			InstructionPointer<ParamPack<Inst::BindPipeline>>* pipe_params,
+			InstructionPointer<ParamPack<Inst::DS_Viewport>>* vp_params,
+			InstructionPointer<ParamPack<Inst::DS_Scissor>>* sc_params
 		);
 		[[nodiscard]] explicit DeferredPipelineExecute(
 			LogicalDevice& logicalDevice,
@@ -131,8 +128,8 @@ namespace EWE{
 
 		DrawContainer<VertexDrawData> vert_draws;
 		DrawContainer<IndexedDrawData> indexed_draws;
-		DrawContainer<VertexDrawCount> vert_draw_counts;
-		DrawContainer<IndexDrawCount> index_draw_counts;
+		//DrawContainer<DrawCount> vert_draw_counts;
+		//DrawContainer<IndexDrawCount> index_draw_counts;
 
 		DrawContainer<VertexIndirectDrawData> indirect_vert_draws;
 		DrawContainer<IndexedIndirectDrawData> indirect_indexed_draws;
@@ -140,7 +137,7 @@ namespace EWE{
 		DrawContainer<IndexedIndirectCountDrawData> indirect_count_indexed_draws;
 
 		DrawContainer<MeshDrawData> mesh_draws;
-		DrawContainer<MeshDrawCount> mesh_draw_counts;
+		//DrawContainer<MeshDrawCount> mesh_draw_counts;
 		
 		template<typename T>
 		inline void AddHelper(KeyValueContainer<ObjectRasterData, std::vector<T*>>& kv_container, ObjectRasterData const& config, T* draw) {
@@ -162,15 +159,6 @@ namespace EWE{
 		void AddDraw(ObjectRasterData const& config, MeshDrawData* draw) {
 			AddHelper(mesh_draws, config, draw);
 		}
-		void AddDraw(ObjectRasterData const& config, VertexDrawCount* draw) {
-			AddHelper(vert_draw_counts, config, draw);
-		}
-		void AddDraw(ObjectRasterData const& config, IndexDrawCount* draw) {
-			AddHelper(index_draw_counts, config, draw);
-		}
-		void AddDraw(ObjectRasterData const& config, MeshDrawCount* draw) {
-			AddHelper(mesh_draw_counts, config, draw);
-		}
 
 		//these are not strongly typed. i need better distinction
 		void Add_Vert_IndirectDraw(ObjectRasterData const& config, VertexIndirectDrawData* draw) {
@@ -188,7 +176,7 @@ namespace EWE{
 
 		//this needs to stay alive as long as these objects are used in a task
 		HeapBlock<DeferredPipelineExecute> deferred_pipelines{};
-		InstructionPointer<ParamPack::Label>* deferred_label = nullptr;
+		InstructionPointer<ParamPack<Inst::BeginLabel>>* deferred_label = nullptr;
 		
 		//the pipelines are unique between vertices and mesh
 		void Record_Vertices(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs);

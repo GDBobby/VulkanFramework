@@ -1,5 +1,10 @@
 #include "EightWinds/GlobalPushConstant.h"
 
+#include "EightWinds/Buffer.h"
+#include "EightWinds/Image.h"
+
+#include "EightWinds/DescriptorImageInfo.h"
+
 namespace EWE{
 
     void GlobalPushConstant_Raw::Bind(uint8_t slot, Buffer const& buffer) noexcept {

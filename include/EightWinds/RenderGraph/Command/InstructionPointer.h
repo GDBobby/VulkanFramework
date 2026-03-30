@@ -23,7 +23,6 @@ namespace EWE{
         {}
 
         constexpr T& GetRef(uint8_t frameIndex) {
-            EWE_ASSERT(frameIndex < max_frames_in_flight);
             EWE_ASSERT(adjusted);
             return *data[frameIndex];
         }

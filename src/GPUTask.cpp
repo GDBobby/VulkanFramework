@@ -33,35 +33,7 @@ namespace EWE{
         commandExecutor->Execute(cmdBuf, frameIndex);
     }
 
-    /*
-    void GPUTask::SetRenderInfo() {
-        EWE_ASSERT(renderTracker != nullptr);
-        renderTracker->compact.Expand(&renderTracker->vk_data);
-        
-        bool hasBeginRender = false;
-        //there's only going to be one BeginRender, and this search will only be performed once on construction
-        for (auto& inst : commandExecutor.instructions) {
-            if (inst.type == CommandInstruction::Type::BeginRender) {
-                VkRenderingInfo** tempAddr = reinterpret_cast<VkRenderingInfo**>(commandExecutor.paramPool.data() + inst.paramOffset);
-                *tempAddr = &renderTracker->vk_data.renderingInfo;
-                inst.paramOffset;
-                hasBeginRender = true;
-                break;
-            }
-        }
-        EWE_ASSERT(hasBeginRender);
-    }
-    void GPUTask::UpdateFrameIndex(uint8_t frameIndex) {
-        renderTracker->compact.Update(&renderTracker->vk_data, frameIndex);
-    }
-    */
-
-
     void GPUTask::GenerateWorkload() {
-        if (external_workload != nullptr) {
-            GenerateExternalWorkload();
-            return;
-        }
 
         workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
             prefix.Execute(cmdBuf, frameIndex);
@@ -70,7 +42,7 @@ namespace EWE{
             return true;
         };
     }
-    void GPUTask::GenerateExternalWorkload() {
+    void GPUTask::GenerateExternalWorkload(std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload) {
 
 
         if (commandExecutor->record.records.size() > 0) {
@@ -78,9 +50,9 @@ namespace EWE{
         }
         workload = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
             prefix.Execute(cmdBuf, frameIndex);
-            external_workload(cmdBuf, frameIndex);
+            bool ret = external_workload(cmdBuf, frameIndex);
             suffix.Execute(cmdBuf, frameIndex);
-            return true;
+            return ret;
         };
     }
 } //namespace EWE

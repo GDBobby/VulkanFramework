@@ -44,7 +44,7 @@ namespace EWE{
                 HeapBlock<uint8_t> const& paramPool;
                 //std::vector<uint8_t> const& barrierPool;
 
-                ParamPack::Pipeline boundPipeline{};
+                ParamPack<Inst::BindPipeline> boundPipeline{};
 
                 std::size_t iterator = 0;
 
@@ -138,7 +138,7 @@ namespace EWE{
         namespace Exec{
             //define command functions here
             void BeginRender(ExecContext& ctx) {
-                auto& data = Instruction::GetData<Instruction::BeginRender>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::BeginRender>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 //auto* data = reinterpret_cast<VkRenderingInfo const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
@@ -159,7 +159,7 @@ namespace EWE{
                 vkCmdEndRendering(ctx.cmdBuf);
             }
             void BindPipeline(ExecContext& ctx) {
-                auto const& pack = Instruction::GetData<Instruction::BindPipeline>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto const& pack = Instruction::GetData<Inst::BindPipeline>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 //ParamPack::Pipeline const& pipePack = *reinterpret_cast<ParamPack::Pipeline const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
                 EWE_ASSERT(pack.pipe != VK_NULL_HANDLE);
                 EWE_ASSERT(pack.layout != VK_NULL_HANDLE);
@@ -190,7 +190,7 @@ namespace EWE{
 
             void Push(ExecContext& ctx){
                 //auto* push = reinterpret_cast<GlobalPushConstant_Raw const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-                auto& push = Instruction::GetData<Instruction::Push>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& push = Instruction::GetData<Inst::Push>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -200,7 +200,7 @@ namespace EWE{
 
             void Draw(ExecContext& ctx){
                 //auto* data = reinterpret_cast<ParamPack::VertexDraw const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-                auto& data = Instruction::GetData<Instruction::Draw>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::Draw>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -209,7 +209,7 @@ namespace EWE{
 
             void DrawIndexed(ExecContext& ctx){
                 //auto* data = reinterpret_cast<ParamPack::IndexDraw const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-                auto& data = Instruction::GetData<Instruction::DrawIndexed>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::DrawIndexed>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -218,7 +218,7 @@ namespace EWE{
 
             void Dispatch(ExecContext& ctx){
                 //auto* data = reinterpret_cast<ParamPack::Dispatch const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-                auto& data = Instruction::GetData<Instruction::Dispatch>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::Dispatch>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -231,7 +231,7 @@ namespace EWE{
                 ctx.Print();
     #endif
                 //auto* data = reinterpret_cast<ParamPack::DrawMeshTasks const*>(&ctx.paramPool[ctx.instructions[ctx.iterator].paramOffset]);
-                auto& data = Instruction::GetData<Instruction::DrawMeshTasks>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::DrawMeshTasks>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
 
                 ctx.device.cmdDrawMeshTasks(ctx.cmdBuf, data.x, data.y, data.z);
             }
@@ -240,61 +240,61 @@ namespace EWE{
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
-                auto& data = Instruction::GetData<Instruction::DrawIndirect>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::DrawIndirect>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 vkCmdDrawIndirect(ctx.cmdBuf, data.buffer, data.offset, data.drawCount, data.stride);
             }
             void DrawIndexedIndirect(ExecContext& ctx){
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
-                auto& data = Instruction::GetData<Instruction::DrawIndexedIndirect>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::DrawIndexedIndirect>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 vkCmdDrawIndexedIndirect(ctx.cmdBuf, data.buffer, data.offset, data.drawCount, data.stride);
             }
             void DispatchIndirect(ExecContext& ctx){
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
-                auto& data = Instruction::GetData<Instruction::DispatchIndirect>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::DispatchIndirect>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 vkCmdDispatchIndirect(ctx.cmdBuf, data.buffer, data.offset);
             }
             void DrawMeshTasksIndirect(ExecContext& ctx){
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
-                auto& draw = Instruction::GetData<Instruction::DrawMeshTasksIndirect>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& draw = Instruction::GetData<Inst::DrawMeshTasksIndirect>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 ctx.device.cmdDrawMeshTasksIndirect(ctx.cmdBuf, draw.buffer, draw.offset, draw.drawCount, draw.stride);
             }
             void DrawIndirectCount(ExecContext& ctx){
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
-                auto& draw = Instruction::GetData<Instruction::DrawIndirectCount>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& draw = Instruction::GetData<Inst::DrawIndirectCount>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 vkCmdDrawIndirectCount(ctx.cmdBuf, draw.buffer, draw.offset, draw.countBuffer, draw.countBufferOffset, draw.drawCount, draw.stride);
             }
             void DrawIndexedIndirectCount(ExecContext& ctx){
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
-                auto& draw = Instruction::GetData<Instruction::DrawIndexedIndirectCount>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& draw = Instruction::GetData<Inst::DrawIndexedIndirectCount>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 vkCmdDrawIndexedIndirectCount(ctx.cmdBuf, draw.buffer, draw.offset, draw.countBuffer, draw.countBufferOffset, draw.drawCount, draw.stride);
             }
             void DrawMeshTasksIndirectCount(ExecContext& ctx){
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
-                auto& draw = Instruction::GetData<Instruction::DrawMeshTasksIndirectCount>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& draw = Instruction::GetData<Inst::DrawMeshTasksIndirectCount>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 ctx.device.cmdDrawMeshTasksIndirectCount(ctx.cmdBuf, draw.buffer, draw.offset, draw.countBuffer, draw.countBufferOffset, draw.drawCount, draw.stride);
             }
             
             void Viewport(ExecContext& ctx){
-                auto& data = Instruction::GetData<Instruction::DS_Viewport>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::DS_Viewport>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
                 vkCmdSetViewport(ctx.cmdBuf, 0, 1, &data.viewport);
             }
             void Scissor(ExecContext& ctx){
-                auto& data = Instruction::GetData<Instruction::DS_Scissor>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& data = Instruction::GetData<Inst::DS_Scissor>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -302,16 +302,16 @@ namespace EWE{
             }
 
             void ViewportCount(ExecContext& ctx){
-                auto& data = Instruction::GetData<Instruction::DS_ViewportCount>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
-                EWE_ASSERT(data.currentViewportCount < ParamPack::ViewportCount::ArbitraryViewportCountLimit);
+                auto& data = Instruction::GetData<Inst::DS_ViewportCount>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
+                EWE_ASSERT(data.currentViewportCount < ParamPack<Inst::DS_ViewportCount>::ArbitraryViewportCountLimit);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
                 vkCmdSetViewport(ctx.cmdBuf, 0, data.currentViewportCount, data.viewports);
             }
             void ScissorCount(ExecContext& ctx){
-                auto& data = Instruction::GetData<Instruction::DS_ScissorCount>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
-                EWE_ASSERT(data.currentScissorCount < ParamPack::ScissorCount::ArbitraryScissorCountLimit);
+                auto& data = Instruction::GetData<Inst::DS_ScissorCount>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
+                EWE_ASSERT(data.currentScissorCount < ParamPack<Inst::DS_ScissorCount>::ArbitraryScissorCountLimit);
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
@@ -320,7 +320,7 @@ namespace EWE{
 
             void BeginLabel(ExecContext& ctx){
     #if EWE_DEBUG_NAMING
-                auto& pack = Instruction::GetData<Instruction::BeginLabel>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                auto& pack = Instruction::GetData<Inst::BeginLabel>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
                 VkDebugUtilsLabelEXT labelUtil{
                     .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
                     .pNext = nullptr,
@@ -345,14 +345,14 @@ namespace EWE{
 
 
             void IfStatement(ExecContext& ctx){
-                bool const* condition = Instruction::GetData<Instruction::If>(ctx.instructions[ctx.iterator].instruction_pointer, ctx.frame);
+                bool const* condition = Instruction::GetData<Inst::If>(ctx.instructions[ctx.iterator].instruction_pointer.get(), ctx.frame);
 
     #ifdef EXECUTOR_DEBUGGING
                 ctx.Print();
     #endif
                 if(*condition){
                     while(ctx.iterator < ctx.instructions.size()){
-                        if(ctx.instructions[ctx.iterator].type == Instruction::Type::EndIf){
+                        if(ctx.instructions[ctx.iterator].type == Inst::Type::EndIf){
     #ifdef EXECUTOR_DEBUGGING
                             ctx.Print();
     #endif
@@ -400,9 +400,9 @@ namespace EWE{
 
             while(ctx.iterator < ctx.instructions.size()){
                 //validate before creating the executor
-                //EWE_ASSERT(instructions[iterator].type != CommandInstruction::Type::EndIf && "unscoped endif");
-                //EWE_ASSERT(instructions[iterator].type != CommandInstruction::Type::LoopEnd && "unscoped loop end");
-                //EWE_ASSERT(instructions[iterator].type != CommandInstruction::Type::SwitchEnd && "unscoped switch end");
+                //EWE_ASSERT(instructions[iterator].type != CommandInst::Type::EndIf && "unscoped endif");
+                //EWE_ASSERT(instructions[iterator].type != CommandInst::Type::LoopEnd && "unscoped loop end");
+                //EWE_ASSERT(instructions[iterator].type != CommandInst::Type::SwitchEnd && "unscoped switch end");
                 
                 //the cast doesnt matter at all, but it makes it easier to step thru in the debugger
                 auto const& cmd_type = ctx.instructions[ctx.iterator].type;
