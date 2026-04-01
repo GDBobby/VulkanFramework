@@ -4,7 +4,7 @@
 #include "EightWinds/ObjectRasterConfig.h"
 
 namespace EWE{
-
+namespace Command{
 	struct RasterPackage : public InstructionPackage{
 		static constexpr auto allowed_instructions = {
 			Inst::Push,
@@ -39,4 +39,5 @@ namespace EWE{
 
 		std::span<const Inst::Type> GetAllowedInstructions() override final {return std::span{allowed_instructions.begin(), allowed_instructions.end()};}
 	};
+} //namespace Command
 } //namepsace EWE

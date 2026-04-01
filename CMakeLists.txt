@@ -98,6 +98,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
         /W4 
         /we4456 /we4457 /we4458 /we4459
     >
+    -freflection
 )
 
 option(USING_ASAN "address sanitizer" OFF)
@@ -142,14 +143,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/include/
 	${CMAKE_CURRENT_SOURCE_DIR}/external/include
 	${CMAKE_CURRENT_SOURCE_DIR}/external
-	${LinearAlgebra_SOURCE_DIR}
 )
 
 target_link_directories(${PROJECT_NAME} PUBLIC
 	${Vulkan_LIB_DIR}
 	$<$<CONFIG:Debug>:${AFTERMATH_LIB_DIR}>
-	$<$<CONFIG:Debug>:${LinearAlgebra_SOURCE_DIR}/Debug>
-	$<$<CONFIG:Release>:${LinearAlgebra_SOURCE_DIR}/Release>
 )
 
 message(STATUS "vulkan sdk path : ${VULKAN_SDK_PATH}")
@@ -185,17 +183,4 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
 # target_precompile_headers(${PROJECT_NAME} PRIVATE include/EightWinds/stdafx.h)
 
 include(CheckCXXSourceCompiles)
-
-check_cxx_source_compiles("
-    #include <stacktrace>
-    int main() {
-        auto st = std::stacktrace::current();
-        return 0;
-    }
-" HAVE_STD_STACKTRACE)
-
-if (HAVE_STD_STACKTRACE)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC HAVE_STD_STACKTRACE)
-endif()
-
 

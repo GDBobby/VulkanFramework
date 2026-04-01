@@ -1,7 +1,5 @@
 #include "EightWinds/Sampler.h"
 
-#include "LAB/Support/Generic.h"
-
 namespace EWE{
     Sampler::Sampler(LogicalDevice& _logicalDevice, VkSamplerCreateInfo const& samplerInfo)
         : logicalDevice{_logicalDevice},
@@ -78,8 +76,14 @@ namespace EWE{
         //i believe i can condense the 4 floats to a uint8_t, and im currently at 23 bits
         uint8_t minLod = static_cast<uint8_t>(info.minLod);
         uint8_t maxLod = static_cast<uint8_t>(info.maxLod);
-        const float normalized_lodbias = lab::Clamp((info.mipLodBias - info.minLod) / (info.maxLod - info.minLod), 0.f, 1.f);
-        uint8_t mipLodBias = static_cast<uint8_t>(normalized_lodbias * 255.0f);
+        float normalized_lodBias = (info.mipLodBias - info.minLod) / (info.maxLod - info.minLod);
+        if(normalized_lodBias < 0.f){
+            normalized_lodBias = 0.f;
+        }
+        else if (normalized_lodBias > 1.f){
+            normalized_lodBias = 1.f;
+        }
+        uint8_t mipLodBias = static_cast<uint8_t>(normalized_lodBias * 255.0f);
 
         uint8_t maxAni = static_cast<uint8_t>(info.maxAnisotropy);
 

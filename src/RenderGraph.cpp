@@ -2,8 +2,6 @@
 #include "EightWinds/VulkanHeader.h"
 #include <vulkan/vulkan_core.h>
 
-#include "LAB/Support/Generic.h"
-
 namespace EWE{
 
 
@@ -163,7 +161,7 @@ namespace EWE{
                     max_width = sub_group.size();
                 }
             }
-            max_width = lab::Max(max_width, std::size_t(1));
+            max_width = std::max(max_width, std::size_t(1));
             if(max_width != semaphores[0].Size()){
                 for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
                     semaphores[frame].ClearAndResize(max_width, logicalDevice);
