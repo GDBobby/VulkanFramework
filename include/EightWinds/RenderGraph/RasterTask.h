@@ -1,19 +1,19 @@
 #pragma once
 
-#include "EightWinds/RenderGraph/Command/InstructionType.h"
-#include "EightWinds/RenderGraph/Command/ParamPacks.h"
+#include "EightWinds/Command/InstructionType.h"
+#include "EightWinds/Command/ParamPacks.h"
 #include "EightWinds/VulkanHeader.h"
 
 
 #include "EightWinds/RenderGraph/GPUTask.h"
-#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
+#include "EightWinds/Command/InstructionPointer.h"
 
 #include "EightWinds/Pipeline/TaskRasterConfig.h"
 #include "EightWinds/ObjectRasterConfig.h"
 
 #include "EightWinds/GlobalPushConstant.h"
 
-#include "EightWinds/RenderGraph/Command/Record.h"
+#include "EightWinds/Command/Record.h"
 
 #include "EightWinds/Data/KeyValueContainer.h"
 

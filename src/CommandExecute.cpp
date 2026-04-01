@@ -1,4 +1,4 @@
-#include "EightWinds/RenderGraph/Command/Execute.h"
+#include "EightWinds/Command/Execute.h"
 
 #include "EightWinds/CommandBuffer.h"
 
@@ -8,7 +8,7 @@
 
 #include "EightWinds/Backend/RenderInfo.h"
 
-#include "EightWinds/RenderGraph/Command/Record.h"
+#include "EightWinds/Command/Record.h"
 
 //#define EXECUTOR_DEBUGGING
 

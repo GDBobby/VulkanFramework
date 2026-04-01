@@ -6,7 +6,7 @@
 
 #include "EightWinds/Data/KeyValueContainer.h"
 
-#include "EightWinds/RenderGraph/Command/ParamPacks.h"
+#include "EightWinds/Command/ParamPacks.h"
 
 #include <unordered_map>
 #include <memory>

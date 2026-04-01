@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
-#include "EightWinds/RenderGraph/Command/Instruction.h"
+#include "EightWinds/Command/Instruction.h"
 
 #include "EightWinds/Data/PerFlight.h"
 

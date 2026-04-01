@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EightWinds/RenderGraph/Command/InstructionPackage.h"
+#include "EightWinds/Command/InstructionPackage.h"
 #include "EightWinds/ObjectRasterConfig.h"
 
 namespace EWE{

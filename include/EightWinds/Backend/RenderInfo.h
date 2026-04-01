@@ -4,7 +4,7 @@
 
 #include "EightWinds/Data/PerFlight.h"
 #include "EightWinds/Data/RuntimeArray.h"
-#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
+#include "EightWinds/Command/InstructionPointer.h"
 #include "EightWinds/Image.h"
 #include "EightWinds/ImageView.h"
 

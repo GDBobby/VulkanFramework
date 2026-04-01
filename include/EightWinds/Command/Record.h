@@ -2,8 +2,8 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
-#include "EightWinds/RenderGraph/Command/Instruction.h"
+#include "EightWinds/Command/InstructionPointer.h"
+#include "EightWinds/Command/Instruction.h"
 
 #include "EightWinds/Data/RuntimeArray.h"
 

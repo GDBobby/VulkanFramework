@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
+#include "EightWinds/Command/InstructionPointer.h"
 
 namespace EWE{
 

@@ -1,7 +1,7 @@
 #include "EightWinds/RenderGraph/GPUTask.h"
 
 #include "EightWinds/CommandBuffer.h"
-#include "EightWinds/RenderGraph/Command/Record.h"
+#include "EightWinds/Command/Record.h"
 
 #include "EightWinds/RenderGraph/Resources.h"
 

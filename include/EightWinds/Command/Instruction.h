@@ -1,10 +1,10 @@
 #pragma once
 
-#include "EightWinds/RenderGraph/Command/InstructionType.h"
-#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
+#include "EightWinds/Command/InstructionType.h"
+#include "EightWinds/Command/InstructionPointer.h"
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/RenderGraph/Command/ParamPacks.h"
+#include "EightWinds/Command/ParamPacks.h"
 #include "EightWinds/GlobalPushConstant.h"
 
 #include "EightWinds/Reflect/Enum.h"

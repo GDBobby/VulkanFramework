@@ -1,6 +1,6 @@
 #pragma once
 
-#include "EightWinds/RenderGraph/Command/Instruction.h"
+#include "EightWinds/Command/Instruction.h"
 
 #include <array>
 #include <meta>

@@ -2,7 +2,7 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/RenderGraph/Command/InstructionType.h"
+#include "EightWinds/Command/InstructionType.h"
 #include "EightWinds/GlobalPushConstant.h"
 
 namespace EWE{

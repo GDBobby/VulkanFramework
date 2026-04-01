@@ -1,9 +1,9 @@
 #pragma once
 
-#include "EightWinds/RenderGraph/Command/Record.h"
-#include "EightWinds/RenderGraph/Command/Instruction.h"
+#include "EightWinds/Command/Record.h"
+#include "EightWinds/Command/Instruction.h"
 
-#include "EightWinds/RenderGraph/Command/IP_Helper.h"
+#include "EightWinds/Command/IP_Helper.h"
 
 #include <array>
 #include <meta>

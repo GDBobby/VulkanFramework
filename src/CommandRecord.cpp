@@ -1,5 +1,5 @@
-#include "EightWinds/RenderGraph/Command/InstructionPointer.h"
-#include "EightWinds/RenderGraph/Command/Record.h"
+#include "EightWinds/Command/InstructionPointer.h"
+#include "EightWinds/Command/Record.h"
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/Data/StreamHelper.h"
