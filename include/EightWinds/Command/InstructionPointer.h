@@ -13,8 +13,8 @@ namespace EWE{
         //for use with param pool if true, 
         //if not, the user defines the construction and lifetime of the pointed data
         //if internal is not true, the pointer will not be changed when calling Record::Undefer
-        bool internal = true;
         bool adjusted = false;
+        bool internal = true;
     public:
 
         InstructionPointer() : data{ reinterpret_cast<T*>(UINT64_MAX) } {}

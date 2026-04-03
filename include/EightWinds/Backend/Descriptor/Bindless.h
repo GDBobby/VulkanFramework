@@ -51,9 +51,9 @@ namespace EWE{
 
             std::array<std::bitset<max_images_per_type>, static_cast<size_t>(DescriptorType::COUNT)> occupancy;
 
-            DescriptorIndex BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType descriptorType);
+            TextureIndex BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType descriptorType);
 
-            void Unbind(DescriptorIndex index, DescriptorType type);
+            void Unbind(TextureIndex index, DescriptorType type);
 
             //i can overfill this with information a bit since it's only every going to be created once
             VkDescriptorPool pool;

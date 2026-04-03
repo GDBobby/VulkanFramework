@@ -10,6 +10,7 @@
 
 namespace EWE{
     struct LogicalDevice;
+    
     struct DescriptorImageInfo{
 
         std::string name;
@@ -20,7 +21,7 @@ namespace EWE{
 
         DescriptorType type;
         //im going to guarantee that this index is valid for the lifespan of this object
-        DescriptorIndex index;
+        TextureIndex index;
 
         [[nodiscard]] explicit DescriptorImageInfo(ImageView& view, DescriptorType type, VkImageLayout explicitLayout);
         [[nodiscard]] explicit DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type, VkImageLayout explicitLayout);

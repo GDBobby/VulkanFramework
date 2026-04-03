@@ -116,7 +116,7 @@ namespace EWE{
         }
 
         
-        DescriptorIndex BindlessDescriptor::BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType type){
+        TextureIndex BindlessDescriptor::BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType type){
             
             const uint32_t occupancy_index = static_cast<uint32_t>(type);
             auto& bits = occupancy[occupancy_index];
@@ -143,7 +143,7 @@ namespace EWE{
             return UINT32_MAX; //error silencer
         }
 
-        void BindlessDescriptor::Unbind(DescriptorIndex index, DescriptorType type){
+        void BindlessDescriptor::Unbind(TextureIndex index, DescriptorType type){
             
             const uint32_t occupancy_index = static_cast<uint32_t>(type);
             auto& bits = occupancy[occupancy_index];

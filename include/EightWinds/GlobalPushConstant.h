@@ -17,7 +17,7 @@ namespace EWE{
         static constexpr uint8_t texture_count = 8;
         //for texture indices, negative values are invalid (typically -1)
         //and means the texture slot isn't being used
-        int texture_indices[texture_count];
+        TextureIndex texture_indices[texture_count];
         
         //guaranteed to have another 32 bytes
         //potentially more data space available

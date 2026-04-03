@@ -31,9 +31,11 @@ namespace EWE{
     
     static constexpr uint8_t max_frames_in_flight = 2;
 
-    using DescriptorIndex = uint32_t;
-    static constexpr DescriptorIndex INVALID_DESCRIPTOR_INDEX = UINT32_MAX;
+    using TextureIndex = int;
     using PipelineID = uint64_t;
+
+    static constexpr TextureIndex null_texture = -1;
+    static constexpr VkDeviceAddress null_buffer = 0;
 
 
 #if EWE_USING_EXCEPTIONS

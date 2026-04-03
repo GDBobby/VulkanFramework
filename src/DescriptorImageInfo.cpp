@@ -45,12 +45,12 @@ namespace EWE{
         type{ moveSrc.type },
         index{ moveSrc.index }
     {
-        moveSrc.index = INVALID_DESCRIPTOR_INDEX;
+        moveSrc.index = null_texture;
     }
 
     DescriptorImageInfo::~DescriptorImageInfo() {
         //if it was moved, index will be invalid
-        if (index != INVALID_DESCRIPTOR_INDEX) {
+        if (index != null_texture) {
             view.image.logicalDevice.bindlessDescriptor.Unbind(index, type);
         }
     }

@@ -50,6 +50,7 @@ namespace EWE{
 			moveSrc.memory = nullptr;
 			moveSrc.size = 0;
 		}
+
 		HeapBlock& operator=(HeapBlock&& moveSrc) noexcept = delete;
 
 		void Clear(){
