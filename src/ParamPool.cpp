@@ -13,13 +13,13 @@ namespace Command{
         }
     }
 
-    void ParamPool::PushBack_Fresh(Inst::Type itype){
+    void ParamPool::PushBack(Inst::Type itype){
         const std::size_t added_inst_size = Instruction::GetParamSize(itype);
         instructions.push_back(itype);
         if(added_inst_size > 0){
             auto& inst_back = param_data.emplace_back();
 
-            const PerFlight<std::size_t> previous_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             const std::size_t param_pool_size = params[0].Size();
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
                 //temporarily, this will be a dangling ptr, and point outside of accounted memory bounds
@@ -33,7 +33,7 @@ namespace Command{
                 temp.memory = nullptr;
                 temp.size = 0;
             }
-            const PerFlight<std::size_t> current_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> current_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             ReadjustOffsets(previous_memory_addresses, current_memory_addresses);
         }
     }
@@ -94,7 +94,7 @@ namespace Command{
             const std::size_t starting_addr = param_data[0].data[0];
             const std::size_t removed_pack_start = removed_addr - starting_addr;
 
-            const PerFlight<std::size_t> previous_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             param_data.erase(param_data.begin() + pack_index);
 
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
@@ -111,7 +111,7 @@ namespace Command{
                 }
             }
             
-            const PerFlight<std::size_t> current_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> current_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             ReadjustOffsets(previous_memory_addresses, current_memory_addresses);
         }
         instructions.erase(instructions.begin() + index);
@@ -139,7 +139,7 @@ namespace Command{
             instructions.erase(instructions.begin() + index, instructions.end());
             param_data.erase(param_data.begin() + first_erasure, param_data.end());
 
-            const PerFlight<std::size_t> previous_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
 
                 HeapBlock<uint8_t> temp{shrunk_size};
@@ -151,11 +151,11 @@ namespace Command{
                 temp.size = 0;
             }
 
-            const PerFlight<std::size_t> current_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> current_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             ReadjustOffsets(previous_memory_addresses, current_memory_addresses);
         }
     }
-    void ParamPool::Insert_Fresh(std::size_t index, Inst::Type itype){
+    void ParamPool::Insert(std::size_t index, Inst::Type itype){
         EWE_ASSERT(index <= instructions.size());
         std::size_t added_inst_size = Instruction::GetParamSize(itype);
         instructions.insert(instructions.begin() + index, itype);
@@ -166,7 +166,7 @@ namespace Command{
             param_data.insert(param_data.begin() + pack_index, InstructionPointerAdjuster{});
             auto& inst_ptr = param_data[pack_index];
             
-            const PerFlight<std::size_t> previous_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
                 HeapBlock<uint8_t> temp{param_pool_size + added_inst_size};
@@ -182,7 +182,7 @@ namespace Command{
                 inst_ptr.adjusted = true;
             }
 
-            const PerFlight<std::size_t> current_memory_addresses{params[0].memory, params[1].memory};
+            const PerFlight<std::size_t> current_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             ReadjustOffsets(previous_memory_addresses, current_memory_addresses);
         }
     }
