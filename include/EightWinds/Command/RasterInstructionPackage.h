@@ -33,9 +33,6 @@ namespace Command{
 		};
 
 		ObjectRasterConfig config;
-		
-		virtual void Record() = 0;
-		virtual void Undefer(void* data) = 0;
 
 		std::span<const Inst::Type> GetAllowedInstructions() override final {return std::span{allowed_instructions.begin(), allowed_instructions.end()};}
 	};
