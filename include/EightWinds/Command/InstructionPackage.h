@@ -14,12 +14,10 @@ namespace Command{
 	struct InstructionPackage{
 		enum Type : uint8_t{
 			Base,
-			Raster,
+			Object,
 		};
 
 		[[nodiscard]] InstructionPackage();
-		//loads from file
-		[[nodiscard]] explicit InstructionPackage(std::string_view file_name); 
 
 		static constexpr auto allowed_instructions = CollectInstructions();
 
@@ -28,9 +26,9 @@ namespace Command{
 		const Type type;
 		
 		virtual std::span<const Inst::Type> GetAllowedInstructions() {return std::span{allowed_instructions.data(), allowed_instructions.size()};}
-	
-		virtual bool WriteToFile(std::string_view file_name);
 
+	protected:
+		[[nodiscard]] InstructionPackage(Type type);	
 	};
 } //namespace Command
 } //namepsace EWE

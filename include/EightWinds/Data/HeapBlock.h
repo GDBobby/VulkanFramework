@@ -7,6 +7,8 @@
 
 #include "EightWinds/Data/MemoryHelpers.h"
 
+#include <cstring> //memcpy
+
 //UNFINISHED
 
 namespace EWE{
@@ -14,12 +16,13 @@ namespace EWE{
 	
     template<typename T>
     struct HeapBlock : public MemoryHelper_Construction<HeapBlock<T>, T> {
+	private:
+        std::allocator<T> allocator{};
+	public:
         T* memory;
 
 		//DO NOT CHANGE EXTERNALLY
 		std::size_t size; //DO NOT CHANGE EXTERNALLY
-	private:
-        std::allocator<T> allocator{};
 
 	public:
 	
@@ -27,7 +30,9 @@ namespace EWE{
 		: memory{nullptr}, size{0}
 		{}
 
-        [[nodiscard]] explicit HeapBlock(std::size_t _size) : size{_size}{
+        [[nodiscard]] explicit HeapBlock(std::size_t _size) 
+		: size{_size}
+		{
 			if(size == 0){
 				memory = nullptr;	
 			}
@@ -41,7 +46,14 @@ namespace EWE{
 			}
 		}
 
-		HeapBlock(HeapBlock& copySrc) = delete;
+		
+		[[nodiscard]] HeapBlock(HeapBlock const& copySrc)
+		requires std::is_trivially_copyable_v<T>
+		: memory{allocator.allocate(copySrc.size)},
+			size{copySrc.size}
+		{
+			memcpy(memory, copySrc.memory, size * sizeof(T));
+		}
 		HeapBlock& operator=(HeapBlock& copySrc) = delete;
 		HeapBlock(HeapBlock&& moveSrc) noexcept
 			: memory{moveSrc.memory},

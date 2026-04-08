@@ -1,5 +1,4 @@
 #include "EightWinds/Command/InstructionPackage.h"
-#include "EightWinds/Command/RasterInstructionPackage.h"
 
 #include <fstream>
 
@@ -18,6 +17,18 @@ namespace Command{
         //param_data
         //any other data, potentially even given more descriptors
     };
+
+    InstructionPackage::InstructionPackage()
+    : type{InstructionPackage::Base},
+    paramPool{}
+    {
+    }
+    InstructionPackage::InstructionPackage(Type _type)
+        : type{_type},
+        paramPool{}
+    {
+
+    }
 
 } //namespace Command
 } //namespace EWE

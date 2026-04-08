@@ -4,6 +4,29 @@
 namespace EWE{
 namespace Command{
 
+    ParamPool::ParamPool()
+        : params{0},
+        instructions{},
+        param_data{}
+    {
+
+    }
+    ParamPool::ParamPool(ParamPool const& copySrc)
+        : params{ArgumentPack_ConstructionHelper<1>{}, copySrc.params[0], copySrc.params[1]},
+        instructions{copySrc.instructions.begin(), copySrc.instructions.end()},
+        param_data{copySrc.param_data.begin(), copySrc.param_data.end()}
+    {
+        //need to readjust pointers. could potentially recalculate it
+        PerFlight<std::size_t> starting_copy_src_addr{reinterpret_cast<std::size_t>(copySrc.params[0].memory), reinterpret_cast<std::size_t>(copySrc.params[1].memory)};
+        PerFlight<std::size_t> starting_dst_addr{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
+        for(std::size_t i = 0; i < param_data.size(); i++){
+            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+                const std::size_t offset = copySrc.param_data[i].data[frame] - starting_copy_src_addr[frame];
+                param_data[i].data[frame] = offset + starting_dst_addr[frame];
+            }
+        }
+    }
+
     void ParamPool::ReadjustOffsets(PerFlight<std::size_t> previous_addr, PerFlight<std::size_t> next_addr){
         for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
             for(std::size_t i = 0; i < param_data.size(); i++){

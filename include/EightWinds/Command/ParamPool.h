@@ -24,6 +24,13 @@ namespace Command{
         //the inst pointers are 1:1 with instructions. if no params, then nullptr
         std::vector<InstructionPointerAdjuster> param_data;
 
+        [[nodiscard]] ParamPool();
+        [[nodiscard]] ParamPool(ParamPool const& copySrc); //this will be supported shortly i just dont want to code it rn
+        ParamPool(ParamPool&& moveSrc) = delete;
+        //i dont currently want to support discarding the existing data
+        ParamPool& operator=(ParamPool const& copySrc) = delete; 
+        ParamPool& operator=(ParamPool&& moveSrc) = delete;
+
         std::size_t GetPackIndex(std::size_t inst_index) const;
         std::size_t GetParamOffset(std::size_t inst_index) const;
         void Erase(std::size_t index);
@@ -71,6 +78,7 @@ namespace Command{
             }
         }
 
+        
     };
 
 } //namepsace Command

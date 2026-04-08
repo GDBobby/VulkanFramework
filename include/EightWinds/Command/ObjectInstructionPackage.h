@@ -5,7 +5,8 @@
 
 namespace EWE{
 namespace Command{
-	struct RasterPackage : public InstructionPackage{
+	struct ObjectPackage : public InstructionPackage{
+        [[nodiscard]] ObjectPackage();
 		static constexpr auto allowed_instructions = {
 			Inst::Push,
 			Inst::Draw,
