@@ -4,15 +4,16 @@
 
 #include "EightWinds/Command/InstructionPointer.h"
 #include "EightWinds/Command/Instruction.h"
-#include "EightWInds/Command/InstructionPackage.h"
+#include "EightWinds/Command/InstructionPackage.h"
 
 //#include "EightWinds/Data/RuntimeArray.h"
 #include "InstructionPackage.h"
 
-#include <string_view>
 #include <vector>
 
 namespace EWE{
+    struct Queue;
+
 namespace Command{
 
         /*
@@ -32,15 +33,17 @@ namespace Command{
         */
     struct PackageRecord{
         std::string name{};
+        Queue* queue = nullptr; //not optional, but can be changed
         std::vector<InstructionPackage*> packages;
 
         [[nodiscard]] PackageRecord() = default;
-        [[nodiscard]] PackageRecord(std::filesystem::path const& file_location);
 
         PackageRecord(PackageRecord const&) = delete;
         PackageRecord& operator=(PackageRecord const&) = delete;
         PackageRecord(PackageRecord&&) = delete;
         PackageRecord& operator=(PackageRecord&&) = delete;
+
+        ParamPool Compile() const;
     };
 } //namespace Command
 } //namespace EWE

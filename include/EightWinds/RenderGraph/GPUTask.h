@@ -9,12 +9,11 @@
 
 #include "EightWinds/CommandPool.h"
 
-#include "EightWinds/GlobalPushConstant.h"
+#include "EightWinds/Command/PackageRecord.h"
 
 #include <optional>
 #include <span>
-
-//equivalent a renderpass subpass?
+#include <string_view>
 
 namespace EWE{
     namespace Command {
@@ -30,14 +29,17 @@ namespace EWE{
         //i think i define a command pool here, or at least a queue
         Queue& queue;
 
-        std::optional<Command::Executor> commandExecutor; //this is optional
+        std::optional<Command::Executor> commandExecutor;
+        std::optional<Command::ParamPool> paramPool;
 
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool& pp);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Command::PackageRecord const& record);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
-        GPUTask& operator=(GPUTask const&) = delete;
         GPUTask(GPUTask&&) = delete;
+        GPUTask& operator=(GPUTask const&) = delete;
         GPUTask& operator=(GPUTask&&) = delete;
 
         //i need another system wrapping GPUTask to handle how the command buffers are dealt with

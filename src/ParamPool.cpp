@@ -26,6 +26,18 @@ namespace Command{
             }
         }
     }
+    ParamPool::ParamPool(ParamPool&& moveSrc) noexcept
+        : params{0},
+        instructions{std::move(moveSrc.instructions)},
+        param_data{std::move(moveSrc.param_data)}
+    {
+        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            params[frame].memory = moveSrc.params[frame].memory;
+            params[frame].size = moveSrc.params[frame].size;
+            moveSrc.params[frame].memory = nullptr;
+            moveSrc.params[frame].size = 0;
+        }
+    }
 
     ParamPool& ParamPool::operator=(ParamPool const& copySrc){
         for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){

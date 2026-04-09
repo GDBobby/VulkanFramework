@@ -46,6 +46,7 @@ namespace EWE{
 			}
 		}
 
+		std::size_t Size() const {return size;}
 		
 		[[nodiscard]] HeapBlock(HeapBlock const& copySrc)
 		requires std::is_trivially_copyable_v<T>

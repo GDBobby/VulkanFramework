@@ -7,21 +7,32 @@
 
 namespace EWE{
 
-    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::Record& cmdRecord)
-    : name{ _name },
-        logicalDevice{_logicalDevice},
-        queue{_queue},
-        commandExecutor{std::in_place, logicalDevice, cmdRecord}
-    {
-    }
-
-
     GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue)
     : name{ _name },
         logicalDevice{ _logicalDevice },
         queue{ _queue }
     {
     }
+    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::Record& cmdRecord)
+    : GPUTask{_name, _logicalDevice, _queue}//,
+        //commandExecutor{std::in_place, logicalDevice, cmdRecord}
+    {
+        commandExecutor.emplace(logicalDevice, cmdRecord);
+    }
+
+    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::ParamPool& pp)
+    : GPUTask{_name, _logicalDevice, _queue}
+    {
+        paramPool.emplace(pp);
+
+    }
+
+    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Command::PackageRecord const& record)
+    : GPUTask{_name, _logicalDevice, *record.queue}
+    {
+        paramPool.emplace(record.Compile());
+    }
+
 
     GPUTask::~GPUTask(){
 #if EWE_DEBUG_BOOL
@@ -30,7 +41,13 @@ namespace EWE{
     }
     void GPUTask::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
         EWE_ASSERT(cmdBuf.commandPool.queue == queue);
-        commandExecutor->Execute(cmdBuf, frameIndex);
+        EWE_ASSERT(commandExecutor.has_value() != paramPool.has_value(), "its assumed one or the other has a value rn");
+        if(commandExecutor.has_value()){
+            commandExecutor->Execute(cmdBuf, frameIndex);
+        }
+        else{
+            Command::ExecuteParamPool(paramPool.value(), logicalDevice, cmdBuf, frameIndex);
+        }
     }
 
     void GPUTask::GenerateWorkload() {

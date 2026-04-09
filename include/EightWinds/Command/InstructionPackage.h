@@ -15,6 +15,7 @@ namespace Command{
 		enum Type : uint8_t{
 			Base,
 			Object,
+			Compute,
 		};
 
 		[[nodiscard]] InstructionPackage();

@@ -26,7 +26,7 @@ namespace Command{
 
         [[nodiscard]] ParamPool();
         [[nodiscard]] ParamPool(ParamPool const& copySrc); //this will be supported shortly i just dont want to code it rn
-        ParamPool(ParamPool&& moveSrc) = delete;
+        ParamPool(ParamPool&& moveSrc) noexcept;
         ParamPool& operator=(ParamPool const& copySrc);
         //i dont currently want to support discarding the existing data
         ParamPool& operator=(ParamPool&& moveSrc) = delete;
