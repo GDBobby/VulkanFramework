@@ -9,8 +9,6 @@
 #include "EWGraphics/Vulkan/ComputePipeline.h"
 #endif
 
-#include <unordered_map>
-
 namespace EWE {
 	
 	

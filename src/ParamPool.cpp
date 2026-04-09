@@ -27,6 +27,25 @@ namespace Command{
         }
     }
 
+    ParamPool& ParamPool::operator=(ParamPool const& copySrc){
+        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            params[frame] = copySrc.params[frame];
+        }
+        instructions = copySrc.instructions;
+        param_data = copySrc.param_data;
+
+        //need to readjust pointers. could potentially recalculate it
+        PerFlight<std::size_t> starting_copy_src_addr{reinterpret_cast<std::size_t>(copySrc.params[0].memory), reinterpret_cast<std::size_t>(copySrc.params[1].memory)};
+        PerFlight<std::size_t> starting_dst_addr{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
+        for(std::size_t i = 0; i < param_data.size(); i++){
+            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+                const std::size_t offset = copySrc.param_data[i].data[frame] - starting_copy_src_addr[frame];
+                param_data[i].data[frame] = offset + starting_dst_addr[frame];
+            }
+        }
+        return *this;
+    }
+
     void ParamPool::ReadjustOffsets(PerFlight<std::size_t> previous_addr, PerFlight<std::size_t> next_addr){
         for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
             for(std::size_t i = 0; i < param_data.size(); i++){
@@ -48,7 +67,7 @@ namespace Command{
                 //temporarily, this will be a dangling ptr, and point outside of accounted memory bounds
                 inst_back.data[frame] = reinterpret_cast<std::size_t>(&params[frame].memory[param_pool_size]);
                 inst_back.adjusted = true;
-                HeapBlock<uint8_t> temp{param_pool_size + added_inst_size};
+                HeapBlock<std::byte> temp{param_pool_size + added_inst_size};
                 memcpy(temp.memory, params[frame].memory, param_pool_size);
                 params[frame].Clear();
                 params[frame].memory = temp.memory;
@@ -78,29 +97,6 @@ namespace Command{
 
     void ParamPool::PopBack(){
         Erase(instructions.size() - 1);
-        /*
-        if(instructions.size() == 0){
-            Logger::Print<Logger::Warning>("attempting to pop an empty param pool\n");
-            return;
-        }
-        const std::size_t back_param_size = Instruction::GetParamSize(instructions.back());
-        if(back_param_size == 0){
-            return;
-        }
-        auto& back_param = param_data.back();
-        const std::size_t back_param_offset = back_param.data[0] - param_data[0].data[0];
-
-        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
-            HeapBlock<uint8_t> temp{param_pool_size + added_inst_size};
-            memcpy(temp.memory, params[frame].memory, removed_pack_start);
-            memcpy(temp.memory + removed_pack_start, params[frame].memory + removed_pack_start + removed_inst_size, param_pool_size - removed_inst_size);
-            params[frame].Clear();
-            params[frame].memory = temp.memory;
-            params[frame].size = temp.size;
-            temp.memory = nullptr;
-            temp.size = 0;
-        }
-        */
     }
 
     void ParamPool::Erase(std::size_t index){
@@ -121,7 +117,7 @@ namespace Command{
             param_data.erase(param_data.begin() + pack_index);
 
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
-                HeapBlock<uint8_t> temp{starting_size - removed_inst_size};
+                HeapBlock<std::byte> temp{starting_size - removed_inst_size};
                 memcpy(temp.memory, params[frame].memory, removed_pack_start);
                 memcpy(temp.memory + removed_pack_start, params[frame].memory + removed_pack_start + removed_inst_size, starting_size - removed_pack_start - removed_inst_size);
                 params[frame].Clear();
@@ -165,7 +161,7 @@ namespace Command{
             const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
 
-                HeapBlock<uint8_t> temp{shrunk_size};
+                HeapBlock<std::byte> temp{shrunk_size};
                 memcpy(temp.memory, params[frame].memory, shrunk_size);
                 params[frame].Clear();
                 params[frame].memory = temp.memory;
@@ -192,7 +188,7 @@ namespace Command{
             const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
-                HeapBlock<uint8_t> temp{param_pool_size + added_inst_size};
+                HeapBlock<std::byte> temp{param_pool_size + added_inst_size};
                 memcpy(temp.memory, params[frame].memory, param_offset);
                 memcpy(temp.memory + param_offset + added_inst_size, params[frame].memory + param_offset, param_pool_size - param_offset);
                 params[frame].Clear();

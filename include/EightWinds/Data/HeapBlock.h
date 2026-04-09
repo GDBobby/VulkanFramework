@@ -54,7 +54,17 @@ namespace EWE{
 		{
 			memcpy(memory, copySrc.memory, size * sizeof(T));
 		}
-		HeapBlock& operator=(HeapBlock& copySrc) = delete;
+		HeapBlock& operator=(HeapBlock const& copySrc)
+		requires std::is_trivially_copyable_v<T>
+		{
+			if(size != 0){
+				allocator.deallocate(memory, size);
+			}
+			memory = allocator.allocate(copySrc.size);
+			size = copySrc.size;
+			memcpy(memory, copySrc.memory, size * sizeof(T));
+			return *this;
+		}
 		HeapBlock(HeapBlock&& moveSrc) noexcept
 			: memory{moveSrc.memory},
 			size{moveSrc.size}

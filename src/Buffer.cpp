@@ -59,6 +59,12 @@ namespace EWE{
         existsOnTheGPU = true;
 
         CreateTheVkBuffer(vmaAllocCreateInfo);
+
+#if EWE_DEBUG_NAMING
+        if(name != ""){
+            SetName(name);
+        }
+#endif
     }
     
     Buffer::Buffer(LogicalDevice& _logicalDevice)
@@ -160,10 +166,10 @@ namespace EWE{
         return &buffer_info;
     }
 
-#if EWE_DEBUG_NAMING
     void Buffer::SetName(std::string_view _name) {
+#if EWE_DEBUG_NAMING
         name = _name;
-        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);
-    }
+        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);   
 #endif
+}
 } //namespace EWE

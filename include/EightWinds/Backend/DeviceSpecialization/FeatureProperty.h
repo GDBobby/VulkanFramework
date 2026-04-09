@@ -6,7 +6,7 @@
 #include "EightWinds/Backend/DeviceSpecialization/Scoring.h"
 #include "EightWinds/Backend/DeviceSpecialization/FeaturePropertyPack.h"
 
-#include "vulkan/vulkan.hpp"
+#include "vulkan/vulkan.hpp" //potentially replace with reflection
 
 #include <concepts>
 #include <tuple>

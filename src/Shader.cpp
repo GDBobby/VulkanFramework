@@ -265,7 +265,7 @@ namespace EWE {
 			return;
 		}
 		//only supporting 1 push range rn
-		auto& reflectedPush = pushResource[0];
+		//auto& reflectedPush = pushResource[0];
 		const auto& pushReflectedType = compiler.get_type(pushResource[0].base_type_id);
 		shader.pushRange.size = static_cast<uint32_t>(compiler.get_declared_struct_size(pushReflectedType));
 		if (shader.pushRange.size > 0) {
@@ -496,17 +496,17 @@ namespace EWE {
 	}
 
 	Shader::VkSpecInfo_RAII::VkSpecInfo_RAII(Shader::VkSpecInfo_RAII&& move) noexcept
-		: specInfo{ move.specInfo },
-		memPtr{ move.memPtr },
-		mapEntries{ std::move(move.mapEntries) }
+		:  mapEntries{ std::move(move.mapEntries) },
+		specInfo{ move.specInfo },
+		memPtr{ move.memPtr }
 	{
 		move.memPtr = 0;
 	}
 
 	Shader::VkSpecInfo_RAII::VkSpecInfo_RAII(VkSpecInfo_RAII const& copy)
-		: specInfo{ copy.specInfo },
-		mapEntries{copy.mapEntries.begin(), copy.mapEntries.end() } //this is a copy
-	{
+		: mapEntries{copy.mapEntries.begin(), copy.mapEntries.end() }, //this is a copy
+		specInfo{ copy.specInfo }
+		{
 		memPtr = reinterpret_cast<uint64_t>(malloc(specInfo.dataSize));
 		specInfo.mapEntryCount = static_cast<uint32_t>(mapEntries.size());
 		specInfo.pMapEntries = mapEntries.data();

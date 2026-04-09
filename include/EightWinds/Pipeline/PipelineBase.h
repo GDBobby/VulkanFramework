@@ -14,10 +14,10 @@
 namespace EWE {
 	struct Pipeline {
 		LogicalDevice& logicalDevice;
+		const PipelineID myID;
 		PipeLayout* pipeLayout; //i dont remember why this is a pointer instead of a reference. i think i was very loosely controlling lifetime?
 		VkPipeline vkPipe;
 
-		const PipelineID myID;
 		PipelineID GetID() const { return myID; };
 
 		Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout);

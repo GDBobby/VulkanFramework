@@ -32,6 +32,10 @@ namespace EWE{
         );
         ~Buffer();
 
+        void Init(VkDeviceSize instanceSize, uint32_t instanceCount,
+                  VmaAllocationCreateInfo const& vmaAllocCreateInfo,
+                  VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+        );
 
         Buffer(Buffer const& copySrc) = delete;
         Buffer& operator=(Buffer const& copySrc) = delete;
@@ -67,10 +71,6 @@ namespace EWE{
 
         [[nodiscard]] static VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits); 
 
-        void Init(VkDeviceSize instanceSize, uint32_t instanceCount,
-                  VmaAllocationCreateInfo const& vmaAllocCreateInfo,
-                  VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-        );
     private:
         void CreateTheVkBuffer(VmaAllocationCreateInfo const& vmaAllocCreateInfo);
         void DestroyTheVkBuffer();
@@ -78,7 +78,7 @@ namespace EWE{
 
 #if EWE_DEBUG_NAMING
         std::stacktrace creation_trace;
-        void SetName(std::string_view name);
 #endif
+        void SetName(std::string_view name);
     };
 }

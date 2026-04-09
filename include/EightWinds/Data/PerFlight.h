@@ -26,7 +26,7 @@ namespace EWE{
 
     template<typename Resource>
     struct PerFlight{
-        alignas(Resource) uint8_t buffer[max_frames_in_flight * sizeof(Resource)];
+        alignas(Resource) std::byte buffer[max_frames_in_flight * sizeof(Resource)];
 #if EWE_DEBUG_BOOL
         Resource* firstPtr_debug;
         Resource* secondPtr_debug; 

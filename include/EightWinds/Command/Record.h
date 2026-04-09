@@ -29,60 +29,60 @@ namespace EWE{
     //i need a merge option, so that tasks can be modified more easily
     //and commandrecord can be passed around as a pre-package kind of thing
     
-    namespace Command{
-        struct Record{
-            [[nodiscard]] Record() = default;
-            [[nodiscard]] Record(std::string_view file_location);
+namespace Command{
+    struct Record{
+        [[nodiscard]] Record() = default;
+        [[nodiscard]] Record(std::filesystem::path const& file_location);
 
-            //idk how to handle copies right now
-            Record(Record const&) = delete;
-            Record& operator=(Record const&) = delete;
-            Record(Record&&) = delete;
-            Record& operator=(Record&&) = delete;
+        //idk how to handle copies right now
+        Record(Record const&) = delete;
+        Record& operator=(Record const&) = delete;
+        Record(Record&&) = delete;
+        Record& operator=(Record&&) = delete;
 
-            std::string name{};
-            bool hasBeenCompiled = false;
-            std::vector<Instruction> records{};
+        std::string name{};
+        bool hasBeenCompiled = false;
+        std::vector<Instruction> records{};
 
-            void Append(Record const& other);
-            Record& operator<<(Record const& other){
-                Append(other);
-                return *this;
+        void Append(Record const& other);
+        Record& operator<<(Record const& other){
+            Append(other);
+            return *this;
+        }
+
+        //a pointer is returned so that
+        InstructionPointerAdjuster* Add(Inst::Type type, bool external_memory = false);
+
+        template<Inst::Type IType>
+        requires (std::meta::is_complete_type(^^ParamPack<IType>))
+        auto* Add(bool external_memory = false) {
+            auto* inst = Add(IType, external_memory);
+            if constexpr(IType == Inst::Push){
+                return inst->CastTo<GlobalPushConstant_Raw>();
             }
-
-            //a pointer is returned so tha t
-            InstructionPointerAdjuster* Add(Inst::Type type, bool external_memory = false);
-
-            template<Inst::Type IType>
-            requires (std::meta::is_complete_type(^^ParamPack<IType>))
-            auto* Add(bool external_memory = false) {
-                auto* inst = Add(IType, external_memory);
-                if constexpr(IType == Inst::Push){
-                    return inst->CastTo<GlobalPushConstant_Raw>();
-                }
-                else if constexpr(IType == Inst::BeginRender){
-                    return inst->CastTo<VkRenderingInfo>();
-                }
-                else{
-                    return inst->template CastTo<ParamPack<IType>>();
-                }
+            else if constexpr(IType == Inst::BeginRender){
+                return inst->CastTo<VkRenderingInfo>();
             }
-
-            template<Inst::Type IType>
-            requires(!std::meta::is_complete_type(^^ParamPack<IType>))
-            void Add(bool external_memory = false) {
-                Add(IType, external_memory);
+            else{
+                return inst->template CastTo<ParamPack<IType>>();
             }
+        }
 
-            std::size_t CalculateSize() const noexcept;
-            void FixDeferred(const PerFlight<std::size_t> pool_address) noexcept;
+        template<Inst::Type IType>
+        requires(!std::meta::is_complete_type(^^ParamPack<IType>))
+        void Add(bool external_memory = false) {
+            Add(IType, external_memory);
+        }
+
+        std::size_t CalculateSize() const noexcept;
+        void FixDeferred(const PerFlight<std::size_t> pool_address) noexcept;
 #if EWE_DEBUG_BOOL
-            bool ValidateInstructions() const;
+        bool ValidateInstructions() const;
 #endif
 
-            static void WriteInstructions(std::string_view file_location, const std::span<const Inst::Type> instructions);
-            void WriteInstructions(std::string_view file_location);
-            static RuntimeArray<Inst::Type> ReadInstructions(std::string_view file_location);
-        };
-    }//namespace Command
+        static void WriteInstructions(std::string_view file_location, const std::span<const Inst::Type> instructions);
+        void WriteInstructions(std::string_view file_location);
+        static RuntimeArray<Inst::Type> ReadInstructions(std::string_view file_location);
+    };
+}//namespace Command
 }//namespace EWE

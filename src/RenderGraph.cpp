@@ -11,6 +11,16 @@ namespace EWE{
         renderQueue{_renderQueue}, computeQueue{_computeQueue},
         presentBridge{logicalDevice, swapchain.presentQueue},
         //presentSubmission{ swapchain, swapchain.presentQueue },
+        present_wait_semaphore_data{
+            VkSemaphoreSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                .pNext = nullptr,
+                .semaphore = VK_NULL_HANDLE,
+                .value = 0,
+                .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                .deviceIndex = 0
+            }
+        },
         presentInfo{
             VkPresentInfoKHR{
                 .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -20,16 +30,6 @@ namespace EWE{
                 .pSwapchains = &swapchain.activeSwapchain,
                 .pImageIndices = &swapchain.imageIndex,
                 .pResults = &presentResult
-            }
-        },
-        present_wait_semaphore_data{
-            VkSemaphoreSubmitInfo{
-                .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
-                .pNext = nullptr,
-                .semaphore = VK_NULL_HANDLE,
-                .value = 0,
-                .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                .deviceIndex = 0
             }
         },
         semaphores{0, logicalDevice},

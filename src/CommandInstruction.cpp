@@ -22,6 +22,8 @@ namespace EWE{
             }
         }
 #pragma GCC diagnostic pop
+        EWE_UNREACHABLE;
+        return 0;
     }
 
     bool Instruction::CheckInstructionValidAtBackOf(const std::span<Inst::Type> instructions, Inst::Type itype){

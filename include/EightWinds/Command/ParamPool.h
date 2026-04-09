@@ -17,7 +17,7 @@ namespace Command{
             * might be better to use something that can handle a disparity between size and capacity
                 it would mean less moves
         */
-        PerFlight<HeapBlock<uint8_t>> params; 
+        PerFlight<HeapBlock<std::byte>> params; 
         std::vector<Inst::Type> instructions;
 
         //instruction pointer adjuster being moved or copied is acceptable here, the underlying data has a reliable state
@@ -27,8 +27,8 @@ namespace Command{
         [[nodiscard]] ParamPool();
         [[nodiscard]] ParamPool(ParamPool const& copySrc); //this will be supported shortly i just dont want to code it rn
         ParamPool(ParamPool&& moveSrc) = delete;
+        ParamPool& operator=(ParamPool const& copySrc);
         //i dont currently want to support discarding the existing data
-        ParamPool& operator=(ParamPool const& copySrc) = delete; 
         ParamPool& operator=(ParamPool&& moveSrc) = delete;
 
         std::size_t GetPackIndex(std::size_t inst_index) const;

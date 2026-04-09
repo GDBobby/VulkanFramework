@@ -19,14 +19,21 @@ namespace Command{
 
 		[[nodiscard]] InstructionPackage();
 
-		static constexpr auto allowed_instructions = CollectInstructions();
+		static constexpr auto allowed_instructions = {
 
+            Inst::BeginLabel,
+            Inst::EndLabel,
+
+			Inst::If,
+			Inst::EndIf
+		};
+
+		const Type type;
         std::string name;
 		ParamPool paramPool;
-		const Type type;
 		
-		virtual std::span<const Inst::Type> GetAllowedInstructions() {return std::span{allowed_instructions.data(), allowed_instructions.size()};}
-
+		virtual std::span<const Inst::Type> GetAllowedInstructions() {return std::span{allowed_instructions.begin(), allowed_instructions.end()};}
+	
 	protected:
 		[[nodiscard]] InstructionPackage(Type type);	
 	};

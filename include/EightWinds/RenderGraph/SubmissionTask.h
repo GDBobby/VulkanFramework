@@ -19,13 +19,13 @@ namespace EWE{
         PerFlight<CommandBuffer> cmdBuffers;
         //bool signal;
         std::string name;
-        [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name);
-
         PerFlight<Backend::SubmitInfo> submitInfo;
 
         std::vector<std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)>> packaged_tasks;
-
         bool uses_present_image = false;
+        
+        [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name);
+
 
         //i dont really want to automatically generate barriers but we will for the moment
         bool Execute(uint8_t frameIndex);

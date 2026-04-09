@@ -22,8 +22,8 @@ namespace EWE{
         //signal{signals},
         //full_workload{nullptr},
         //external_workload{nullptr},
-        packaged_tasks{},
-        name{_name}
+        name{_name},
+        packaged_tasks{}
     {
 #if EWE_DEBUG_NAMING
         for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {

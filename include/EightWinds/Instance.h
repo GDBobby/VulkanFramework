@@ -20,8 +20,8 @@ namespace EWE{
         Instance& operator=(Instance const& copySrc) = delete;
         Instance& operator=(Instance&& moveSrc) = delete;
 
-        VkInstance instance;
         const uint32_t api_version;
+        VkInstance instance;
 
 #if EWE_DEBUG_BOOL
         DebugMessenger debugMessenger;

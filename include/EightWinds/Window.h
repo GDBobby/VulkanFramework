@@ -27,10 +27,10 @@ namespace EWE {
 	struct Window {
 		[[nodiscard]] Window(Instance& instance, uint32_t width, uint32_t height, std::string_view name);
 		
+		Instance& instance;
 		Dimensions<uint32_t> screenDimensions;
 		GLFWwindow* window;
 		VkSurfaceKHR surface;
-		Instance& instance;
 
 		bool resizeable = false;
 
