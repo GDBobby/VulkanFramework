@@ -2,14 +2,7 @@
 
 //#include "EightWinds/ShaderFactory.h"
 
-#if PIPELINE_HOT_RELOAD
-#include "EWGraphics/imgui/imgui.h"
-#endif
-
 #include <algorithm>
-
-//theres a number of errors here, why are they not beign picked up
-
 
 namespace EWE {
 
@@ -21,7 +14,7 @@ namespace EWE {
 		//case PipelineType::MeshWithMeshDisabled: return VK_PIPELINE_BIND_POINT_GRAPHICS; //this is a bit more ambiguous
 		case PipelineType::Raytracing: return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
 			//Scheduler, //graph/scheduling - distinct? idk
-			default: EWE_UNREACHABLE;
+		default: EWE_UNREACHABLE;
 		}
 		return VK_PIPELINE_BIND_POINT_GRAPHICS;//error silencer
 	}

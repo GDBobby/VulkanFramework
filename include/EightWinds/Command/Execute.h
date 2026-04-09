@@ -8,6 +8,8 @@
 
 #include "EightWinds/Data/HeapBlock.h"
 
+#include "EightWinds/Command/ParamPool.h"
+
 namespace EWE{
 
     struct CommandBuffer;
@@ -29,11 +31,13 @@ namespace Command{
         Executor& operator=(Executor const& copySrc) = delete;
         Executor& operator=(Executor&& moveSrc) = delete;
 
-        //i can use templates to make the parampool type aware
-        PerFlight<HeapBlock<uint8_t>> paramPool;
+        ParamPool paramPool;
 
         void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept;
         void Debug() const noexcept;
     };
+
+
+    void ExecuteParamPool(ParamPool const& pp, LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, uint8_t frameIndex);
 } //namespace Command 
 } //namespace EWE

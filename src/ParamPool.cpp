@@ -56,7 +56,7 @@ namespace Command{
     }
 
     void ParamPool::PushBack(Inst::Type itype){
-        const std::size_t added_inst_size = Instruction::GetParamSize(itype);
+        const std::size_t added_inst_size = Inst::GetParamSize(itype);
         instructions.push_back(itype);
         if(added_inst_size > 0){
             auto& inst_back = param_data.emplace_back();
@@ -83,7 +83,7 @@ namespace Command{
     std::size_t ParamPool::GetPackIndex(std::size_t inst_index) const{
         std::size_t current_pack_index = 0;
         for(std::size_t i = 0; i < inst_index; i++){
-            current_pack_index += Instruction::GetParamSize(instructions[inst_index]) != 0;
+            current_pack_index += Inst::GetParamSize(instructions[inst_index]) != 0;
         }
         return current_pack_index;
     }
@@ -105,7 +105,7 @@ namespace Command{
             return;
         }
 
-        const std::size_t removed_inst_size = Instruction::GetParamSize(instructions[index]);
+        const std::size_t removed_inst_size = Inst::GetParamSize(instructions[index]);
         if(removed_inst_size > 0){
             const std::size_t starting_size = params[0].Size();
             const std::size_t pack_index = GetPackIndex(index);
@@ -147,7 +147,7 @@ namespace Command{
 
         std::size_t first_erasure = param_data.size();
         for(std::size_t i = index; i < instructions.size(); i++){
-            if(Instruction::GetParamSize(instructions[i]) > 0){
+            if(Inst::GetParamSize(instructions[i]) > 0){
                 first_erasure = i;
                 break;
             }
@@ -176,7 +176,7 @@ namespace Command{
     }
     void ParamPool::Insert(std::size_t index, Inst::Type itype){
         EWE_ASSERT(index <= instructions.size());
-        std::size_t added_inst_size = Instruction::GetParamSize(itype);
+        std::size_t added_inst_size = Inst::GetParamSize(itype);
         instructions.insert(instructions.begin() + index, itype);
         if(added_inst_size > 0){
             std::size_t param_pool_size = params[0].Size();

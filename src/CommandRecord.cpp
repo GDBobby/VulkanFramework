@@ -6,10 +6,10 @@
 
 namespace EWE{
     namespace Command{
-        Record::Record(std::string_view file_location) 
+        Record::Record(std::filesystem::path const& file_location) 
         : name{file_location}
         {
-            auto const& temp_insts = ReadInstructions(file_location);
+            auto const& temp_insts = ReadInstructions(file_location.string());
             for(auto const& inst : temp_insts){
                 Add(inst);
             }
@@ -18,7 +18,7 @@ namespace EWE{
         std::size_t Record::CalculateSize() const noexcept{
             std::size_t ret = 0;
             for(auto const& inst : records){
-                ret += Instruction::GetParamSize(inst.type);
+                ret += Inst::GetParamSize(inst.type);
             }
             return ret;
         }
@@ -107,7 +107,7 @@ namespace EWE{
         /*
         void Record::Compile(GPUTask* constructionPointer, LogicalDevice& logicalDevice, Queue& queue) noexcept {
             EWE_ASSERT(!hasBeenCompiled);
-            const uint64_t full_data_size = records.back().paramOffset + Instruction::GetParamSize(records.back().type);
+            const uint64_t full_data_size = records.back().paramOffset + Inst::GetParamSize(records.back().type);
 
             GPUTask ret{logicalDevice, queue};
             ret.commandExecutor.instructions = records;
@@ -146,7 +146,7 @@ namespace EWE{
         */
 
         InstructionPointerAdjuster* Record::Add(Inst::Type type, bool external_memory /*= false*/) {
-            if(Instruction::GetParamSize(type) == 0){
+            if(Inst::GetParamSize(type) == 0){
                 records.push_back(
                     Instruction{type, nullptr}
                 );
@@ -170,7 +170,7 @@ namespace EWE{
                             inst.instruction_pointer->data[frame] = pool_address[frame] + current_offset;
                         }
                         inst.instruction_pointer->adjusted = true;
-                        current_offset += Instruction::GetParamSize(inst.type);
+                        current_offset += Inst::GetParamSize(inst.type);
                     }
                 }
             }

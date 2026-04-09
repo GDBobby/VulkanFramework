@@ -162,6 +162,7 @@ target_precompile_headers(${PROJECT_NAME} PUBLIC
     <cstdint>
     <ranges>
     <vulkan/vulkan.h>
+    <filesystem>
 )
 
 message(STATUS "linking libs")

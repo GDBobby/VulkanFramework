@@ -12,6 +12,30 @@
 #include <cstdint>
 
 namespace EWE{
+
+namespace Inst{
+
+    static constexpr uint64_t GetParamSize(Inst::Type type) noexcept{
+        static constexpr auto type_mems = std::define_static_array(std::meta::enumerators_of(^^Inst::Type));
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+        template for(constexpr auto type_mem : type_mems){
+            if ([:type_mem:] == type){
+                if constexpr(std::meta::is_complete_type(^^ParamPack<([:type_mem:])>)){
+                    return sizeof(ParamPack<([:type_mem:])>);
+                }
+                else{
+                    return 0;
+                }
+            }
+        }
+#pragma GCC diagnostic pop
+        EWE_UNREACHABLE;
+        return 0;
+    }
+} //namespace Inst
+
     struct Instruction{
 
         Inst::Type type;
@@ -27,8 +51,6 @@ namespace EWE{
         Instruction& operator=(Instruction&& moveSrc) noexcept = default;
 
         ~Instruction(){}
-
-        static uint64_t GetParamSize(Inst::Type type) noexcept;
 
         template<Inst::Type IType>
         static constexpr auto GetVkFunction() noexcept{

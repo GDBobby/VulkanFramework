@@ -5,27 +5,6 @@
 #include "EightWinds/Backend/RenderInfo.h"
 
 namespace EWE{
-
-    uint64_t Instruction::GetParamSize(Inst::Type type) noexcept{
-        static constexpr auto type_mems = std::define_static_array(std::meta::enumerators_of(^^Inst::Type));
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-        template for(constexpr auto type_mem : type_mems){
-            if ([:type_mem:] == type){
-                if constexpr(std::meta::is_complete_type(^^ParamPack<([:type_mem:])>)){
-                    return sizeof(ParamPack<([:type_mem:])>);
-                }
-                else{
-                    return 0;
-                }
-            }
-        }
-#pragma GCC diagnostic pop
-        EWE_UNREACHABLE;
-        return 0;
-    }
-
     bool Instruction::CheckInstructionValidAtBackOf(const std::span<Inst::Type> instructions, Inst::Type itype){
         int64_t current_if_depth = 0;
         int64_t current_label_depth = 0;

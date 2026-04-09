@@ -12,7 +12,7 @@ namespace EWE{
 
 
     template<> struct ParamPack<Inst::Push> : public GlobalPushConstant_Raw{};
-    template<> struct ParamPack<Inst::BeginRender> : public VkRenderingInfo{};
+    template<> struct ParamPack<Inst::BeginRender> : public VkRenderingInfo{}; //i need to figure something out here
 
     template<> struct ParamPack<Inst::BindPipeline>{
         VkPipeline pipe;
@@ -97,6 +97,15 @@ namespace EWE{
         VkRect2D scissors[ArbitraryScissorCountLimit];
         uint32_t currentScissorCount = 0;
     };
+
+    template<> struct ParamPack<Inst::If>{
+        bool enabled;
+
+        operator bool() const{
+            return enabled;
+        }
+    };
+
     template<> struct ParamPack<Inst::LoopBegin>{ //i assume this would need to be used with indirect commands
         int begin; 
         int comparison;
