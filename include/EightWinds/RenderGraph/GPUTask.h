@@ -22,7 +22,6 @@ namespace EWE{
     //the id of this task is its address
     //GPUTask is intended to be used in a single thread.
     //if its desired to multi-thread within a single task, sync needs to be external
-    //i need to be able to insert barriers
     struct GPUTask{
         std::string name;
         LogicalDevice& logicalDevice;

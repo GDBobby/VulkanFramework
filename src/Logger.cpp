@@ -6,6 +6,8 @@
 
 #include "EightWinds/Reflect/Enum.h"
 
+#include "EightWinds/Preprocessor.h"
+
 namespace EWE{
     
 
@@ -72,6 +74,7 @@ namespace EWE{
             va_start(args, fmt);
             InternalPrint(Level::Error, fmt, args);
             va_end(args);
+            EWE_Debug_Breakpoint();
         }
     }
 }
