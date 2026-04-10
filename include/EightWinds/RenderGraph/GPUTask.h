@@ -30,11 +30,12 @@ namespace EWE{
 
         std::optional<Command::Executor> commandExecutor;
         std::optional<Command::ParamPool> paramPool;
+        Command::PackageRecord* pkgRecord; //just for viewing in reconstruction
 
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool& pp);
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Command::PackageRecord const& record);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Command::PackageRecord& record);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask(GPUTask&&) = delete;
@@ -42,16 +43,16 @@ namespace EWE{
         GPUTask& operator=(GPUTask&&) = delete;
 
         //i need another system wrapping GPUTask to handle how the command buffers are dealt with
-        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
+        bool Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
 
         std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
+        std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload = nullptr; //will be packed between prefix and suffix into workload
         
         TaskResourceUsage resources;
 
         TaskAffix prefix{};
         TaskAffix suffix{};
         void GenerateWorkload();
-        void GenerateExternalWorkload(std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload);
     };
 
 

@@ -36,25 +36,10 @@ namespace EWE{
 
         PerFlight<BarrierObject> barriers{};
 
-        inline bool Empty() const noexcept {
-            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                if (!barriers[i].Empty()) {
-                    return false;
-                }
-            }
-            return true;
-        }
+        bool Empty() const noexcept;
 
-        void Clear(uint8_t frameIndex) {
-            image_updates.clear();
-            barriers[frameIndex].bufferBarriers.clear();
-            barriers[frameIndex].imageBarriers.clear();
-        }
-        void Clear() {
-            for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-                Clear(i);
-            }
-        }
+        void Clear(uint8_t frameIndex);
+        void Clear();
 
         void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
     };

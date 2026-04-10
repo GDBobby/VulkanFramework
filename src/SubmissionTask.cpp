@@ -81,6 +81,14 @@ namespace EWE{
         return ret;
     }
 
+    void SubmissionTask::CollectTaskWorkloads(){
+        packaged_tasks.clear();
+        for(auto* task : tasks){
+            task->GenerateWorkload();
+            packaged_tasks.push_back(task->workload);
+        }
+    }
+
 
     SubmissionBridge::SubmissionBridge(std::span<SubmissionTask*> _lhs, SubmissionTask* _rhs)
         : lhs{_lhs}, rhs{_rhs}

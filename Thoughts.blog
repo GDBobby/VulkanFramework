@@ -137,3 +137,10 @@ i can use imgui and the param pool to edit the command buffer params without any
 i think i can change the parampool a bit. it's a bit like an array at the moment, 
 where if i wasnt to resize it i basically need to recreate it.
 i think i can make it more like my hive implementation, in which i just chain static parts
+
+
+## 4/10/2026
+i changed the parampool into its own class. that enabled it to be more hive like. they can also be compiled together now.
+i think i need to set it up so shaders have their own meta files. using the meta files, I can setup controls so that each 
+    buffer and texture used by the shader can signal whether or not they require a barrier. that would alleviate the need
+    to hand code the barriers.

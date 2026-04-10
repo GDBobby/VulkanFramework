@@ -9,6 +9,7 @@
 #include "EightWinds/Backend/Semaphore.h"
 
 #include "EightWinds/Backend/SubmitInfo.h"
+#include "GPUTask.h"
 
 namespace EWE{
 
@@ -21,13 +22,18 @@ namespace EWE{
         std::string name;
         PerFlight<Backend::SubmitInfo> submitInfo;
 
+        //specialized tasks are like the imgui task, which doesnt use GPUTask
+        //more specifically, they aren't generated in graphs, but 'hand' coded
+        bool specializedSubmission = false; 
+
         std::vector<std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)>> packaged_tasks;
+        std::vector<GPUTask*> tasks; //this isn't really necessary during runtime, just for storing the data necessary for reconstruction
+
         bool uses_present_image = false;
         
         [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name);
 
-
-        //i dont really want to automatically generate barriers but we will for the moment
+        void CollectTaskWorkloads();
         bool Execute(uint8_t frameIndex);
     };
 

@@ -54,4 +54,24 @@ namespace EWE{
 			upd.img->data.layout = upd.layout;
 		}
 	}
+
+	bool TaskAffix::Empty() const noexcept {
+		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+			if (!barriers[i].Empty()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	void TaskAffix::Clear(uint8_t frameIndex) {
+		image_updates.clear();
+		barriers[frameIndex].bufferBarriers.clear();
+		barriers[frameIndex].imageBarriers.clear();
+	}
+	void TaskAffix::Clear() {
+		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
+			Clear(i);
+		}
+	}
 }
