@@ -36,11 +36,15 @@ namespace EWE{
         stc_management{
             logicalDevice,
             renderQueue, computeQueue,
-            submissions.AddElement(logicalDevice, renderQueue, "graphics STC task"), submissions.AddElement(logicalDevice, computeQueue, "compute STC task")
+            submissions.AddElement("graphics STC task", logicalDevice, renderQueue), submissions.AddElement("compute STC task", logicalDevice, computeQueue)
         },
         current_stc_manager{stc_management.GetNext()}
         //binary_semaphores{0, logicalDevice}
     {
+        auto& stc_m = *stc_management.begin();
+        stc_m.graphics_stc_task.specializedSubmission = true;
+        stc_m.compute_stc_task.specializedSubmission = true;
+    
 #if EWE_DEBUG_BOOL
         Logger::Print<Logger::Warning>("need visual feedback for rendergraph\n");
 
@@ -87,7 +91,7 @@ namespace EWE{
             for(auto& ind_sub : execution_order[i]) {
                 //populate sumibssion
                 //potentially assert each queue is identical per submission group
-                queue = &ind_sub->queue;
+                queue = ind_sub->queue;
                 ind_sub->Execute(frameIndex);
 
                 //if(ind_sub->signal){
@@ -203,12 +207,12 @@ namespace EWE{
             for(std::size_t i = 0; i < execution_order.size(); i++){
                 auto& sub_group = execution_order[i];
                 if(first_graphics_task_group < 0){
-                    if(sub_group[0]->queue == renderQueue){
+                    if(*sub_group[0]->queue == renderQueue){
                         first_graphics_task_group = i;
                     }
                 }
                 if(first_compute_task_group < 0){
-                    if(sub_group[0]->queue == computeQueue){
+                    if(*sub_group[0]->queue == computeQueue){
                         first_compute_task_group = i;
                     }
                 }

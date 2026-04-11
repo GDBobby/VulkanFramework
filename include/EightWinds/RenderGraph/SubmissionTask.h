@@ -15,7 +15,7 @@ namespace EWE{
 
     struct SubmissionTask{
         LogicalDevice& logicalDevice;
-        Queue& queue;
+        Queue* queue; //not optional
         CommandPool cmdPool;
         PerFlight<CommandBuffer> cmdBuffers;
         //bool signal;
@@ -31,7 +31,7 @@ namespace EWE{
 
         bool uses_present_image = false;
         
-        [[nodiscard]] explicit SubmissionTask(LogicalDevice& logicalDevice, Queue& queue, std::string_view name);
+        [[nodiscard]] explicit SubmissionTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
 
         void CollectTaskWorkloads();
         bool Execute(uint8_t frameIndex);

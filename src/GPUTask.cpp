@@ -50,7 +50,7 @@ namespace EWE{
         }
         else if(paramPool.has_value()){
             Command::ExecuteParamPool(paramPool.value(), logicalDevice, cmdBuf, frameIndex);
-            return true;
+            return paramPool->instructions.size() > 0;
         }
         else if(external_workload != nullptr){
             return external_workload(cmdBuf, frameIndex);
