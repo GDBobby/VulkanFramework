@@ -32,10 +32,7 @@ namespace Command{
         param_data{std::move(moveSrc.param_data)}
     {
         for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-            params[frame].memory = moveSrc.params[frame].memory;
-            params[frame].size = moveSrc.params[frame].size;
-            moveSrc.params[frame].memory = nullptr;
-            moveSrc.params[frame].size = 0;
+            params[frame] = moveSrc.params[frame];
         }
     }
 
@@ -56,6 +53,24 @@ namespace Command{
             }
         }
         return *this;
+    }
+
+    ParamPool& ParamPool::Append(ParamPool const& other){
+        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            const std::size_t first_size = params[frame].Size();
+            HeapBlock<std::byte> temp{first_size + other.params[frame].Size()};
+            memcpy(temp.memory, params[frame].memory, first_size);
+            memcpy(temp.memory + first_size, other.params[frame].memory, other.params[frame].Size());
+            params[frame] = temp;
+        }
+        return *this;
+    }
+    void ParamPool::Clear(){
+        instructions.clear();
+        param_data.clear();
+        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            params[frame].Clear();
+        }
     }
 
     void ParamPool::ReadjustOffsets(PerFlight<std::size_t> previous_addr, PerFlight<std::size_t> next_addr){
@@ -81,11 +96,7 @@ namespace Command{
                 inst_back.adjusted = true;
                 HeapBlock<std::byte> temp{param_pool_size + added_inst_size};
                 memcpy(temp.memory, params[frame].memory, param_pool_size);
-                params[frame].Clear();
-                params[frame].memory = temp.memory;
-                params[frame].size = temp.size;
-                temp.memory = nullptr;
-                temp.size = 0;
+                params[frame] = temp;
             }
             const PerFlight<std::size_t> current_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             ReadjustOffsets(previous_memory_addresses, current_memory_addresses);
@@ -132,11 +143,7 @@ namespace Command{
                 HeapBlock<std::byte> temp{starting_size - removed_inst_size};
                 memcpy(temp.memory, params[frame].memory, removed_pack_start);
                 memcpy(temp.memory + removed_pack_start, params[frame].memory + removed_pack_start + removed_inst_size, starting_size - removed_pack_start - removed_inst_size);
-                params[frame].Clear();
-                params[frame].memory = temp.memory;
-                params[frame].size = temp.size;
-                temp.memory = nullptr;
-                temp.size = 0;
+                params[frame] = temp;
                 for(std::size_t i = pack_index; i < param_data.size(); i++){
                     param_data[i].data[frame] -= removed_inst_size;
                 }
@@ -175,11 +182,7 @@ namespace Command{
 
                 HeapBlock<std::byte> temp{shrunk_size};
                 memcpy(temp.memory, params[frame].memory, shrunk_size);
-                params[frame].Clear();
-                params[frame].memory = temp.memory;
-                params[frame].size = temp.size;
-                temp.memory = nullptr;
-                temp.size = 0;
+                params[frame] = temp;
             }
 
             const PerFlight<std::size_t> current_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
@@ -203,11 +206,7 @@ namespace Command{
                 HeapBlock<std::byte> temp{param_pool_size + added_inst_size};
                 memcpy(temp.memory, params[frame].memory, param_offset);
                 memcpy(temp.memory + param_offset + added_inst_size, params[frame].memory + param_offset, param_pool_size - param_offset);
-                params[frame].Clear();
-                params[frame].memory = temp.memory;
-                params[frame].size = temp.size;
-                temp.memory = nullptr;
-                temp.size = 0;
+                params[frame] = temp;
                 inst_ptr.data[frame] = reinterpret_cast<std::size_t>(&params[frame].memory[param_offset]);
 
                 inst_ptr.adjusted = true;

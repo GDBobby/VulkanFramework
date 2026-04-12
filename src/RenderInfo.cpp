@@ -85,9 +85,9 @@ namespace EWE{
 	}
 
 	void FullRenderInfo::Undefer(InstructionPointer<VkRenderingInfo>* deferred_render_info){
-		for(uint8_t i = 0; i < max_frames_in_flight; i++){
-			auto& temp_info = render_data.vk_info[i];
-			deferred_render_info->GetRef(i) = temp_info;
+		for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+			auto& temp_info = render_data.vk_info[frame];
+			deferred_render_info->GetRef(frame) = temp_info;
 		}
 	}
 

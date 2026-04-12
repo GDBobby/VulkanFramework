@@ -138,12 +138,14 @@ namespace EWE {
 		return merged;
 	}
 
-	PipeLayout::PipeLayout(LogicalDevice& _logicalDevice, std::initializer_list<::EWE::Shader*> _shaders, VkDescriptorSetLayout dsl) noexcept
+	PipeLayout::PipeLayout(LogicalDevice& _logicalDevice, std::span<::EWE::Shader*> _shaders, VkDescriptorSetLayout dsl) noexcept
 		: logicalDevice{_logicalDevice}
 	{
 		this->shaders.fill(nullptr);
 		for (auto& shader : _shaders) {
-			this->shaders[Shader::Stage(shader->shaderStageCreateInfo.stage).value] = shader;
+			if(shader != nullptr){
+				this->shaders[Shader::Stage(shader->shaderStageCreateInfo.stage).value] = shader;
+			}
 		}
 		descriptorSets = MergeDescriptorSets(this->shaders);
 		pushConstantRanges = MergePushRanges(this->shaders);

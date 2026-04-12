@@ -12,20 +12,21 @@ namespace Command{
 			Inst::Push,
 			Inst::Draw,
 			Inst::DrawIndexed,
-            Inst::DrawMeshTasks,
             
             Inst::DrawIndirect,
             Inst::DrawIndexedIndirect,
-            Inst::DrawMeshTasksIndirect,
             
             Inst::DrawIndirectCount,
             Inst::DrawIndexedIndirectCount,
+
+            Inst::DrawMeshTasks,
+            Inst::DrawMeshTasksIndirect,
             Inst::DrawMeshTasksIndirectCount,
 
-            Inst::DS_Viewport,
-            Inst::DS_ViewportCount,
-            Inst::DS_Scissor,
-            Inst::DS_ScissorCount,
+            //Inst::DS_Viewport,
+            //Inst::DS_ViewportCount,
+            //Inst::DS_Scissor,
+            //Inst::DS_ScissorCount,
 
             Inst::BeginLabel,
             Inst::EndLabel,
@@ -40,6 +41,13 @@ namespace Command{
         };
         Payload payload;
 
+        enum class DrawType{
+            Vertex,
+            Mesh,
+
+            INVALID
+        };
+        DrawType GetDrawType() const;
 
 		std::span<const Inst::Type> GetAllowedInstructions() override final {return std::span{allowed_instructions.begin(), allowed_instructions.end()};}
 	};

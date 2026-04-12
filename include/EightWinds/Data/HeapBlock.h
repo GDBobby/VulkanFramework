@@ -74,7 +74,15 @@ namespace EWE{
 			moveSrc.size = 0;
 		}
 
-		HeapBlock& operator=(HeapBlock&& moveSrc) noexcept = delete;
+		HeapBlock& operator=(HeapBlock&& moveSrc) noexcept{
+			if(memory != nullptr){
+				allocator.deallocate(memory, size);
+			}
+			memory = moveSrc.memory;
+			size = moveSrc.size;
+			moveSrc.memory = nullptr;
+			moveSrc.size = 0;
+		}
 
 		void Clear(){
 			if(size != 0){

@@ -29,18 +29,6 @@ namespace EWE {
 			decltype(std::declval<T>().end()),
 			decltype(std::declval<T>().size())
 			>> : std::true_type {};
-
-		constexpr void CheckSizeCondition(const std::size_t size) {
-#if defined(__GNUC__) || defined(__clang__)
-#if size > INITIAL_SIZE_LIMIT
-			#warning "Warning: initialSize exceeds the INITIAL_SIZE_LIMIT (" INITIAL_SIZE_STR(INITIAL_SIZE_LIMIT) "), consider using a hash table"
-#endif
-#elif defined (_MSC_VER)
-#if size > INITIAL_SIZE_LIMIT
-#pragma message("Warning: initialSize exceeds the INITIAL_SIZE_LIMIT (" INITIAL_SIZE_STR(INITIAL_SIZE_LIMIT) "), consider using a hash table")
-#endif
-#endif
-		}
 	}
 
 	template<typename Key, typename Value>
@@ -116,9 +104,9 @@ namespace EWE {
 		using iterator = std::vector<KVPair>::iterator;
 	public:
 		constexpr KeyValueContainer() : inner_data{} {}
-		constexpr KeyValueContainer(std::size_t count) : inner_data{ count } { KV_Helper::CheckSizeCondition(count); }
-		constexpr KeyValueContainer(std::size_t count, KVPair const& value) : inner_data{ count, value } { KV_Helper::CheckSizeCondition(count); }
-		constexpr KeyValueContainer(std::initializer_list<KVPair> init) : inner_data{ init } { KV_Helper::CheckSizeCondition(init.size()); }
+		constexpr KeyValueContainer(std::size_t count) : inner_data{ count } {  }
+		constexpr KeyValueContainer(std::size_t count, KVPair const& value) : inner_data{ count, value } {  }
+		constexpr KeyValueContainer(std::initializer_list<KVPair> init) : inner_data{ init } {  }
 
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_copy_constructible_v<K>&& std::is_copy_constructible_v<V>>>
 		KeyValueContainer(KeyValueContainer& copySource) : inner_data{copySource.inner_data.begin(), copySource.inner_data.end() } {}
@@ -167,7 +155,7 @@ namespace EWE {
 		auto begin() const { return inner_data.begin();}
 		auto end() const { return inner_data.end();}
 
-		std::size_t size() {
+		std::size_t size() const {
 			return inner_data.size();
 		}
 		void reserve(std::size_t res) {

@@ -176,13 +176,13 @@ namespace EWE {
 		for (auto& stage : copySpecInfo) {
 			temp.push_back(KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>(stage.key, Shader::VkSpecInfo_RAII(stage.value)));
 		}
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = pipeLayout->GetStageData(temp);
+		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = layout->GetStageData(temp);
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 			.pNext = &taskConfig.pipelineRenderingCreateInfo,
 			.stageCount = static_cast<uint32_t>(shaderStages.size()),
 			.pStages = shaderStages.data(),
-			.layout = pipeLayout->vkLayout,
+			.layout = layout->vkLayout,
 			.renderPass = VK_NULL_HANDLE, //DNI
 			.subpass = 0, //sub render pass, DNI
 			.basePipelineHandle = VK_NULL_HANDLE, //derivates, DNI
@@ -202,7 +202,7 @@ namespace EWE {
 		};
         //the pointers dont matter
         
-        //auto& vertShader = pipeLayout->shaders[Shader::Stage::Vertex];
+        //auto& vertShader = layout->shaders[Shader::Stage::Vertex];
         //auto vertInputInfo = vertShader.GetVertexInputInfo();
         pipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo;
 		
@@ -309,12 +309,12 @@ namespace EWE {
 	GraphicsPipeline::GraphicsPipeline(
         LogicalDevice& _logicalDevice, 
         PipelineID pipeID, 
-        PipeLayout* layout, //the layout SHOULD cover the input assembly
+        PipeLayout* _layout, //the layout SHOULD cover the input assembly
 		TaskRasterConfig const& passConfig,
 		ObjectRasterConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState//deduced maybe?
     ) noexcept
-     : Pipeline{ _logicalDevice, pipeID, layout }
+     : Pipeline{ _logicalDevice, pipeID, _layout }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif
@@ -322,16 +322,17 @@ namespace EWE {
 		//read the default spec info
 		CreateVkPipeline(passConfig, objectConfig, dynamicState);
 	}
+
 	GraphicsPipeline::GraphicsPipeline(
         LogicalDevice& _logicalDevice, 
         PipelineID pipeID, 
-        PipeLayout* layout, //the layout SHOULD cover the input assembly
+        PipeLayout* _layout, //the layout SHOULD cover the input assembly
 		TaskRasterConfig const& passConfig,
         ObjectRasterConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
         std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
     ) noexcept
-    : Pipeline{ _logicalDevice, pipeID, layout, specInfo }
+    : Pipeline{ _logicalDevice, pipeID, _layout, specInfo }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif
@@ -343,7 +344,7 @@ namespace EWE {
 	void GraphicsPipeline::HotReload(bool layoutReload) {
 		//layout->Reload();
 		if (layoutReload) {
-			pipeLayout->HotReload();
+			layout->HotReload();
 		}
 		stalePipeline = vkPipe;
 		vkPipe = VK_NULL_HANDLE;

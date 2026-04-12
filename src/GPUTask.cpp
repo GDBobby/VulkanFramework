@@ -28,10 +28,12 @@ namespace EWE{
 
     }
 
-    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Command::PackageRecord& record)
+    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Command::PackageRecord& record, bool compile)
     : GPUTask{_name, _logicalDevice, *record.queue}
     {
-        paramPool.emplace(record.Compile());
+        if(compile){
+            paramPool.emplace(record.Compile());
+        }
         pkgRecord = &record;
     }
 
@@ -43,7 +45,7 @@ namespace EWE{
     }
     bool GPUTask::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
         EWE_ASSERT(cmdBuf.commandPool.queue == queue);
-        EWE_ASSERT(commandExecutor.has_value() != paramPool.has_value(), "its assumed one or the other has a value rn");
+        EWE_ASSERT(!(commandExecutor.has_value() && paramPool.has_value()), "only 1 can have a value");
         if(commandExecutor.has_value()){
             commandExecutor->Execute(cmdBuf, frameIndex);
             return true;
@@ -51,6 +53,14 @@ namespace EWE{
         else if(paramPool.has_value()){
             Command::ExecuteParamPool(paramPool.value(), logicalDevice, cmdBuf, frameIndex);
             return paramPool->instructions.size() > 0;
+        }
+        else if(pkgRecord != nullptr){
+            bool did_something = false;
+            for(auto& rec : pkgRecord->packages){
+                Command::ExecuteParamPool(rec->paramPool, logicalDevice, cmdBuf, frameIndex);
+                did_something |= rec->paramPool.instructions.size() > 0;
+            }
+            return did_something;
         }
         else if(external_workload != nullptr){
             return external_workload(cmdBuf, frameIndex);

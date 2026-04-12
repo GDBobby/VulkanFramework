@@ -9,6 +9,7 @@
 #include <initializer_list>
 #include <array>
 #include <vector>
+#include <functional>
 
 namespace EWE {
 	enum class PipelineType {
@@ -27,7 +28,13 @@ namespace EWE {
 		LogicalDevice& logicalDevice;
 		VkPipelineLayout vkLayout;
 		//i suspect theres a mismangement of the Tracker references here
-		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<::EWE::Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
+		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::span<::EWE::Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
+
+		static PipeLayout* DefaultLayoutCreation(LogicalDevice& logicalDevice, std::array<Shader*, Shader::Stage::COUNT> shaders){
+			return new PipeLayout(logicalDevice, shaders);
+		}
+
+		inline static std::function<PipeLayout*(LogicalDevice& logicalDevice, std::array<Shader*, Shader::Stage::COUNT> shaders)> GetLayout = DefaultLayoutCreation;
 
 		//using PipeTraits = PipelineTraits<PipelineType>;
 		//i dont like the array much, i might do a KeyValuePair or something

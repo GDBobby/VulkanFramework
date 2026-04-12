@@ -35,46 +35,44 @@ namespace Command{
         std::size_t GetParamOffset(std::size_t inst_index) const;
         void Erase(std::size_t index);
         void ShrinkToSize(std::size_t index);
-
         void PopBack();
         void PushBack(Inst::Type itype);
         void Insert(std::size_t index, Inst::Type itype);
 
+        ParamPool& Append(ParamPool const& other);
+        void Clear();
+
         void ReadjustOffsets(PerFlight<std::size_t> previous_addr, PerFlight<std::size_t> next_addr);
-        
+
         template<Inst::Type IType>
-        requires (std::meta::is_complete_type(^^ParamPack<IType>))
         void PushBack(ParamPack<IType> const& pp){
             PushBack(IType);
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                memcpy(param_data.back().data[frame], &pp, sizeof(ParamPack<IType>));
+                memcpy(reinterpret_cast<void*>(param_data.back().data[frame]), &pp, sizeof(ParamPack<IType>));
             }
         }
         template<Inst::Type IType>
-        requires (std::meta::is_complete_type(^^ParamPack<IType>))
         void PushBack(PerFlight<ParamPack<IType>*> const& pp){
             PushBack(IType);
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                memcpy(param_data.back().data[frame], pp[frame], sizeof(ParamPack<IType>));
+                memcpy(reinterpret_cast<void*>(param_data.back().data[frame]), pp[frame], sizeof(ParamPack<IType>));
             }
         }
 
         template<Inst::Type IType>
-        requires (std::meta::is_complete_type(^^ParamPack<IType>))
         void Insert(std::size_t index, ParamPack<IType> const& pp){
             Insert(index, IType);
             const std::size_t pack_index = GetPackIndex(index);
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                memcpy(param_data[pack_index].data[frame], &pp, sizeof(ParamPack<IType>));
+                memcpy(reinterpret_cast<void*>(param_data[pack_index].data[frame]), &pp, sizeof(ParamPack<IType>));
             }
         }
         template<Inst::Type IType>
-        requires (std::meta::is_complete_type(^^ParamPack<IType>))
         void PushBack(std::size_t index, PerFlight<ParamPack<IType>*> const& pp){
             Insert(index, IType);
             const std::size_t pack_index = GetPackIndex(index);
             for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                memcpy(param_data[pack_index].data[frame], pp[frame], sizeof(ParamPack<IType>));
+                memcpy(reinterpret_cast<void*>(param_data[pack_index].data[frame]), pp[frame], sizeof(ParamPack<IType>));
             }
         }
 

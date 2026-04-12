@@ -14,8 +14,8 @@ namespace EWE {
 	
 	void Pipeline::WriteToParamPack(ParamPack<Inst::BindPipeline>& paramPack) const{
 		paramPack.pipe = vkPipe;
-		paramPack.layout = pipeLayout->vkLayout;
-		paramPack.bindPoint = pipeLayout->bindPoint;
+		paramPack.layout = layout->vkLayout;
+		paramPack.bindPoint = layout->bindPoint;
 	}
 
 
@@ -32,29 +32,29 @@ namespace EWE {
 	}
 //#endif
 
-	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID id, PipeLayout* layout) 
+	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID id, PipeLayout* _layout) 
 	: 
 		logicalDevice{_logicalDevice},
 		myID{ id },
-		pipeLayout{ layout }
+		layout{ _layout }
 //#if PIPELINE_HOT_RELOAD
 		, copySpecInfo{ SpecInitializer(layout) }
 //#endif
 	{}
 
-	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo)
+	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* _layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo)
 	: 
 		logicalDevice{_logicalDevice},
 		myID{ pipeID }, 
-		pipeLayout{ layout }, 
+		layout{ _layout }, 
 		copySpecInfo{ specInfo }
 	{}
 
 
 	void Pipeline::BindDescriptor(VkCommandBuffer cmdBuf, uint8_t descSlot, VkDescriptorSet* descSet) {
 		vkCmdBindDescriptorSets(cmdBuf,
-			pipeLayout->bindPoint,
-			pipeLayout->vkLayout,
+			layout->bindPoint,
+			layout->vkLayout,
 			descSlot, 1,
 			descSet,
 			0, nullptr
@@ -62,7 +62,7 @@ namespace EWE {
 	}
 
 	void Pipeline::BindPipeline(VkCommandBuffer cmdBuf) {
-		vkCmdBindPipeline(cmdBuf, pipeLayout->bindPoint, vkPipe);
+		vkCmdBindPipeline(cmdBuf, layout->bindPoint, vkPipe);
 	}
 	//void Pipeline::BindPipelineWithVPScissor() {
 	//	BindPipeline();
@@ -70,14 +70,14 @@ namespace EWE {
 	//	EWE_VK(vkCmdSetScissor, VK::Object->GetFrameBuffer(), 0, 1, &VK::Object->scissor);
 	//}
 	void Pipeline::Push(VkCommandBuffer cmdBuf, void* push, uint8_t pushIndex) {
-		auto& range = pipeLayout->pushConstantRanges[pushIndex];
-		vkCmdPushConstants(cmdBuf, pipeLayout->vkLayout, range.stageFlags, range.offset, range.size, push);
+		auto& range = layout->pushConstantRanges[pushIndex];
+		vkCmdPushConstants(cmdBuf, layout->vkLayout, range.stageFlags, range.offset, range.size, push);
 	}
 
 #if EWE_DEBUG_NAMING
 	void Pipeline::SetDebugName(const char* name) {
 		logicalDevice.SetObjectName(vkPipe, VK_OBJECT_TYPE_PIPELINE, name);
-		pipeLayout->SetDebugName(name);
+		layout->SetDebugName(name);
 	}
 #endif
 }

@@ -96,6 +96,9 @@ target_compile_options(${PROJECT_NAME} PRIVATE
         -freflection
         -Wreorder -Werror=reorder
         -Wreturn-type -Werror=return-type
+        -Wno-missing-field-initializers
+        -Werror=uninitialized
+        -Werror=delete-non-virtual-dtor
     >
     $<$<CXX_COMPILER_ID:MSVC>:
         /W4 

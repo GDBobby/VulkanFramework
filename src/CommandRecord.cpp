@@ -155,7 +155,6 @@ namespace EWE{
                 records.push_back(
                     Instruction{type, new InstructionPointerAdjuster()}
                 );
-                records.back().instruction_pointer->internal = !external_memory;
             }
             return records.back().instruction_pointer.get();
         }
@@ -165,13 +164,12 @@ namespace EWE{
             std::size_t current_offset = 0;
             for(auto& inst : records){
                 if(inst.instruction_pointer){
-                    if(inst.instruction_pointer->internal){
-                        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                            inst.instruction_pointer->data[frame] = pool_address[frame] + current_offset;
-                        }
-                        inst.instruction_pointer->adjusted = true;
-                        current_offset += Inst::GetParamSize(inst.type);
+                    for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+                        inst.instruction_pointer->data[frame] = pool_address[frame] + current_offset;
                     }
+                    inst.instruction_pointer->adjusted = true;
+                    current_offset += Inst::GetParamSize(inst.type);
+                    
                 }
             }
 #if EWE_DEBUG_BOOL

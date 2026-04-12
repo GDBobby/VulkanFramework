@@ -14,7 +14,6 @@ namespace EWE{
         //if not, the user defines the construction and lifetime of the pointed data
         //if internal is not true, the pointer will not be changed when calling Record::Undefer
         bool adjusted = false;
-        bool internal = true;
     public:
 
         InstructionPointer() : data{ reinterpret_cast<T*>(UINT64_MAX) } {}
@@ -23,7 +22,7 @@ namespace EWE{
         {}
 
         constexpr T& GetRef(uint8_t frameIndex) {
-            EWE_ASSERT(adjusted);
+            //EWE_ASSERT(adjusted);
             return *data[frameIndex];
         }
     };
@@ -31,7 +30,6 @@ namespace EWE{
     struct InstructionPointerAdjuster {
         PerFlight<std::size_t> data;
         bool adjusted = false;
-        bool internal = true; 
 
         template<typename T>
         InstructionPointer<T>* CastTo() noexcept{

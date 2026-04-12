@@ -1,7 +1,7 @@
 #pragma once
 #include "EightWinds/VulkanHeader.h"
 
-#include "EightWinds/RenderGraph/RasterTask.h"
+#include "EightWinds/RenderGraph/RasterPackage.h"
 
 #include "EightWinds/Buffer.h"
 

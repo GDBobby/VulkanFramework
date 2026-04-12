@@ -113,5 +113,12 @@ namespace EWE{
         //for (int i = begin; i < comparison; i += increment)
     };
     //template<> struct ParamPack<>{};
+
+    namespace Command{
+        struct ParamPool;
+    }
+    template<> struct ParamPack<Inst::Ext_Pool>{
+        Command::ParamPool* pool;
+    };
 	
 } //namespace EWE

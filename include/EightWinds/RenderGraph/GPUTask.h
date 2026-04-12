@@ -12,7 +12,6 @@
 #include "EightWinds/Command/PackageRecord.h"
 
 #include <optional>
-#include <span>
 #include <string_view>
 
 namespace EWE{
@@ -30,12 +29,13 @@ namespace EWE{
 
         std::optional<Command::Executor> commandExecutor;
         std::optional<Command::ParamPool> paramPool;
+
         Command::PackageRecord* pkgRecord; //just for viewing in reconstruction
 
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
         [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool& pp);
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Command::PackageRecord& record);
+        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Command::PackageRecord& record, bool compile);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask(GPUTask&&) = delete;

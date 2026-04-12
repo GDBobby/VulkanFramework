@@ -22,7 +22,7 @@ namespace EWE{
         view{ _view },
         imageInfo{
             .sampler = *sampler,
-            .imageView = view,
+            .imageView = _view,
             .imageLayout = explicitLayout
         },
         type{ _type },
@@ -30,11 +30,11 @@ namespace EWE{
     {
     }
     DescriptorImageInfo::DescriptorImageInfo(ImageView& _view, DescriptorType _type)
-        : DescriptorImageInfo(_view, _type, view.image.data.layout)
+        : DescriptorImageInfo(_view, _type, _view.image.data.layout)
     {
     }
     DescriptorImageInfo::DescriptorImageInfo(Sampler& _sampler, ImageView& _view, DescriptorType _type)
-        : DescriptorImageInfo(_sampler, _view, _type, view.image.data.layout)
+        : DescriptorImageInfo(_sampler, _view, _type, _view.image.data.layout)
     {
     }
 

@@ -1,11 +1,12 @@
-#include "EightWinds/RenderGraph/RasterTask.h"
+#include "EightWinds/RenderGraph/RasterPackage.h"
 
 #include "EightWinds/Pipeline/Graphics.h"
 
-#include <unordered_set>
+#include <unordered_map>
 
 namespace EWE{
 
+	/*
 	DeferredPipelineExecute::DeferredPipelineExecute(
 		LogicalDevice& logicalDevice, 
 		TaskRasterConfig const& taskConfig, ObjectRasterData const& rasterData,
@@ -71,9 +72,9 @@ namespace EWE{
 			sc_paramPack->GetRef(i).scissor = scissor;
 		}
 	}
+	*/
 
-
-	RasterTask::RasterTask(
+	RasterPackage::RasterPackage(
 		std::string_view _name,
 		LogicalDevice& _logicalDevice,
 		Queue& _graphicsQueue,
@@ -89,7 +90,7 @@ namespace EWE{
 	{
 		if (renderInfo == nullptr) {
 			renderInfo = new FullRenderInfo(
-				name,
+				_name,
 				logicalDevice, graphicsQueue,
 				config.attachment_set_info
 			);
@@ -97,8 +98,8 @@ namespace EWE{
 	}
 
 
-
-	void RasterTask::Record_Vertices(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs_vertex) {
+/*
+	void RasterPackage::Record_Vertices(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs_vertex) {
 
 		std::size_t current_offset = 0;
 
@@ -209,7 +210,7 @@ namespace EWE{
 		}
 	}
 	
-	void RasterTask::Record_Mesh(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs_mesh, std::size_t current_offset) {
+	void RasterPackage::Record_Mesh(Command::Record& record, std::unordered_set<ObjectRasterData>& unique_configs_mesh, std::size_t current_offset) {
 
 		for (auto const& obj_config : unique_configs_mesh) {
 			auto* pipelineBind = record.Add<Inst::BindPipeline>();
@@ -237,7 +238,7 @@ namespace EWE{
 		}
 	}
 	
-	void RasterTask::Record(Command::Record& record, bool labeled) {
+	void RasterPackage::Record(Command::Record& record, bool labeled) {
 
 		deferred_pipelines.Clear();
 
@@ -277,7 +278,7 @@ namespace EWE{
 
 		//after compiling, go abck thru and write all the pipeline params
 	}
-	void RasterTask::AdjustPipelines() {
+	void RasterPackage::AdjustPipelines() {
 		renderInfo->Undefer(deferred_vk_render_info);
 
 		for (auto& pipe : deferred_pipelines) {
@@ -292,10 +293,97 @@ namespace EWE{
 			}
 		}
 	}
+		*/
+
+	void AssignToPipeline(LogicalDevice& logicalDevice, std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>>& pipeline_group, Command::ObjectPackage* pkg){
+
+		ObjectRasterData objRasterData{
+			.layout = PipeLayout::GetLayout(logicalDevice, pkg->payload.shaders),
+			.config = pkg->payload.config
+		};
+		auto found = pipeline_group.find(objRasterData);
+		if(found == pipeline_group.end()){
+			bool result = pipeline_group.try_emplace(objRasterData, std::vector<Command::ObjectPackage*>{pkg}).second;
+			EWE_ASSERT(result, "failed to emplace into pipelien gorup");
+		}
+		else{
+			found->second.push_back(pkg);
+		}
+	}
+
+	void RasterPackage::Compile(){
+
+		paramPool.Clear();
+
+		if(objectPackages.size() > 0){
+			paramPool.PushBack(Inst::BeginRender);
+		}
+
+		std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> vertex_pipeline_groups;
+		std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> mesh_pipeline_groups;
+
+		for(auto& pkg : objectPackages){
+			if(pkg->GetDrawType() == Command::ObjectPackage::DrawType::Vertex){
+				AssignToPipeline(logicalDevice, vertex_pipeline_groups, pkg);
+			}
+			else if(pkg->GetDrawType() == Command::ObjectPackage::DrawType::Mesh){
+				AssignToPipeline(logicalDevice, mesh_pipeline_groups, pkg);
+			}
+		}
+
+		for(auto& group : vertex_pipeline_groups){
+			auto latest_pipeline = new GraphicsPipeline(
+				logicalDevice, 0,
+				group.first.layout, 
+				task_config, group.first.config,
+				std::vector<VkDynamicState>{VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT} 
+			);
+			created_pipelines.push_back(latest_pipeline);
+			
+			paramPool.PushBack(
+				ParamPack<Inst::BindPipeline>{
+					.pipe = latest_pipeline->vkPipe,
+					.layout = latest_pipeline->layout->vkLayout,
+					.bindPoint = latest_pipeline->layout->bindPoint
+				}
+			);
+			
+			if (latest_pipeline->layout->descriptorSets.sets.size() > 0) {
+				paramPool.PushBack(Inst::BindDescriptor);
+			}
+				
+			paramPool.PushBack(
+				ParamPack<Inst::DS_Viewport>{
+					.viewport = viewport
+				}
+			);
+			
+			paramPool.PushBack(
+				ParamPack<Inst::DS_Scissor>{
+					.scissor = scissor
+				}
+			);
+
+			for(auto& obj : group.second){
+				paramPool.PushBack(
+					ParamPack<Inst::Ext_Pool>{
+						.pool = &obj->paramPool
+					}
+				);
+			}
+		}
+
+		if(objectPackages.size() > 0){
+			paramPool.PushBack(Inst::EndRender);
+			deferred_vk_render_info = reinterpret_cast<InstructionPointer<VkRenderingInfo>*>(&paramPool.param_data[0]);
+			renderInfo->Undefer(deferred_vk_render_info);
+		}
+
+	}
 
 
 #if EWE_IMGUI
-	void RasterTask::Imgui() {
+	void RasterPackage::Imgui() {
 		ImGui::PushID();
 		ImGui::Text("Raster Task : %s", name.c_str());
 		ImGui::TreeNode("config")

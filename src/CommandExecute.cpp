@@ -17,6 +17,10 @@
 namespace EWE{
 
 namespace Command{
+
+    ParamPack<Inst::BindPipeline> ExecuteParamPool_Internal(ParamPool const& pp, LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, uint8_t frameIndex, ParamPack<Inst::BindPipeline> const& boundPipeline);
+
+
     Executor::Executor(LogicalDevice& _logicalDevice, Record& _record) noexcept
     : logicalDevice{_logicalDevice},
         record{_record}
@@ -114,6 +118,8 @@ namespace Exec{
     void Switch(ExecContext& ctx);
     void Case(ExecContext& ctx);
     void Default(ExecContext& ctx);
+
+    void Ext_Pool(ExecContext& ctx);
 } //namespace Exec
 
 static constexpr auto dispatchTable = std::array{
@@ -149,6 +155,8 @@ static constexpr auto dispatchTable = std::array{
     &Exec::Switch,
     &Exec::Case,
     &Exec::Default,
+
+    &Exec::Ext_Pool
 };
 
 namespace Exec{
@@ -401,8 +409,28 @@ namespace Exec{
         Logger::Print<Logger::Error>("not enabled currently\n");
     }
 
+    void Ext_Pool(ExecContext& ctx){
+        auto& data = ctx.CastAndIncrement<Inst::Ext_Pool>();
+        ctx.boundPipeline = ExecuteParamPool_Internal(*data.pool, ctx.device, ctx.cmdBuf, ctx.frame, ctx.boundPipeline);
+    }
+
 } //namespace Exec
 
+    ParamPack<Inst::BindPipeline> ExecuteParamPool_Internal(ParamPool const& _pp, LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, uint8_t frameIndex, ParamPack<Inst::BindPipeline> const& boundPipeline){
+        Exec::ExecContext ctx{
+            .device = logicalDevice, 
+            .pp{_pp},  //its important that this is a view and not a copy or move
+            .cmdBuf = cmdBuf,
+            .boundPipeline{boundPipeline},
+            .iterator = 0,
+            .frame = frameIndex,
+            .address{_pp.params[frameIndex].memory}
+        };
+        while(ctx.iterator < ctx.pp.instructions.size()){
+            ctx.Iterate();
+        }
+        return ctx.boundPipeline;
+    }
     void Executor::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept {
         //i dont quite understand why logicaldevice can be passed as a non-const reference from within a const function, 
         //but right now that behavior is depended upon. if that changes in the future, just remove const modifier from func

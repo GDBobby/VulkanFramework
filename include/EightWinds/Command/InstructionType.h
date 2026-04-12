@@ -53,10 +53,7 @@ namespace Inst{ //Inst is short for Instruction :)
         Case,
         Default,
 
-        //these 3 dont have any independent functionality. do i even need each control flow type to have it's own unique footer, or can I use one for all?
-        EndIf,
-        LoopEnd,
-        SwitchEnd,
+        Ext_Pool,
 
         //im only going to implement vp scissor for the moment
         DS_LineWidth,
@@ -80,6 +77,12 @@ namespace Inst{ //Inst is short for Instruction :)
         DS_PrimitiveRestartEnable,
         //wtf is a stipple
         //DS_LineStipple,
+        
+        //these 3 dont have any independent functionality. do i even need each control flow type to have it's own unique footer, or can I use one for all?
+        EndIf,
+        LoopEnd,
+        SwitchEnd,
+
     };
 } //namespace Inst
 } //namespace EWE
