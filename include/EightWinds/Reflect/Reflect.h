@@ -449,6 +449,28 @@ namespace Reflect{
     static constexpr bool is_enum = GetIfEnum();
   };
 
+  template<std::meta::info T, auto MetaFunc, bool access_context, bool conditional>
+  static consteval auto GetMetaSpan(){
+    if constexpr(conditional) {
+      if constexpr (access_context){
+        return std::span{
+          std::define_static_array(MetaFunc(T, std::meta::access_context::current())).data(),
+          MetaFunc(T, std::meta::access_context::current()).size()
+        };
+      }
+      else{
+        return std::span{
+          std::define_static_array(MetaFunc(T)).data(),
+          MetaFunc(T).size()
+        };
+      }
+    }
+    else{
+      return std::span<const std::meta::info, 0>{};
+      
+    }
+  }
+
   template<std::meta::info T>
   struct ReflectedInfo{
     using Props = Properties<T>;
@@ -468,27 +490,7 @@ namespace Reflect{
     //using Type = std::meta::extract<T>();
 
 
-    template<auto MetaFunc, bool access_context, bool conditional>
-    static consteval auto GetMetaSpan(){
-      if constexpr(conditional) {
-        if constexpr (access_context){
-          return std::span{
-            std::define_static_array(MetaFunc(T, std::meta::access_context::current())).data(),
-            MetaFunc(T, std::meta::access_context::current()).size()
-          };
-        }
-        else{
-          return std::span{
-            std::define_static_array(MetaFunc(T)).data(),
-            MetaFunc(T).size()
-          };
-        }
-      }
-      else{
-        return std::span<const std::meta::info, 0>{};
-        
-      }
-    }
+    
 
     static consteval auto GetTempEmptySpan(){
         return std::span<const std::meta::info, 0>{};
@@ -497,21 +499,12 @@ namespace Reflect{
     //these aren't callable during runtime, consteval only
     //static constexpr auto template_args = GetTempEmptySpan();
 
-    /*
-    having issues with this at the moment
-    static constexpr auto template_args = GetMetaSpan<
-        std::meta::template_arguments_of, false, 
-        (Props::template_type != TemplateType::None) 
-        && (Props::template_type != TemplateType::Incomplete)
-      >();
-    */
-
-    static constexpr auto template_args = GetMetaSpan<std::meta::template_arguments_of, false, std::meta::has_template_arguments(T)>();
-    static constexpr auto enumerators = GetMetaSpan<std::meta::enumerators_of, false, Props::is_enum>();
-    static constexpr auto members = GetMetaSpan<std::meta::members_of, true, Props::meta_enumerable>();
-    static constexpr auto static_members = GetMetaSpan<std::meta::static_data_members_of, true, Props::meta_type == MetaType::Class>();
-    static constexpr auto nonstatic_members = GetMetaSpan<std::meta::nonstatic_data_members_of, true, (Props::meta_type == MetaType::Class) || (Props::meta_type == MetaType::Union)>();
-    static constexpr auto bases = GetMetaSpan<std::meta::bases_of, true, Props::meta_type == MetaType::Class>();
+    static constexpr auto template_args = GetMetaSpan<T, std::meta::template_arguments_of, false, std::meta::has_template_arguments(T)>();
+    static constexpr auto enumerators = GetMetaSpan<T, std::meta::enumerators_of, false, Props::is_enum>();
+    static constexpr auto members = GetMetaSpan<T, std::meta::members_of, true, Props::meta_enumerable>();
+    static constexpr auto static_members = GetMetaSpan<T, std::meta::static_data_members_of, true, Props::meta_type == MetaType::Class>();
+    static constexpr auto nonstatic_members = GetMetaSpan<T, std::meta::nonstatic_data_members_of, true, (Props::meta_type == MetaType::Class) || (Props::meta_type == MetaType::Union)>();
+    static constexpr auto bases = GetMetaSpan<T, std::meta::bases_of, true, Props::meta_type == MetaType::Class>();
 
     //by separating the size from the span, these are callable during runtime
     static constexpr std::size_t template_arg_count = template_args.size();
