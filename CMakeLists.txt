@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;DebugASan;Release;RelWithDebInfo;RelWithDebInfoASan" CACHE STRING "" FORCE)
-
-
 project(EWFramework)
 
 include(./.env.cmake OPTIONAL RESULT_VARIABLE LOCAL_ENV)
@@ -48,42 +45,12 @@ endif()
 
 add_subdirectory(external/spirvcross)
 add_subdirectory(external/vma)
-
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "")
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "")
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "")
-set(GLFW_INSTALL OFF CACHE BOOL "")
-set(GLFW_VULKAN_STATIC ON CACHE BOOL "")
-if(UNIX AND NOT APPLE)
-    set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
-endif()
-
-add_subdirectory(external/glfw)
+include(cmake/glfw.cmake)
+include(cmake/vulkan.cmake)
 
 option(ENABLE_AFTERMATH "Enable NVIDIA NSight aftermath" OFF)
-if (DEFINED NVIDIA_AFTERMATH_PATH AND ENABLE_AFTERMATH)
-    message(STATUS "Including NVIDIA Nsight Aftermath - ${NVIDIA_AFTERMATH_PATH}")
-
-    add_library(nvidia_aftermath INTERFACE)
-
-    target_include_directories(nvidia_aftermath INTERFACE
-        "${NVIDIA_AFTERMATH_PATH}/include"
-    )
-
-    target_link_libraries(nvidia_aftermath INTERFACE
-        "${NVIDIA_AFTERMATH_PATH}/lib/x64/GFSDK_Aftermath_Lib.x64.lib"
-    )
-
-    target_compile_definitions(nvidia_aftermath INTERFACE
-        USING_NVIDIA_AFTERMATH=1
-    )
-
-    # Set the global big bool
-    set(GLOBAL_USING_AFTERMATH ON CACHE INTERNAL "Whether Aftermath is actually enabled")
-else()
-    if(ENABLE_AFTERMATH)
-        message(WARNING "Attempted to enable Nsight Aftermath but failed to find NVIDIA_AFTERMATH_PATH. Check .env.cmake")
-    endif()
+if (ENABLE_AFTERMATH)
+include(cmake/aftermath.cmake)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADER_FILES})
@@ -165,6 +132,4 @@ endif()
 # Create source groups to maintain file structure in Visual Studio
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCES} ${HEADER_FILES})
 # target_precompile_headers(${PROJECT_NAME} PRIVATE include/EightWinds/stdafx.h)
-
-include(CheckCXXSourceCompiles)
 
