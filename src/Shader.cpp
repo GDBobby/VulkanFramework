@@ -1,5 +1,9 @@
 #include "EightWinds/Shader.h"
 
+#include "EightWinds/Backend/ShaderVariable.h"
+#include "EightWinds/Reflect/Enum.h"
+#include "EightWinds/Reflect/Reflect.h"
+
 #include "spirv.hpp"
 #include "spirv_common.hpp"
 #include "spirvcross/spirv_reflect.hpp"
@@ -7,9 +11,9 @@
 #include <fstream>
 
 #include <iostream>
-#define SANITY_CHECK true
 
-#if SANITY_CHECK
+#define SANITY_CHECK
+#ifdef SANITY_CHECK
 #include <string.h>
 #endif
 
@@ -22,13 +26,274 @@
 
 namespace EWE {
 
-	std::vector<char> ReadShaderFile(std::string_view filepath) {
+	constexpr ShaderVariable::Type ConvertVariableType(spirv_cross::SPIRType::BaseType spirv_var_type) {
+		switch (spirv_var_type) {
+			case spirv_cross::SPIRType::Boolean:        return ShaderVariable::Type::Bool;
+
+			case spirv_cross::SPIRType::SByte:          return ShaderVariable::Type::Int8;
+			case spirv_cross::SPIRType::UByte:          return ShaderVariable::Type::UInt8;
+			case spirv_cross::SPIRType::Short:          return ShaderVariable::Type::Int16;
+			case spirv_cross::SPIRType::UShort:         return ShaderVariable::Type::UInt16;
+			case spirv_cross::SPIRType::Int:            return ShaderVariable::Type::Int32;
+			case spirv_cross::SPIRType::UInt:           return ShaderVariable::Type::UInt32;
+			case spirv_cross::SPIRType::Int64:          return ShaderVariable::Type::Int64;
+			case spirv_cross::SPIRType::UInt64:         return ShaderVariable::Type::UInt64;
+
+			case spirv_cross::SPIRType::Half:           return ShaderVariable::Type::Float16;
+			case spirv_cross::SPIRType::Float:          return ShaderVariable::Type::Float32;
+			case spirv_cross::SPIRType::Double:         return ShaderVariable::Type::Float64;
+
+			case spirv_cross::SPIRType::Image:          return ShaderVariable::Type::Image;
+			case spirv_cross::SPIRType::Sampler:        return ShaderVariable::Type::Sampler;
+			case spirv_cross::SPIRType::SampledImage:   return ShaderVariable::Type::SampledImage;
+			case spirv_cross::SPIRType::Struct:         return ShaderVariable::Type::Struct;
+			case spirv_cross::SPIRType::AtomicCounter:  return ShaderVariable::Type::AtomicCounter;
+
+			case spirv_cross::SPIRType::Void:           return ShaderVariable::Type::Void;
+			case spirv_cross::SPIRType::Unknown: {[[fallthrough]];}
+			default:                                    return ShaderVariable::Type::Unknown;
+		}
+	}
+
+	void PrintAllDecorations(std::string_view name, spirv_cross::Bitset const& bitset){
+		for(auto& dec : Reflect::Enum::enum_data<spv::Decoration>){
+			if(bitset.get(dec.GetUnderlyingValue())){
+				Logger::Print("%s has decoration[%s]\n", name.data(), Reflect::Enum::ToString(dec.value).data());
+			}
+		}
+	}
+
+	ShaderVariable* SPIRTypeToShaderVariable(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID var_id){		
+		
+		spirv_cross::SPIRType const& var_type = compiler.get_type(var_id);
+		auto const& var_name = compiler.get_name(var_id);
+
+		if(var_type.parent_type != 0){ //0 is the compiler head
+			auto const& parent_type = compiler.get_type(var_type.parent_type);
+			auto const& parent_name = compiler.get_name(var_type.parent_type);
+			ShaderVariable* parent_var = SPIRTypeToShaderVariable(compiler, shader, var_type.parent_type);
+		}
+				
+		ShaderVariable* ret = nullptr;
+		auto foundExisting = shader.existing_variables.find(var_id);
+		if(foundExisting != shader.existing_variables.end()){
+			return foundExisting->second;
+		}
+		else{
+			ret = &shader.variables.AddElement();
+			shader.existing_variables.try_emplace(var_id, ret);
+
+			ret->size = 0;
+			ret->name = var_name;
+			ret->baseType = ConvertVariableType(var_type.basetype);
+			//compiler.get_decoration(ID id, Decoration decoration)
+			PrintAllDecorations("", compiler.get_decoration_bitset(var_id));
+
+			ret->vecsize = var_type.vecsize;
+			ret->array_lengths.ClearAndResize(var_type.array.size());
+			for(std::size_t i = 0; i < var_type.array.size(); i++){
+				ret->array_lengths[i] = var_type.array[i];
+			}
+
+			if(var_type.op == spirv_cross::OpTypePointer){
+				//the pointed type is going to be member[0] always?
+				//do I just make a new variable? and leave this one as a copy?
+				
+				//potentially, if the push is just an address for a vec2 or something, 
+				// or some small amount of data, this could be incorrect
+				EWE_ASSERT(var_type.member_types.size() == 1);
+				ret = SPIRTypeToShaderVariable(compiler, shader, var_type.member_types[0]);
+				ret->name = compiler.get_member_name(var_id, 0);
+
+				ret->pointer = true;
+				ret->pointer_depth = var_type.pointer_depth;
+				ret->forward_pointer = var_type.forward_pointer;
+
+				return ret;
+			}
+			else if(var_type.op == spirv_cross::OpTypeStruct){
+
+				ret->size = compiler.get_declared_struct_size(var_type);
+				ret->members.ClearAndResize(var_type.member_types.size());
+				for (uint32_t m = 0; m < var_type.member_types.size(); m++) {
+					//auto const& member_type = compiler.get_type(var_type.member_types[m]);
+					ret->members[m] = SPIRTypeToShaderVariable(compiler, shader, var_type.member_types[m]);
+					ret->members[m]->name = compiler.get_member_name(var_id, m);
+				}
+				return ret;
+			}
+			else{
+				Logger::Print("inspecitng op types : %s\n", Reflect::Enum::ToString(var_type.op).data());
+			}
+			
+			switch(ret->baseType){
+			//if its a struct
+				case ShaderVariable::Type::Struct: {
+					bool embedded_struct = false;
+					if(var_type.member_types.size() == 1){
+						auto const& embedded_member_type = compiler.get_type(var_type.member_types[0]);
+						if(embedded_member_type.op == spirv_cross::OpTypeArray || embedded_member_type.op == spirv_cross::OpTypeRuntimeArray){
+
+							uint32_t embedded_type_id = embedded_member_type.parent_type;
+							auto const& embedded_name = compiler.get_name(embedded_type_id);
+							ret->name = embedded_name;
+							const auto& embedded_type = compiler.get_type(embedded_type_id);
+							if(embedded_type.op == spirv_cross::OpTypeStruct){
+								embedded_struct = true;
+
+								ret->size = compiler.get_declared_struct_size(embedded_type);
+								ret->members.ClearAndResize(embedded_type.member_types.size());
+								for (uint32_t m = 0; m < embedded_type.member_types.size(); m++) {
+									//auto const& member_type = compiler.get_type(var_type.member_types[m]);
+									ret->members[m] = SPIRTypeToShaderVariable(compiler, shader, embedded_type.member_types[m]);
+									ret->members[m]->name = compiler.get_member_name(embedded_type_id, m);
+									if(m > 0){
+										ret->members[m]->offset = ret->members[m -1 ]->offset + ret->members[m -1 ]->size;
+									}
+									//compiler.get_member_decoration(TypeID id, uint32_t index, Decoration decoration)
+								}
+							}
+						}
+					}
+					if(!embedded_struct){
+						ret->size = compiler.get_declared_struct_size(var_type);
+						ret->members.ClearAndResize(var_type.member_types.size());
+						for (uint32_t m = 0; m < var_type.member_types.size(); m++) {
+							//auto const& member_type = compiler.get_type(var_type.member_types[m]);
+							ret->members[m] = SPIRTypeToShaderVariable(compiler, shader, var_type.member_types[m]);
+							ret->members[m]->name = compiler.get_member_name(var_id, m);
+						}
+					}
+					break;
+				}
+				case ShaderVariable::Type::Sampler:
+				case ShaderVariable::Type::Image:
+				case ShaderVariable::Type::SampledImage:
+				case ShaderVariable::Type::AtomicCounter:{
+					Logger::Print<Logger::Warning>("unhandled spirv variable types\n");
+					break;
+				}
+				default: {
+					ret->size = 0;
+					//auto const& parent_type = compiler.get_type(var_type.parent_type);
+					//auto const& parent_name = compiler.get_name(var_type.parent_type);
+
+					break;
+				}
+			};
+
+			return ret;
+		}
+	}
+
+	Shader::PushConstant::BufferAddress ParsePushBufferAddress(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID buf_id){
+		auto const& buf_type = compiler.get_type(buf_id);
+		EWE_ASSERT((buf_type.basetype == spirv_cross::SPIRType::Struct) && buf_type.pointer);
+		
+		auto const& parent_type = compiler.get_type(buf_type.parent_type);
+		auto const& parent_name = compiler.get_name(buf_type.parent_type);
+		auto const& buf_child = compiler.get_type(buf_type.member_types[0]);
+		auto const& buf_child_name = compiler.get_name(buf_child.self);
+		
+		PrintAllDecorations("push buffer member", compiler.get_decoration_bitset(buf_id));
+		PrintAllDecorations("buffer parent", compiler.get_decoration_bitset(buf_type.parent_type));
+
+		if(buf_type.storage != spirv_cross::StorageClassPhysicalStorageBuffer){
+			Logger::Print<Logger::Warning>("unexpected push buffer storage type : %s\n", Reflect::Enum::ToString(buf_type.storage).data());
+		}
+
+		switch(buf_type.storage){
+
+			case spirv_cross::StorageClassPhysicalStorageBuffer:{ //is this uniform buffer?
+				break;
+			}
+			default:
+				break;
+		};
+
+		//idk if other basetypes are allowable, but i can handle them as they come up
+		
+		auto bitset = compiler.get_buffer_block_flags(parent_type.self);
+		Logger::Print("bitset nonwriteable : %d\n", bitset.get(spirv_cross::DecorationNonWritable));
+		auto const dec_ret = compiler.get_decoration(buf_type.parent_type, spirv_cross::Decoration::DecorationBlock);
+		EWE_ASSERT(dec_ret > 0);
+		
+		Logger::Print("push buffer basetype[%s] and optype[%s]\n", Reflect::Enum::ToString(buf_type.basetype).data(), Reflect::Enum::ToString(buf_type.op).data());
+		if(buf_type.basetype == spirv_cross::SPIRType::Struct){
+			if(buf_type.op == spirv_cross::OpTypeRuntimeArray){
+				//this is the typical paradigm for vertex shaders, link to a runtimearray of a struct
+
+			}
+		}
+
+		Shader::PushConstant::BufferAddress ret;
+
+		return ret;
+	}	
+
+
+	void InterpretPushConstant(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID push_id){		
+		
+		spirv_cross::SPIRType const& push_type = compiler.get_type(push_id);
+		auto const& push_name = compiler.get_name(push_id);
+			
+		EWE_ASSERT(push_type.basetype == spirv_cross::SPIRType::Struct);
+		shader.pushRange.size = compiler.get_declared_struct_size(push_type);
+
+		//compiler.get_decoration(ID id, Decoration decoration)
+		PrintAllDecorations("push", compiler.get_decoration_bitset(push_id));
+
+
+		auto const& push_member_count = push_type.member_types.size();
+		uint8_t buffer_count = 0;
+		uint8_t texture_count = 0;
+		for (uint32_t m = 0; m < push_type.member_types.size(); m++) {
+			//auto const& member_type = compiler.get_type(var_type.member_types[m]);
+			if(buffer_count < shader.pushRange.buffers.size()){
+				auto const& member_type = compiler.get_type(push_type.member_types[m]);
+				if(member_type.basetype != spirv_cross::SPIRType::UInt64){
+					shader.pushRange.buffers[buffer_count] = ParsePushBufferAddress(compiler, shader, push_type.member_types[m]);
+					//shader.pushRange.buffers[buffer_count].variable = member;
+
+					buffer_count++;
+				}
+				else{
+					buffer_count += member_type.array[0];
+				}
+			}
+			else{
+				//EWE_ASSERT(member->baseType == ShaderVariable::Type::Int32);
+				//shader.pushRange.textures[texture_count].variable = member;
+
+				//texture_count += member->array_lengths[0];
+			}
+			//member->name = compiler.get_member_name(push_id, m);
+			//member->size = compiler.get_declared_struct_member_size(push_type, m);
+			//compiler.get_member_decoration(TypeID id, uint32_t index, Decoration decoration)
+			const std::string push_dec_name = std::string("push[") + std::to_string(m) + ']';
+			PrintAllDecorations(push_dec_name, compiler.get_member_decoration_bitset(push_id, m));
+		}
+		
+		//calculate offsets
+
+		EWE_ASSERT(buffer_count <= shader.pushRange.buffers.size());
+		EWE_ASSERT(texture_count <= shader.pushRange.textures.size());
+		for(uint8_t i = 0; i < shader.pushRange.buffers.size(); i++){
+			
+		}
+	}
+
+
+
+	
+
+	std::vector<char> ReadShaderFile(std::filesystem::path const& filepath) {
 
 		std::ifstream shaderFile{};
-		shaderFile.open(filepath.data(), std::ios::binary);
+		shaderFile.open(filepath, std::ios::binary);
 		if (!shaderFile.is_open()) {
 #if EWE_DEBUG_BOOL
-			Logger::Print<Logger::Error>("failed ot open shader file - %s : %s\n", std::filesystem::current_path().string().c_str(), filepath.data());
+			Logger::Print<Logger::Error>("failed ot open shader file - %s : %s\n", std::filesystem::current_path().string().c_str(), filepath.string().c_str());
 			EWE_ASSERT(shaderFile.is_open(), "failed to open shader");
 #endif
 		}
@@ -43,9 +308,7 @@ namespace EWE {
 		return returnVec;
 	}
 
-
 	void AddBinding(spirv_cross::Compiler const& compiler, Backend::Descriptor::LayoutPack& layoutPack, spirv_cross::Resource const& res, VkDescriptorType descType, VkShaderStageFlagBits stageFlag) {
-
 		const uint32_t setIndex = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 		
 		bool set_contained = false;
@@ -95,265 +358,37 @@ namespace EWE {
 		);
 	}
 
-
 	Backend::Descriptor::LayoutPack CreateDescriptorLayoutPack(spirv_cross::Compiler const& compiler, VkShaderStageFlagBits stageFlag) {
 		auto const& resources = compiler.get_shader_resources();
 
 		Backend::Descriptor::LayoutPack ret{};// = Construct<Descriptor::LayoutPack>();
 
 #define AddBindingType(vec, descType) for(auto& binding : vec) {AddBinding(compiler, ret, binding, descType, stageFlag);}
-
 		AddBindingType(resources.uniform_buffers, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 		AddBindingType(resources.storage_buffers, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 		AddBindingType(resources.sampled_images, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 		AddBindingType(resources.storage_images, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 		AddBindingType(resources.separate_samplers, VK_DESCRIPTOR_TYPE_SAMPLER);
 		AddBindingType(resources.separate_images, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-
+#undef AddBindingType
 
 		for (auto& set : ret.sets) {
 			set.bindings.Sort();
 		}
 
-
 		return ret;
 	}
-	
 
-	VkFormat SPIRTypeToVkFormat(const spirv_cross::SPIRType& type)
-	{
-		switch (type.basetype)	{
-		case spirv_cross::SPIRType::BaseType::Float:
-			switch (type.vecsize) {
-				case 1: return VK_FORMAT_R32_SFLOAT;
-				case 2: return VK_FORMAT_R32G32_SFLOAT;
-				case 3: return VK_FORMAT_R32G32B32_SFLOAT;
-				case 4: return VK_FORMAT_R32G32B32A32_SFLOAT;
-			}
-			break;
-		case spirv_cross::SPIRType::BaseType::Int:
-			switch (type.vecsize) {
-				case 1: return VK_FORMAT_R32_SINT;
-				case 2: return VK_FORMAT_R32G32_SINT;
-				case 3: return VK_FORMAT_R32G32B32_SINT;
-				case 4: return VK_FORMAT_R32G32B32A32_SINT;
-			}
-			break;
-		case spirv_cross::SPIRType::BaseType::UInt:
-			switch (type.vecsize) {
-				case 1: return VK_FORMAT_R32_UINT;
-				case 2: return VK_FORMAT_R32G32_UINT;
-				case 3: return VK_FORMAT_R32G32B32_UINT;
-				case 4: return VK_FORMAT_R32G32B32A32_UINT;
-			}
-			break;
-		default: break;
-		}
-		EWE_UNREACHABLE;
-		return VK_FORMAT_UNDEFINED;
-	}
-
-	/*
-	void InterpretInputAttributes(spirv_cross::Compiler const& compiler, std::vector<VkVertexInputAttributeDescription>& vk_attributes) {
-
-		auto const& stage_inputs = compiler.get_shader_resources().stage_inputs;
-		std::vector<std::pair<uint8_t, spirv_cross::SPIRType>> input_types{};
-		for (auto const& input : stage_inputs) {
-			VkVertexInputAttributeDescription& backDesc = vk_attributes.emplace_back();
-			backDesc.location = compiler.get_decoration(input.id, spv::DecorationLocation);
-			backDesc.binding = 0;
-			backDesc.format = SPIRTypeToVkFormat(compiler.get_type(input.type_id)); //this throws if its a struct
-			backDesc.offset = 0;
-
-			input_types.emplace_back(backDesc.location, compiler.get_type(input.type_id));
-		}    
-		std::sort(vk_attributes.begin(), vk_attributes.end(),
-			[](const VkVertexInputAttributeDescription& a,
-				const VkVertexInputAttributeDescription& b) {
-					return a.location < b.location;
-			}
-		);
-		std::sort(input_types.begin(), input_types.end(),
-			[](const std::pair<uint8_t, spirv_cross::SPIRType>& a,
-				const std::pair<uint8_t, spirv_cross::SPIRType>& b) {
-					return a.first < b.first;
-			}
-		);
-
-		uint32_t offset = 0;
-		for (uint8_t i = 0; i < vk_attributes.size(); i++) {
-			vk_attributes[i].offset = offset;
-			offset += input_types[i].second.width / 8 * input_types[i].second.vecsize; //width is in bits /=8 for bytes
-		}
-	}
-
-	bool Shader::ValidateVertexInputAttributes(std::vector<VkVertexInputAttributeDescription> const& cpu_side) const {
-		if (cpu_side.size() != vertexInputAttributes.size()) {
-			return false;
-		}
-		for (uint8_t i = 0; i < vertexInputAttributes.size(); i++) {
-			bool mismatched = false;
-			mismatched |= cpu_side[i].binding != vertexInputAttributes[i].binding;
-			mismatched |= cpu_side[i].format != vertexInputAttributes[i].format;
-			mismatched |= cpu_side[i].location != vertexInputAttributes[i].location;
-			mismatched |= cpu_side[i].offset != vertexInputAttributes[i].offset;
-			if (mismatched) {
-				return false;
-			}
-		}
-		return true;
-	}
-	*/
-
-	void InterpretStruct(spirv_cross::Compiler const& compiler, spirv_cross::ID struct_id, Shader& shader){
-		spirv_cross::SPIRType const& struct_type = compiler.get_type(struct_id);
-		EWE_ASSERT(struct_type.basetype == spirv_cross::SPIRType::Struct);
-
-
-		auto& strBack = shader.BDA_data.emplace_back();
-		strBack.name = compiler.get_name(struct_id);
-		strBack.size = compiler.get_declared_struct_size(struct_type);
-
-		std::size_t arraySize = compiler.get_declared_struct_size_runtime_array(struct_type, 2);
-#if EWE_DEBUG_BOOL
-		if (strBack.size != arraySize) {
-			Logger::Print<Logger::Debug>("figure out what array size means\n");
-		}
-#endif
-
-		bool embedded_struct = false;
-		if(struct_type.member_types.size() == 1){
-    		auto const& member_type = compiler.get_type(struct_type.member_types[0]);
-			if(member_type.op == spirv_cross::OpTypeArray || member_type.op == spirv_cross::OpTypeRuntimeArray){
-
-				uint32_t embedded_type_id = member_type.parent_type;
-				const auto& embedded_type = compiler.get_type(embedded_type_id);
-				if(embedded_type.op == spirv_cross::OpTypeStruct){
-					embedded_struct = true;
-
-					for (uint32_t m = 0; m < embedded_type.member_types.size(); m++) {
-						strBack.members.push_back(
-							Shader::ShaderStruct::Member{
-								.name = compiler.get_member_name(embedded_type_id, m),
-								//.type = ST_COUNT,
-								.offset = compiler.type_struct_member_offset(embedded_type, m),
-								.size = static_cast<uint8_t>(compiler.get_declared_struct_member_size(embedded_type, m))
-							}
-						);
-					}
-				}
-
-			}
-		}
-		if(!embedded_struct){
-			for (uint32_t m = 0; m < struct_type.member_types.size(); m++) {
-
-				strBack.members.push_back(
-					Shader::ShaderStruct::Member{
-						.name = compiler.get_member_name(struct_id, m),
-						//.type = ST_COUNT,
-						.offset = compiler.type_struct_member_offset(struct_type, m),
-						.size = static_cast<uint8_t>(compiler.get_declared_struct_member_size(struct_type, m))
-					}
-				);
-			}
-		}
-	}
-
-	void InterpretPushConstants(spirv_cross::Compiler const& compiler, spirv_cross::SmallVector<spirv_cross::Resource> const& pushResource, Shader& shader) {
-		if (pushResource.size() == 0) {
-			return;
-		}
-		//only supporting 1 push range rn
-		//auto& reflectedPush = pushResource[0];
-		const auto& pushReflectedType = compiler.get_type(pushResource[0].base_type_id);
-		shader.pushRange.size = static_cast<uint32_t>(compiler.get_declared_struct_size(pushReflectedType));
-		if (shader.pushRange.size > 0) {
-			//pushRange.offset = pushReflectedType.member_types[0];
-		}
-		for(uint32_t i = 0; i < pushReflectedType.member_types.size(); i++){
-			std::string member_name = compiler.get_member_name(pushReflectedType.self, i);
-			auto const& member_type = compiler.get_type(pushReflectedType.member_types[i]);
-			std::size_t offset = compiler.type_struct_member_offset(pushReflectedType, i);
-
-			if (member_type.pointer && member_type.storage == spv::StorageClassPhysicalStorageBuffer) {
-				uint32_t struct_type_id = member_type.parent_type;
-				InterpretStruct(compiler, struct_type_id, shader);
-			}
-		}
-
-		//else {
-		shader.pushRange.offset = 0;
-		shader.pushRange.stageFlags = VK_SHADER_STAGE_ALL;
-		//}
-	}
-
-	void ProcessEntry(spirv_cross::Compiler const& compiler, spirv_cross::SpecializationConstant const& sc, std::vector<Shader::SpecializationEntry>& specConstants) {
-		if (!sc.id) return;
-		auto& entry = specConstants.emplace_back();
-		auto const& constant = compiler.get_constant(sc.id);
-#if PIPELINE_HOT_RELOAD
-		entry.name = compiler.get_name(sc.id);
-		auto const& name = entry.name;
-#else
-		auto const& name = compiler.get_name(sc.id);
-#endif
-		if (name == "") {
-			specConstants.pop_back();
-			return;
-		}
-
-		auto const& type = compiler.get_type(constant.constant_type);
-		entry.elementCount = type.array.size();
-		if (entry.elementCount == 0) {
-			entry.elementCount = 1;
-		}
-		entry.constantID = sc.constant_id;
-		switch (type.basetype) {
-			case spirv_cross::SPIRType::Boolean:
-				entry.type = Shader::ST_BOOL;
-				break;
-			case spirv_cross::SPIRType::Int:
-				entry.type = Shader::ST_INT;
-				break;
-			case spirv_cross::SPIRType::UInt:
-				entry.type = Shader::ST_UINT;
-				break;
-			case spirv_cross::SPIRType::Float:
-				entry.type = Shader::ST_FLOAT;
-				break;
-			default:
-				EWE_UNREACHABLE;
-				entry.type = Shader::ST_COUNT;
-				break;
-		}
-
-		auto const& val = constant.scalar();
-		memcpy(entry.value, &val, sizeof(float) * entry.elementCount); //the element size is always 4
-	}
-
-	void InterpretSpecializationConstants(spirv_cross::Compiler const& compiler, std::vector<Shader::SpecializationEntry>& specConstants) {
-		auto spec_constants = compiler.get_specialization_constants();
-		//potentially do some kind of sorting after figuring out which 1s are the local group size constants
-		//spirv_cross::SpecializationConstant x;
-		//spirv_cross::SpecializationConstant y;
-		//spirv_cross::SpecializationConstant z;
-		//compiler.get_work_group_size_specialization_constants(x, y, z);
-		//ProcessEntry(compiler, x, specConstants);
-		//ProcessEntry(compiler, y, specConstants);
-		//ProcessEntry(compiler, z, specConstants);
-
-
-		for (auto& sc : spec_constants) {
-			ProcessEntry(compiler, sc, specConstants);
-		}
-	}
 	void Shader::ReadReflection(const std::size_t dataSize, const void* data) {
 
 		spirv_cross::Compiler compiler(reinterpret_cast<const uint32_t*>(data), dataSize / sizeof(uint32_t));
-		auto entryPoints = compiler.get_entry_points_and_stages();
-		for (auto& entryPoint : entryPoints) {
-			switch (entryPoint.execution_model)	{
+		auto const& entryPoints = compiler.get_entry_points_and_stages();
+		if(entryPoints.size() > 1){
+			Logger::Print<Logger::Warning>("multiple entry points[%zu] not supported : in shader[%s]\n", entryPoints.size(), filepath.string().c_str());
+			Logger::Print<Logger::Warning>("\t using entry point : %s\n", entryPoints[0].name.c_str());
+		}
+		//for (auto& entryPoint : entryPoints) {
+			switch (entryPoints[0].execution_model)	{
 				case spv::ExecutionModelVertex:   shaderStageCreateInfo.stage = VK_SHADER_STAGE_VERTEX_BIT; break;
 				case spv::ExecutionModelFragment: shaderStageCreateInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT; break;
 				case spv::ExecutionModelGLCompute:shaderStageCreateInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT; break;
@@ -361,12 +396,29 @@ namespace EWE {
 				case spv::ExecutionModelMeshEXT:  shaderStageCreateInfo.stage = VK_SHADER_STAGE_MESH_BIT_EXT; break;
 				default: EWE_UNREACHABLE; break;
 			}
-		}
-		auto resources = compiler.get_shader_resources();
+		//}
+		auto const& resources = compiler.get_shader_resources();
 
-		InterpretPushConstants(compiler, resources.push_constant_buffers, *this);
-		//pushRange.stageFlags = shaderStageCreateInfo.stage;
-		//InterpretInputAttributes(compiler, vertexInputAttributes);
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+		template for(constexpr auto mem : std::define_static_array(std::meta::nonstatic_data_members_of(^^std::decay_t<decltype(resources)>, std::meta::access_context::current()))){
+			if constexpr(requires{resources.[:mem:].size();}){
+				if(resources.[:mem:].size() > 0){
+					Logger::Print("shader resource member[%s] has %d elements\n", Reflect::GetName<mem>().data(), resources.[:mem:].size());
+				}
+			}
+		}
+#pragma GCC diagnostic pop
+
+
+		if(resources.push_constant_buffers.size() > 0){
+			InterpretPushConstant(compiler, *this, resources.push_constant_buffers[0].base_type_id);
+			//pushRange = SPIRTypeToShaderVariable(compiler, *this, resources.push_constant_buffers[0].base_type_id);
+			if(resources.push_constant_buffers.size() > 1){
+				Logger::Print<Logger::Warning>("multiple push constants[%zu] not supported : in shader[%s]\n", resources.push_constant_buffers.size(), filepath.string().c_str());
+			}
+		}
 
 		shaderStageCreateInfo.pName = "main";
 		shaderStageCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -376,10 +428,8 @@ namespace EWE {
 		
 		descriptorSets = CreateDescriptorLayoutPack(compiler, shaderStageCreateInfo.stage);
 
-		defaultSpecConstants.clear();
-		InterpretSpecializationConstants(compiler, defaultSpecConstants);
-	
-
+		//defaultSpecConstants.Clear();
+		//InterpretSpecializationConstants(compiler, defaultSpecConstants);
 	}
 
 	void Shader::CompileModule(const std::size_t dataSize, const void* data) {
@@ -394,38 +444,38 @@ namespace EWE {
 
 #if DEBUG_NAMING
 		DebugNaming::SetObjectName(shaderStageCreateInfo.module, VK_OBJECT_TYPE_SHADER_MODULE, filepath.data());
-		//for (auto& dsl : reflectedData.descriptorSets->setLayouts) {
-		//	std::string debug_name = std::string(fileLocation.data()) + std::string(" - dsl#") + std::to_string(dsl.first);
-		//	DebugNaming::SetObjectName(dsl.second->vkDSL, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, debug_name.c_str());
-		//}
 #endif
 	}
 
 
-	Shader::Shader(LogicalDevice& _logicalDevice, std::string_view fileLocation) 
+	Shader::Shader(LogicalDevice& _logicalDevice, std::filesystem::path const& fileLocation) 
     : logicalDevice{_logicalDevice}, 
-		filepath{ fileLocation.data() }, 
+		filepath{ fileLocation }, 
 		descriptorSets{} 
 	{
 		std::vector<char> shaderData = ReadShaderFile(fileLocation);
+		Logger::Print("beginning reflection of : %s\n", fileLocation.string().c_str());
 		ReadReflection(shaderData.size(), shaderData.data());
+		Logger::Print("ending reflection of : %s\n", fileLocation.string().c_str());
 		CompileModule(shaderData.size(), shaderData.data());
 #if EWE_DEBUG_NAMING
-		SetDebugName(fileLocation);
+		SetDebugName(fileLocation.string());
 #endif
 		logicalDevice.shaders.Add(this);
 
 	}
 
-	Shader::Shader(LogicalDevice& _logicalDevice, std::string_view fileLocation, const std::size_t dataSize, const void* data) 
+	Shader::Shader(LogicalDevice& _logicalDevice, std::filesystem::path const& fileLocation, const std::size_t dataSize, const void* data) 
     : logicalDevice{_logicalDevice}, 
-		filepath{ fileLocation.data() }, 
+		filepath{ fileLocation }, 
 		descriptorSets{} 
 	{
+		Logger::Print("beginning reflection of : %s\n", fileLocation.string().c_str());
 		ReadReflection(dataSize, data);
+		Logger::Print("ending reflection of : %s\n", fileLocation.string().c_str());
 		CompileModule(dataSize, data);
 #if EWE_DEBUG_NAMING
-		SetDebugName(fileLocation);
+		SetDebugName(fileLocation.string());
 #endif
 		logicalDevice.shaders.Add(this);
 	}
@@ -459,74 +509,9 @@ namespace EWE {
 	}
 #endif
 
-	Shader::VkSpecInfo_RAII::VkSpecInfo_RAII(std::vector<Shader::SpecializationEntry> const& entries) 
-		: mapEntries(entries.size())
-	{
-		specInfo.dataSize = 0;
-		for (uint8_t i = 0; i < mapEntries.size(); i++) {
-			VkSpecializationMapEntry& mapEntry = mapEntries[i];
-			mapEntry.constantID = entries[i].constantID;
-			mapEntry.offset = specInfo.dataSize;
-			mapEntry.size = entries[i].elementCount * sizeof(float);
-			specInfo.dataSize += mapEntry.size;
-		}
-
-		specInfo.mapEntryCount = static_cast<uint32_t>(mapEntries.size());
-		specInfo.pMapEntries = mapEntries.data();
-		try {
-			memPtr = reinterpret_cast<uint64_t>(malloc(specInfo.dataSize));
-		}
-		catch (const std::runtime_error& e) {
-#if EWE_DEBUG_BOOL
-			Logger::Print<Logger::Error>("malloc error - %s\n", e.what());
-#endif
-			specInfo.mapEntryCount = 0;
-			specInfo.pData = nullptr;
-		}
-		EWE_ASSERT(memPtr != 0);
-
-		std::size_t offset = 0;
-		for (uint8_t i = 0; i < mapEntries.size(); i++) {
-			const std::size_t localSize = sizeof(float) * entries[i].elementCount;
-			memcpy(reinterpret_cast<void*>(memPtr + offset), entries[i].value, localSize);
-			offset += localSize;
-		}
-		specInfo.pData = reinterpret_cast<void*>(memPtr);
-
-	}
-
-	Shader::VkSpecInfo_RAII::VkSpecInfo_RAII(Shader::VkSpecInfo_RAII&& move) noexcept
-		:  mapEntries{ std::move(move.mapEntries) },
-		specInfo{ move.specInfo },
-		memPtr{ move.memPtr }
-	{
-		move.memPtr = 0;
-	}
-
-	Shader::VkSpecInfo_RAII::VkSpecInfo_RAII(VkSpecInfo_RAII const& copy)
-		: mapEntries{copy.mapEntries.begin(), copy.mapEntries.end() }, //this is a copy
-		specInfo{ copy.specInfo }
-		{
-		memPtr = reinterpret_cast<uint64_t>(malloc(specInfo.dataSize));
-		specInfo.mapEntryCount = static_cast<uint32_t>(mapEntries.size());
-		specInfo.pMapEntries = mapEntries.data();
-		specInfo.pData = reinterpret_cast<void*>(memPtr);
-		if (memPtr == 0) {
-			throw std::runtime_error("failed to allocate");
-		}
-		memcpy(reinterpret_cast<void*>(memPtr), copy.specInfo.pData, specInfo.dataSize);
-	}
-
-	Shader::VkSpecInfo_RAII::~VkSpecInfo_RAII() {
-		if (memPtr != 0) {
-			free(reinterpret_cast<void*>(memPtr));
-		}
-	}
-
 #if EWE_DEBUG_NAMING
 	void Shader::SetDebugName(std::string_view _name) {
-		this->name = _name;
-		logicalDevice.SetObjectName(shaderStageCreateInfo.module, VK_OBJECT_TYPE_SHADER_MODULE, name);
+		logicalDevice.SetObjectName(shaderStageCreateInfo.module, VK_OBJECT_TYPE_SHADER_MODULE, _name);
 	}
 #endif
 

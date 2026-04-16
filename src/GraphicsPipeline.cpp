@@ -172,16 +172,20 @@ namespace EWE {
     ) noexcept {
 
 		//shaders
-		std::vector<KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>> temp{};
-		for (auto& stage : copySpecInfo) {
-			temp.push_back(KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>(stage.key, Shader::VkSpecInfo_RAII(stage.value)));
+		/*
+		RuntimeArray<KeyValuePair<ShaderStage, Shader::VkSpecInfo_RAII>> temp{copySpecInfo.Size()};
+		
+		for (std::size_t i = 0; i < copySpecInfo.Size(); i++) {
+			temp[i].key = copySpecInfo[i].key;
+			temp[i].value = Shader::VkSpecInfo_RAII(copySpecInfo[i].value);
 		}
-		std::vector<VkPipelineShaderStageCreateInfo> shaderStages = layout->GetStageData(temp);
+		*/
+		auto shaderStages = layout->GetStageData();//temp);
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 			.pNext = &taskConfig.pipelineRenderingCreateInfo,
-			.stageCount = static_cast<uint32_t>(shaderStages.size()),
-			.pStages = shaderStages.data(),
+			.stageCount = static_cast<uint32_t>(shaderStages.Size()),
+			.pStages = shaderStages.Data(),
 			.layout = layout->vkLayout,
 			.renderPass = VK_NULL_HANDLE, //DNI
 			.subpass = 0, //sub render pass, DNI
@@ -202,7 +206,7 @@ namespace EWE {
 		};
         //the pointers dont matter
         
-        //auto& vertShader = layout->shaders[Shader::Stage::Vertex];
+        //auto& vertShader = layout->shaders[ShaderStage::Vertex];
         //auto vertInputInfo = vertShader.GetVertexInputInfo();
         pipelineCreateInfo.pVertexInputState = &vertexInputStateCreateInfo;
 		
@@ -323,6 +327,7 @@ namespace EWE {
 		CreateVkPipeline(passConfig, objectConfig, dynamicState);
 	}
 
+	/*
 	GraphicsPipeline::GraphicsPipeline(
         LogicalDevice& _logicalDevice, 
         PipelineID pipeID, 
@@ -330,7 +335,7 @@ namespace EWE {
 		TaskRasterConfig const& passConfig,
         ObjectRasterConfig const& objectConfig,
         std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
-        std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
+    	KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> const& specInfo
     ) noexcept
     : Pipeline{ _logicalDevice, pipeID, _layout, specInfo }
 #if PIPELINE_HOT_RELOAD
@@ -339,6 +344,7 @@ namespace EWE {
 	{
 		CreateVkPipeline(passConfig, objectConfig, dynamicState);
 	}
+	*/
 
 #if PIPELINE_HOT_RELOAD
 	void GraphicsPipeline::HotReload(bool layoutReload) {

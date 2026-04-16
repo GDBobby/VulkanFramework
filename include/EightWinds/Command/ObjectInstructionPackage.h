@@ -36,7 +36,7 @@ namespace Command{
 		};
         struct Payload{
             //do some smart hiding so they cant add vertex and compute and mesh and raytracing at the same time
-            std::array<Shader*, Shader::Stage::Bits::COUNT> shaders;
+            std::array<Shader*, ShaderStage::Bits::COUNT> shaders;
             ObjectRasterConfig config;
         };
         Payload payload;

@@ -5,10 +5,8 @@
 #include "EightWinds/Pipeline/Layout.h"
 
 #include "EightWinds/Data/KeyValueContainer.h"
-
 #include "EightWinds/Command/ParamPacks.h"
 
-#include <unordered_map>
 #include <memory>
 
 namespace EWE {
@@ -21,7 +19,9 @@ namespace EWE {
 		PipelineID GetID() const { return myID; };
 
 		Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout);
-		Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo);
+
+		//im retiring shader specialization constants for a moment
+		//Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout, KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> const& specInfo);
 
 		Pipeline(Pipeline const&) = delete;
 		Pipeline(Pipeline&&) = delete;
@@ -38,15 +38,9 @@ namespace EWE {
 
 		bool enabled = true;
 #endif
-		std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> copySpecInfo;
-
-		void BindDescriptor(VkCommandBuffer cmdBuf, uint8_t descSlot, VkDescriptorSet* descSet);
-		void BindPipeline(VkCommandBuffer cmdBuf);
+		//im retiring shader specialization constants for at least a moment
+		//KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> copySpecInfo;
 		
-		//i want to move this to the rendergraph
-		//void BindPipelineWithVPScissor();
-
-		void Push(VkCommandBuffer cmdBuf, void* push, uint8_t pushIndex = 0);
 #if EWE_DEBUG_NAMING
 		void SetDebugName(const char* name);
 #endif

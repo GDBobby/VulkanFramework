@@ -135,7 +135,10 @@ namespace EWE {
 			EWE_UNREACHABLE;
 		}
 
-		auto operator[](std::size_t i) {
+		auto& operator[](std::size_t i) {
+			return inner_data[i];
+		}
+		auto& operator[](std::size_t i) const {
 			return inner_data[i];
 		}
 		Value& GetValue(KVPair::KeyParamType _key) {

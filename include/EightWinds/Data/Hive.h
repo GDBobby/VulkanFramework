@@ -54,13 +54,12 @@ namespace EWE{
             */
         };
         std::vector<Comb*> combs;
-        
         std::size_t element_count = 0;
 
         std::size_t Size() const { return element_count;}
 
         [[nodiscard]] explicit Hive()
-            : combs {}
+        : combs {}
         {
             AddRow();
         }
@@ -218,29 +217,12 @@ namespace EWE{
             }
         };
 
-        iterator begin() {
-            return iterator(this, 0, 0);
-        }
-
-        iterator end() {
-            return iterator(this, combs.size(), 0);
-        }
-
-        const_iterator begin() const {
-            return const_iterator(this, 0, 0);
-        }
-
-        const_iterator end() const {
-            return const_iterator(this, combs.size(), 0);
-        }
-
-        const_iterator cbegin() const {
-            return begin();
-        }
-
-        const_iterator cend() const {
-            return end();
-        }
+        iterator begin() { return iterator(this, 0, 0); }
+        iterator end() { return iterator(this, combs.size(), 0); }
+        const_iterator begin() const { return const_iterator(this, 0, 0); }
+        const_iterator end() const { return const_iterator(this, combs.size(), 0); }
+        const_iterator cbegin() const { return begin(); }
+        const_iterator cend() const { return end(); }
 
         void DestroyElement(iterator iter){
             element_count--;

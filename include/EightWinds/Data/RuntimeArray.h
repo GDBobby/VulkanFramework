@@ -105,7 +105,6 @@ namespace EWE{
 		
 		~RuntimeArray() { heap.DestroyAll(); }
 		
-		RuntimeArray(RuntimeArray const& copySrc) = delete;
 		RuntimeArray& operator=(RuntimeArray const& copySrc) = delete;
 		
 		RuntimeArray(RuntimeArray&& moveSrc) noexcept

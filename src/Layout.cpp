@@ -20,7 +20,7 @@ namespace EWE {
 	}
 
 
-	Backend::Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, Shader::Stage::COUNT> const& shaders) {
+	Backend::Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, ShaderStage::COUNT> const& shaders) {
 		EWE_ASSERT(shaders.size() > 0);
 		Backend::Descriptor::LayoutPack ret{};
 
@@ -144,7 +144,7 @@ namespace EWE {
 		this->shaders.fill(nullptr);
 		for (auto& shader : _shaders) {
 			if(shader != nullptr){
-				this->shaders[Shader::Stage(shader->shaderStageCreateInfo.stage).value] = shader;
+				this->shaders[ShaderStage(shader->shaderStageCreateInfo.stage).value] = shader;
 			}
 		}
 		descriptorSets = MergeDescriptorSets(this->shaders);
@@ -153,21 +153,30 @@ namespace EWE {
 		bindPoint = BindPointFromType(pipelineType);
 	}
 
-	std::vector<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
-		std::vector<VkPipelineShaderStageCreateInfo> ret{};
+	RuntimeArray<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
+		uint8_t shader_count = 0;
 		for (auto& shader : shaders) {
 			if (shader != nullptr) {
-				ret.push_back(shader->shaderStageCreateInfo);
+				shader_count++;
+			}
+		}
+		RuntimeArray<VkPipelineShaderStageCreateInfo> ret{shader_count};
+		uint8_t shader_iter = 0;
+		for (auto& shader : shaders) {
+			if (shader != nullptr) {
+				ret[shader_iter] = shader->shaderStageCreateInfo;
+				shader_iter++;
 			}
 		}
 		return ret;
 	}
-	std::vector<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData(std::vector<KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>> const& specInfo) const {
+	/*
+	std::vector<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData(std::vector<KeyValuePair<ShaderStage, Shader::VkSpecInfo_RAII>> const& specInfo) const {
 		std::vector<VkPipelineShaderStageCreateInfo> ret{};
 		for (auto& shader : shaders) {
 			if (shader != nullptr) {
 				ret.push_back(shader->shaderStageCreateInfo);
-				const Shader::Stage stage(shader->shaderStageCreateInfo.stage);
+				const ShaderStage stage(shader->shaderStageCreateInfo.stage);
 				for (auto& spec : specInfo) {
 					if (spec.key == stage) {
 						ret.back().pSpecializationInfo = &spec.value.specInfo;
@@ -178,17 +187,18 @@ namespace EWE {
 		}
 		return ret;
 	}
+	*/
 
 
 	void PipeLayout::CreateVkPipeLayout(VkDescriptorSetLayout dsl) {
 
-		if (shaders[Shader::Stage::Vertex] != nullptr) {
+		if (shaders[ShaderStage::Vertex] != nullptr) {
 			pipelineType = PipelineType::Vertex;
 		}
-		else if (shaders[Shader::Stage::Mesh] != nullptr) {
+		else if (shaders[ShaderStage::Mesh] != nullptr) {
 			pipelineType = PipelineType::Mesh;
 		}
-		else if (shaders[Shader::Stage::Compute] != nullptr) {
+		else if (shaders[ShaderStage::Compute] != nullptr) {
 			pipelineType = PipelineType::Compute;
 		}
 		else {
@@ -196,19 +206,20 @@ namespace EWE {
 			EWE_ASSERT(false);
 		}
 
-
-		VkPipelineLayoutCreateInfo plCreateInfo{};
-		plCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-		plCreateInfo.pNext = nullptr;
-		plCreateInfo.flags = 0;
-		plCreateInfo.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
-		plCreateInfo.pPushConstantRanges = pushConstantRanges.data();
-
 		const bool hasSets = descriptorSets.sets.size() > 0;
 		EWE_ASSERT(descriptorSets.sets.size() <= 1);
 
-		plCreateInfo.setLayoutCount = static_cast<uint32_t>(hasSets);
-		plCreateInfo.pSetLayouts = &logicalDevice.bindlessDescriptor.layout;
+		VkPipelineLayoutCreateInfo plCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.pNext = nullptr,
+			.flags = 0,
+			
+			.setLayoutCount = static_cast<uint32_t>(hasSets),
+			.pSetLayouts = &logicalDevice.bindlessDescriptor.layout,
+
+			.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+			.pPushConstantRanges = pushConstantRanges.data()
+		};
 
 		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
 	}
@@ -231,7 +242,7 @@ namespace EWE {
 
 	void PipeLayout::DrawImgui() {
 		for (uint8_t i = 0; i < shaders.size(); i++) {
-			//ImGui::InputText(magic_enum::enum_name(static_cast<Shader::Stage::Bits>(i)).data(), shaders[i]->filepath.c_str());
+			//ImGui::InputText(magic_enum::enum_name(static_cast<ShaderStage::Bits>(i)).data(), shaders[i]->filepath.c_str());
 		}
 	}
 #endif

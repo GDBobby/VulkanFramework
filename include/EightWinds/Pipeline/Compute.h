@@ -7,7 +7,7 @@
 namespace EWE {
 	struct ComputePipeline : public Pipeline {
 		ComputePipeline(LogicalDevice& logicalDevice, PipelineID pipeID, PipeLayout* layout);
-		ComputePipeline(LogicalDevice& logicalDevice, PipelineID pipeID, PipeLayout* layout, std::vector<Shader::SpecializationEntry> const& specInfo);
+		//ComputePipeline(LogicalDevice& logicalDevice, PipelineID pipeID, PipeLayout* layout, std::vector<Shader::SpecializationEntry> const& specInfo);
 
 		void CreateVkPipeline();
 #if PIPELINE_HOT_RELOAD

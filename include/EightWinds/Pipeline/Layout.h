@@ -30,23 +30,23 @@ namespace EWE {
 		//i suspect theres a mismangement of the Tracker references here
 		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::span<::EWE::Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
 
-		static PipeLayout* DefaultLayoutCreation(LogicalDevice& logicalDevice, std::array<Shader*, Shader::Stage::COUNT> shaders){
+		static PipeLayout* DefaultLayoutCreation(LogicalDevice& logicalDevice, std::array<Shader*, ShaderStage::COUNT> shaders){
 			return new PipeLayout(logicalDevice, shaders);
 		}
 
-		inline static std::function<PipeLayout*(LogicalDevice& logicalDevice, std::array<Shader*, Shader::Stage::COUNT> shaders)> GetLayout = DefaultLayoutCreation;
+		inline static std::function<PipeLayout*(LogicalDevice& logicalDevice, std::array<Shader*, ShaderStage::COUNT> shaders)> GetLayout = DefaultLayoutCreation;
 
 		//using PipeTraits = PipelineTraits<PipelineType>;
 		//i dont like the array much, i might do a KeyValuePair or something
-		std::array<Shader*, Shader::Stage::COUNT> shaders;
+		std::array<Shader*, ShaderStage::COUNT> shaders;
 
 		Backend::Descriptor::LayoutPack descriptorSets;
 		std::vector<VkPushConstantRange> pushConstantRanges{};
 		PipelineType pipelineType;
 		VkPipelineBindPoint bindPoint; //
 
-		std::vector<VkPipelineShaderStageCreateInfo> GetStageData() const;
-		std::vector<VkPipelineShaderStageCreateInfo> GetStageData(std::vector<KeyValuePair<Shader::Stage, Shader::VkSpecInfo_RAII>> const& specInfo) const;
+		RuntimeArray<VkPipelineShaderStageCreateInfo> GetStageData() const;
+		//std::vector<VkPipelineShaderStageCreateInfo> GetStageData(std::vector<KeyValuePair<ShaderStage, VkSpecInfo_RAII>> const& specInfo) const;
 		
 		//this doesnt need to be explicitly called after construction
 		void CreateVkPipeLayout(VkDescriptorSetLayout dsl);

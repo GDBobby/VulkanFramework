@@ -42,14 +42,16 @@ namespace EWE {
 	//dynamic state, dynamic viewport, whatever
     //and VkPipelineRenderingCreateInfo
 	struct GraphicsPipeline : public Pipeline {
+		/*
 		[[nodiscard]] GraphicsPipeline(
 			LogicalDevice& logicalDevice, 
 			PipelineID pipeID, 
 			PipeLayout* layout, //the layout SHOULD cover the input assembly
 			TaskRasterConfig const& passConfig, ObjectRasterConfig const& objectConfig,
             std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
-			std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo
+			std::vector<KeyValuePair<ShaderStage, std::vector<Shader::SpecializationEntry>>> const& specInfo
 		) noexcept;
+		*/
 
 		[[nodiscard]] GraphicsPipeline(
 			LogicalDevice& logicalDevice, 

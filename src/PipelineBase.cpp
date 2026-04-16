@@ -18,61 +18,42 @@ namespace EWE {
 		paramPack.bindPoint = layout->bindPoint;
 	}
 
+/*
+	KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> SpecInitializer(PipeLayout* layout) {
+		
+		uint8_t shader_count = 0;
+		for(auto& shader : shaders){
+			shader_count += shader != nullptr;
+		}
 
-//#if PIPELINE_HOT_RELOAD
-	std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> SpecInitializer(PipeLayout* layout) {
-		uint8_t shaderCount = 0;
-		std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> ret{};
+		RuntimeArray<KeyValuePair<ShaderStage, RuntimeArray<Shader::SpecializationEntry>>> ret{shader_count};
+		uint8_t current_shader_length = 0;
 		for (auto& shader : layout->shaders) {
 			if (shader != nullptr) {
-				ret.push_back(KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>(Shader::Stage(shader->shaderStageCreateInfo.stage), shader->defaultSpecConstants));
+				ret[current_shader_length].key = ShaderStage(shader->shaderStageCreateInfo.stage);
+				ret[current_shader_length].value = shader->defaultSpecConstants;
 			}
 		}
 		return ret;
 	}
-//#endif
+*/
 
 	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID id, PipeLayout* _layout) 
 	: 
 		logicalDevice{_logicalDevice},
 		myID{ id },
 		layout{ _layout }
-//#if PIPELINE_HOT_RELOAD
-		, copySpecInfo{ SpecInitializer(layout) }
-//#endif
+		//, copySpecInfo{ SpecInitializer(layout) }
 	{}
 
-	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* _layout, std::vector<KeyValuePair<Shader::Stage, std::vector<Shader::SpecializationEntry>>> const& specInfo)
-	: 
-		logicalDevice{_logicalDevice},
+	/*
+	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* _layout, KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> const& specInfo)
+	: logicalDevice{_logicalDevice},
 		myID{ pipeID }, 
-		layout{ _layout }, 
+		layout{ _layout },
 		copySpecInfo{ specInfo }
 	{}
-
-
-	void Pipeline::BindDescriptor(VkCommandBuffer cmdBuf, uint8_t descSlot, VkDescriptorSet* descSet) {
-		vkCmdBindDescriptorSets(cmdBuf,
-			layout->bindPoint,
-			layout->vkLayout,
-			descSlot, 1,
-			descSet,
-			0, nullptr
-		);
-	}
-
-	void Pipeline::BindPipeline(VkCommandBuffer cmdBuf) {
-		vkCmdBindPipeline(cmdBuf, layout->bindPoint, vkPipe);
-	}
-	//void Pipeline::BindPipelineWithVPScissor() {
-	//	BindPipeline();
-	//	EWE_VK(vkCmdSetViewport, VK::Object->GetFrameBuffer(), 0, 1, &VK::Object->viewport);
-	//	EWE_VK(vkCmdSetScissor, VK::Object->GetFrameBuffer(), 0, 1, &VK::Object->scissor);
-	//}
-	void Pipeline::Push(VkCommandBuffer cmdBuf, void* push, uint8_t pushIndex) {
-		auto& range = layout->pushConstantRanges[pushIndex];
-		vkCmdPushConstants(cmdBuf, layout->vkLayout, range.stageFlags, range.offset, range.size, push);
-	}
+	*/
 
 #if EWE_DEBUG_NAMING
 	void Pipeline::SetDebugName(const char* name) {
