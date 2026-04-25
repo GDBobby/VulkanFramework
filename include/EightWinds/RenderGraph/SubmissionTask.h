@@ -19,7 +19,7 @@ namespace EWE{
         CommandPool cmdPool;
         PerFlight<CommandBuffer> cmdBuffers;
         //bool signal;
-        std::string name;
+        std::filesystem::path name;
         PerFlight<Backend::SubmitInfo> submitInfo;
 
         //specialized tasks are like the imgui task, which doesnt use GPUTask

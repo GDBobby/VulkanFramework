@@ -15,10 +15,25 @@
 #include <vector>
 
 namespace EWE {
+
+    struct ShaderMeta{
+        static constexpr uint64_t file_version = 0;
+        RuntimeArray<bool> buffer_written_to;
+        RuntimeArray<bool> texture_written_to;
+
+        [[nodiscard]] ShaderMeta() 
+        : buffer_written_to{0}, 
+            texture_written_to{0} 
+        {}
+
+        void WriteToFile(std::filesystem::path const& path);
+        bool ReadFromFile(std::filesystem::path const& path);
+    };
+
 	struct Shader {
         LogicalDevice& logicalDevice;
 
-		std::filesystem::path filepath{}; 
+		std::filesystem::path name{}; 
 
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo;
 		Backend::Descriptor::LayoutPack descriptorSets;
@@ -27,17 +42,15 @@ namespace EWE {
             uint32_t offset;
             uint32_t size;
             struct BufferAddress{
-                bool writtenTo = false;
-                bool inUse = false;
-                ShaderVariable* variable;
+                std::string name;
             };
             struct TextureIndex{
-                bool writtenTo = false;
-                bool inUse = false;
-                ShaderVariable* variable;
+                std::string name;
             };
-            std::array<BufferAddress, GlobalPushConstant_Raw::buffer_count> buffers;
-            std::array<TextureIndex, GlobalPushConstant_Raw::texture_count> textures;
+            std::vector<std::string> buffers;
+            std::vector<std::string> textures;
+
+            [[nodiscard]] PushConstant();
 
             operator VkPushConstantRange() const{
                 return VkPushConstantRange{
@@ -48,6 +61,7 @@ namespace EWE {
             }
         };
         PushConstant pushRange;
+        ShaderMeta meta;
 
 		//RuntimeArray<SpecializationEntry> defaultSpecConstants{0};
 

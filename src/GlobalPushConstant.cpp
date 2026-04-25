@@ -7,6 +7,7 @@
 
 namespace EWE{
 
+    /*
     void GlobalPushConstant_Raw::Bind(uint8_t slot, Buffer const& buffer) noexcept {
         EWE_ASSERT(slot < buffer_count);
         buffer_addr[slot] = buffer.deviceAddress;
@@ -46,4 +47,5 @@ namespace EWE{
             UpdateBuffer(i);
         }
     }
+        */
 }// namespace EWE

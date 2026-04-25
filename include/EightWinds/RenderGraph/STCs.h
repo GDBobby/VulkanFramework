@@ -20,12 +20,10 @@ namespace EWE{
 
         Queue& graphicsQueue;
         Queue& computeQueue;
-        SubmissionTask& graphics_stc_task;
-        SubmissionTask& compute_stc_task;
 
-        [[nodiscard]] STCManagement(LogicalDevice& logicalDevice, 
-            Queue& graphicsQueue, Queue& computeQueue, 
-            SubmissionTask& graphics_stc_task, SubmissionTask& compute_stc_task
+        [[nodiscard]] STCManagement(
+            LogicalDevice& logicalDevice, 
+            Queue& graphicsQueue, Queue& computeQueue
         );
 
         template<typename R>

@@ -42,6 +42,10 @@ namespace EWE{
         :resource{&_resource[0], &_resource[1]},
             usage{ _usage }
         {}
+        [[nodiscard]] explicit Resource(PerFlight<T*>& _resource, UsageData<T> const& _usage)
+        :resource{_resource},
+            usage{ _usage }
+        {}
     };
 
     struct TaskResourceUsage{
@@ -85,6 +89,22 @@ namespace EWE{
         }
         template<typename Res>
         uint32_t AddResource(PerFlight<Res>& res, UsageData<Res> const& usage) {
+            if constexpr (std::is_same_v<Res, Buffer>) {
+                buffers.emplace_back(res, usage);
+                return buffers.size() - 1;
+            }
+            else if constexpr (std::is_same_v<Res, Image>) {
+                images.emplace_back(res, usage);
+                return images.size() - 1;
+            }
+            else {
+                //EWE_ASSERT(invalid_type_debugging_helper<Res> && "invalid resource type");
+                static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
+            }
+            return 69420;
+        }
+        template<typename Res>
+        uint32_t AddResource(PerFlight<Res*>& res, UsageData<Res> const& usage) {
             if constexpr (std::is_same_v<Res, Buffer>) {
                 buffers.emplace_back(res, usage);
                 return buffers.size() - 1;

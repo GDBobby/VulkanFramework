@@ -3,12 +3,10 @@
 namespace EWE{
 
     STCManagement::STCManagement(LogicalDevice& _logicalDevice, 
-        Queue& _graphicsQueue, Queue& _computeQueue, 
-        SubmissionTask& _graphics_stc_task, SubmissionTask& _compute_stc_task
+        Queue& _graphicsQueue, Queue& _computeQueue
     )
     : logicalDevice{_logicalDevice},
         graphicsQueue{_graphicsQueue}, computeQueue{_computeQueue},
-        graphics_stc_task{_graphics_stc_task}, compute_stc_task{_compute_stc_task},
         graphicsInfo{
             .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO
         },

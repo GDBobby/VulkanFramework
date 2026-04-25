@@ -69,7 +69,7 @@ namespace EWE{
 #if EWE_DEBUG_NAMING
     void Image::SetName(std::string_view _name) {
         name = _name;
-        logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE, name);
+        logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE, _name);
     }
 #endif
 }

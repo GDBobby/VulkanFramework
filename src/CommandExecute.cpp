@@ -222,7 +222,7 @@ namespace Exec{
 #ifdef EXECUTOR_DEBUGGING
         ctx.Print();
 #endif
-        vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, sizeof(GlobalPushConstant_Raw), &data);
+        vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, data.size, data.data);
     }
 
 

@@ -6,6 +6,7 @@
 
 namespace EWE{
 
+    /*
     struct Buffer;
     struct DescriptorImageInfo;
 
@@ -49,4 +50,5 @@ namespace EWE{
         void UpdateBuffer(uint8_t frameIndex);
         void UpdateBuffer();
     };
+    */
 }

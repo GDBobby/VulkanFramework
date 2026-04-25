@@ -64,7 +64,9 @@ namespace EWE{
             AddRow();
         }
 
-        T* GetAConstructionPointer(){
+        //returns a uninitialzied pointer
+        T* GetCell(){
+            element_count++;
             for(auto& comb : combs){
                 if(!comb->occupancy.all()){
                     for(std::size_t i = 0; i < RowWidth; i++){
@@ -84,13 +86,12 @@ namespace EWE{
         template<typename... Args>
             requires std::constructible_from<T, Args...>
         T& AddElement(Args&&... args){
-            element_count++;
-            return *std::construct_at(GetAConstructionPointer(), std::forward<Args>(args)...);
+            return *std::construct_at(GetCell(), std::forward<Args>(args)...);
         }
 
-        void DestroyElement(T* element) {
+        //does not destruct
+        void ReturnCell(T* element){
             element_count--;
-            std::destroy_at<T>(element);
 
             for (auto& comb : combs) {
                 T* combStart = comb->memory.GetMemory();
@@ -107,6 +108,11 @@ namespace EWE{
             }
 
             throw std::out_of_range("trying to destroy an element not contained within the hive");
+        }
+
+        void DestroyElement(T* element) {
+            std::destroy_at<T>(element);
+            ReturnCell(element);
         }
         
         void AddRow() {

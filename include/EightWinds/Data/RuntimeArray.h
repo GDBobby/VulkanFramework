@@ -47,6 +47,11 @@ namespace EWE{
 			heap.ConstructAll();
 		}
 
+		void Clear(){
+			heap.DestroyAll();
+			heap.Clear();
+		}
+
 		template<typename... Args>
 			requires std::is_constructible_v<T, Args...>
 		void ClearAndResize(std::size_t elementCount, Args&&... args) {

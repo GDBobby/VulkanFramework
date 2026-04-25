@@ -11,7 +11,28 @@ namespace EWE{
     struct ParamPack;
 
 
-    template<> struct ParamPack<Inst::Push> : public GlobalPushConstant_Raw{};
+    template<> struct ParamPack<Inst::Push> {
+        uint32_t size; 
+        uint8_t buffer_count; //for later reference, not necessary for vulkan
+        uint8_t texture_count; //for later reference, not necessary for vulkan
+        //assert(ele_count * ele_size == size);
+
+        static constexpr std::size_t data_size = 128 / sizeof(std::byte);
+        std::byte data[data_size];
+
+        VkDeviceAddress& GetDeviceAddress(uint8_t index){
+            return reinterpret_cast<VkDeviceAddress*>(data)[index];
+        }
+        TextureIndex& GetTextureIndex(uint8_t index){
+            auto* starting_addr = reinterpret_cast<VkDeviceAddress*>(data) + buffer_count;
+            return reinterpret_cast<TextureIndex*>(starting_addr)[index];
+        }
+
+        std::size_t Size() const{
+            return buffer_count * sizeof(VkDeviceAddress)
+                + texture_count * sizeof(TextureIndex);
+        }
+    };
     template<> struct ParamPack<Inst::BeginRender> : public VkRenderingInfo{}; //i need to figure something out here
 
     template<> struct ParamPack<Inst::BindPipeline>{

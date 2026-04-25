@@ -26,6 +26,52 @@
 
 namespace EWE {
 
+#define c_char_cast(x) reinterpret_cast<const char*>(x)
+#define char_cast(x) reinterpret_cast<char*>(x)
+	void ShaderMeta::WriteToFile(std::filesystem::path const& path){
+		std::ofstream outFile{path, std::ios::binary};
+		auto temp_buffer = file_version;
+		outFile.write(c_char_cast(&temp_buffer), sizeof(temp_buffer));
+		auto const buf_size = buffer_written_to.Size();
+		auto const tex_size = texture_written_to.Size();
+		outFile.write(c_char_cast(&tex_size), sizeof(tex_size));
+		outFile.write(c_char_cast(&buf_size), sizeof(buf_size));
+		outFile.write(c_char_cast(buffer_written_to.Data()), sizeof(bool) * buffer_written_to.Size());
+		outFile.write(c_char_cast(texture_written_to.Data()), sizeof(bool) * texture_written_to.Size());
+
+		outFile.close();
+	}
+	bool ShaderMeta::ReadFromFile(std::filesystem::path const& path){
+		std::ifstream inFile{path, std::ios::binary};
+		auto temp_buffer = file_version;
+		inFile.read(char_cast(&temp_buffer), sizeof(temp_buffer));
+		if(temp_buffer != file_version){
+			inFile.close();
+			return false;
+		}
+
+		std::size_t buf_size;
+		std::size_t tex_size;
+		inFile.read(char_cast(&buf_size), sizeof(buf_size));
+		inFile.read(char_cast(&tex_size), sizeof(tex_size));
+		buffer_written_to.ClearAndResize(buf_size);
+		texture_written_to.ClearAndResize(tex_size);
+
+		inFile.read(char_cast(buffer_written_to.Data()), sizeof(bool) * buffer_written_to.Size());
+		inFile.read(char_cast(texture_written_to.Data()), sizeof(bool) * texture_written_to.Size());
+
+		inFile.close();
+		return true;
+	}
+
+	Shader::PushConstant::PushConstant() 
+	: offset{0}, size{0},
+		buffers{}, textures{} 
+	{}
+
+#undef char_cast
+#undef c_char_cast
+
 	constexpr ShaderVariable::Type ConvertVariableType(spirv_cross::SPIRType::BaseType spirv_var_type) {
 		switch (spirv_var_type) {
 			case spirv_cross::SPIRType::Boolean:        return ShaderVariable::Type::Bool;
@@ -186,17 +232,32 @@ namespace EWE {
 		}
 	}
 
-	Shader::PushConstant::BufferAddress ParsePushBufferAddress(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID buf_id){
+	void ParsePushBufferAddress(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID buf_id, std::string const& push_mem_name){
 		auto const& buf_type = compiler.get_type(buf_id);
-		EWE_ASSERT((buf_type.basetype == spirv_cross::SPIRType::Struct) && buf_type.pointer);
+		EWE_ASSERT(buf_type.pointer);
+
+		if(buf_type.op == spirv_cross::OpTypeArray){
+			EWE_ASSERT(buf_type.array.size() == 1); //not supporting array of arrays here
+			for(uint8_t i = 0; i < buf_type.array[0]; i++){
+				shader.pushRange.buffers.push_back(push_mem_name);
+				shader.pushRange.buffers.back() += (std::string("[") + std::to_string(i) + "]");
+			}
+		}
+		else{
+			shader.pushRange.buffers.push_back(push_mem_name);
+		}
+		return;
+
 		
 		auto const& parent_type = compiler.get_type(buf_type.parent_type);
 		auto const& parent_name = compiler.get_name(buf_type.parent_type);
-		auto const& buf_child = compiler.get_type(buf_type.member_types[0]);
-		auto const& buf_child_name = compiler.get_name(buf_child.self);
 		
-		PrintAllDecorations("push buffer member", compiler.get_decoration_bitset(buf_id));
-		PrintAllDecorations("buffer parent", compiler.get_decoration_bitset(buf_type.parent_type));
+		auto const& buf_bitset = compiler.get_decoration_bitset(buf_id);
+		PrintAllDecorations("push buffer member", buf_bitset);
+		auto const& parent_bitset = compiler.get_decoration_bitset(buf_type.parent_type);
+		PrintAllDecorations("buffer parent", parent_bitset);
+		auto const& child_bitset = compiler.get_decoration_bitset(buf_type.member_types[0]);
+		PrintAllDecorations("buffer child", child_bitset);
 
 		if(buf_type.storage != spirv_cross::StorageClassPhysicalStorageBuffer){
 			Logger::Print<Logger::Warning>("unexpected push buffer storage type : %s\n", Reflect::Enum::ToString(buf_type.storage).data());
@@ -211,25 +272,51 @@ namespace EWE {
 				break;
 		};
 
-		//idk if other basetypes are allowable, but i can handle them as they come up
-		
-		auto bitset = compiler.get_buffer_block_flags(parent_type.self);
-		Logger::Print("bitset nonwriteable : %d\n", bitset.get(spirv_cross::DecorationNonWritable));
+		// i cant even catch this properly
+		//try{
+		//	auto bitset = compiler.get_buffer_block_flags(parent_type.self);
+		//	Logger::Print("bitset nonwriteable : %d\n", bitset.get(spirv_cross::DecorationNonWritable));
+		//}
+		//catch(spirv_cross::CompilerError const& e){Logger::Print<Logger::Warning>("exception : %s\n", e.what());}
+
+
 		auto const dec_ret = compiler.get_decoration(buf_type.parent_type, spirv_cross::Decoration::DecorationBlock);
 		EWE_ASSERT(dec_ret > 0);
 		
 		Logger::Print("push buffer basetype[%s] and optype[%s]\n", Reflect::Enum::ToString(buf_type.basetype).data(), Reflect::Enum::ToString(buf_type.op).data());
+		//idk if other basetypes are allowable, but i can handle them as they come up
 		if(buf_type.basetype == spirv_cross::SPIRType::Struct){
 			if(buf_type.op == spirv_cross::OpTypeRuntimeArray){
 				//this is the typical paradigm for vertex shaders, link to a runtimearray of a struct
 
 			}
 		}
+	}
+	void ParsePushTextureIndex(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID var_id, std::string const& push_mem_name){
+		auto const& buf_type = compiler.get_type(var_id);
+		EWE_ASSERT(buf_type.basetype == spirv_cross::SPIRType::Int);
+		auto const& buf_name = compiler.get_name(buf_type.self);
+		if(buf_type.op == spirv_cross::OpTypeArray){
+			EWE_ASSERT(buf_type.array.size() == 1); //not supporting array of arrays here
+			for(uint8_t i = 0; i < buf_type.array[0]; i++){
+				shader.pushRange.textures.push_back(push_mem_name);
+				shader.pushRange.textures.back() += (std::string("[") + std::to_string(i) + "]");
+			}
+		}
+		else{
+			shader.pushRange.textures.push_back(push_mem_name);
+		}
 
-		Shader::PushConstant::BufferAddress ret;
-
-		return ret;
-	}	
+		if(buf_type.parent_type != 0){
+			auto const& parent_name = compiler.get_name(buf_type.parent_type);
+			auto const& parent_type = compiler.get_type(buf_type.parent_type);
+		}
+		if(buf_type.member_types.size() > 0){
+			auto const& buf_child = compiler.get_type(buf_type.member_types[0]);
+			auto const& buf_child_name = compiler.get_name(buf_child.self);
+			auto const& buf_child_op = buf_child.op;
+		}
+	}
 
 
 	void InterpretPushConstant(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID push_id){		
@@ -243,41 +330,47 @@ namespace EWE {
 		//compiler.get_decoration(ID id, Decoration decoration)
 		PrintAllDecorations("push", compiler.get_decoration_bitset(push_id));
 
-
 		auto const& push_member_count = push_type.member_types.size();
-		uint8_t buffer_count = 0;
-		uint8_t texture_count = 0;
-		for (uint32_t m = 0; m < push_type.member_types.size(); m++) {
-			//auto const& member_type = compiler.get_type(var_type.member_types[m]);
-			if(buffer_count < shader.pushRange.buffers.size()){
+		/*
+		{ //counting buffers / texutres
+			uint8_t buffer_count = 0;
+			uint8_t texture_count = 0;
+			for (uint32_t m = 0; m < push_type.member_types.size(); m++) {
 				auto const& member_type = compiler.get_type(push_type.member_types[m]);
-				if(member_type.basetype != spirv_cross::SPIRType::UInt64){
-					shader.pushRange.buffers[buffer_count] = ParsePushBufferAddress(compiler, shader, push_type.member_types[m]);
-					//shader.pushRange.buffers[buffer_count].variable = member;
-
+				if(member_type.pointer){
 					buffer_count++;
 				}
+				else if(member_type.basetype == spirv_cross::SPIRType::Int){
+					texture_count++;
+				}
+				else if(member_type.basetype == spirv_cross::SPIRType::UInt64){
+					Logger::Print<Logger::Warning>("non-pointer address in shader : %s\n", shader.filepath.string().c_str());
+				}
 				else{
-					buffer_count += member_type.array[0];
+					EWE_ASSERT(false, "invalid spirv type");
 				}
 			}
-			else{
-				//EWE_ASSERT(member->baseType == ShaderVariable::Type::Int32);
-				//shader.pushRange.textures[texture_count].variable = member;
-
-				//texture_count += member->array_lengths[0];
-			}
-			//member->name = compiler.get_member_name(push_id, m);
-			//member->size = compiler.get_declared_struct_member_size(push_type, m);
-			//compiler.get_member_decoration(TypeID id, uint32_t index, Decoration decoration)
-			const std::string push_dec_name = std::string("push[") + std::to_string(m) + ']';
-			PrintAllDecorations(push_dec_name, compiler.get_member_decoration_bitset(push_id, m));
 		}
-		
-		//calculate offsets
+		*/
+		{ //populating textures / buffers
+			for (uint32_t m = 0; m < push_type.member_types.size(); m++) {
+				auto const& member_type = compiler.get_type(push_type.member_types[m]);
+				if(member_type.pointer){
+					ParsePushBufferAddress(compiler, shader, push_type.member_types[m], compiler.get_member_name(push_id, m));
+				}
+				else if(member_type.basetype == spirv_cross::SPIRType::Int){
+					ParsePushTextureIndex(compiler, shader, push_type.member_types[m], compiler.get_member_name(push_id, m));
+				}
+				else if(member_type.basetype == spirv_cross::SPIRType::UInt64){
+					Logger::Print<Logger::Warning>("non-pointer address in shader : %s\n", shader.name.string().c_str());
+				}
+				else{
+					EWE_ASSERT(false, "invalid spirv type");
+				}
+			}
+		}
 
-		EWE_ASSERT(buffer_count <= shader.pushRange.buffers.size());
-		EWE_ASSERT(texture_count <= shader.pushRange.textures.size());
+		//calculate offsets
 		for(uint8_t i = 0; i < shader.pushRange.buffers.size(); i++){
 			
 		}
@@ -384,7 +477,7 @@ namespace EWE {
 		spirv_cross::Compiler compiler(reinterpret_cast<const uint32_t*>(data), dataSize / sizeof(uint32_t));
 		auto const& entryPoints = compiler.get_entry_points_and_stages();
 		if(entryPoints.size() > 1){
-			Logger::Print<Logger::Warning>("multiple entry points[%zu] not supported : in shader[%s]\n", entryPoints.size(), filepath.string().c_str());
+			Logger::Print<Logger::Warning>("multiple entry points[%zu] not supported : in shader[%s]\n", entryPoints.size(), name.string().c_str());
 			Logger::Print<Logger::Warning>("\t using entry point : %s\n", entryPoints[0].name.c_str());
 		}
 		//for (auto& entryPoint : entryPoints) {
@@ -412,11 +505,13 @@ namespace EWE {
 #pragma GCC diagnostic pop
 
 
+		pushRange.size = 0;
+		pushRange.offset = 0;
 		if(resources.push_constant_buffers.size() > 0){
 			InterpretPushConstant(compiler, *this, resources.push_constant_buffers[0].base_type_id);
 			//pushRange = SPIRTypeToShaderVariable(compiler, *this, resources.push_constant_buffers[0].base_type_id);
 			if(resources.push_constant_buffers.size() > 1){
-				Logger::Print<Logger::Warning>("multiple push constants[%zu] not supported : in shader[%s]\n", resources.push_constant_buffers.size(), filepath.string().c_str());
+				Logger::Print<Logger::Warning>("multiple push constants[%zu] not supported : in shader[%s]\n", resources.push_constant_buffers.size(), name.string().c_str());
 			}
 		}
 
@@ -450,8 +545,9 @@ namespace EWE {
 
 	Shader::Shader(LogicalDevice& _logicalDevice, std::filesystem::path const& fileLocation) 
     : logicalDevice{_logicalDevice}, 
-		filepath{ fileLocation }, 
-		descriptorSets{} 
+		name{ fileLocation }, 
+		descriptorSets{},
+		meta{}
 	{
 		std::vector<char> shaderData = ReadShaderFile(fileLocation);
 		Logger::Print("beginning reflection of : %s\n", fileLocation.string().c_str());
@@ -467,7 +563,7 @@ namespace EWE {
 
 	Shader::Shader(LogicalDevice& _logicalDevice, std::filesystem::path const& fileLocation, const std::size_t dataSize, const void* data) 
     : logicalDevice{_logicalDevice}, 
-		filepath{ fileLocation }, 
+		name{ fileLocation }, 
 		descriptorSets{} 
 	{
 		Logger::Print("beginning reflection of : %s\n", fileLocation.string().c_str());
@@ -481,7 +577,7 @@ namespace EWE {
 	}
 
 	Shader::Shader(LogicalDevice& _logicalDevice) 
-    : logicalDevice{_logicalDevice}, filepath{} 
+    : logicalDevice{_logicalDevice}, name{} 
 	{
 		logicalDevice.shaders.Add(this);}
 	

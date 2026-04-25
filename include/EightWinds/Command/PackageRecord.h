@@ -10,6 +10,7 @@
 #include "InstructionPackage.h"
 
 #include <vector>
+#include <filesystem>
 
 namespace EWE{
     struct Queue;
@@ -32,7 +33,7 @@ namespace Command{
             im making a packagerecord just so i dont have to deal with losing record until i finish
         */
     struct PackageRecord{
-        std::string name{};
+        std::filesystem::path name{};
         Queue* queue = nullptr; //not optional, but can be changed
         std::vector<InstructionPackage*> packages;
 

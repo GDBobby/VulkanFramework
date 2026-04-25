@@ -94,6 +94,16 @@ namespace EWE{
 				logicalDevice, graphicsQueue,
 				config.attachment_set_info
 			);
+			renderInfo->full.setInfo.colors.ClearAndResize(1);
+			auto& color_back = renderInfo->full.setInfo.colors[0];
+			color_back.format = VK_FORMAT_R8G8B8A8_UNORM;
+			color_back.clearValue.color.float32[0] = 0.f;
+			color_back.clearValue.color.float32[1] = 0.f;
+			color_back.clearValue.color.float32[2] = 0.f;
+			color_back.clearValue.color.float32[3] = 0.f;
+			color_back.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			color_back.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			renderInfo->Init();
 		}
 	}
 

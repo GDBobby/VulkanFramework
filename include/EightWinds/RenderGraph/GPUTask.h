@@ -22,7 +22,7 @@ namespace EWE{
     //GPUTask is intended to be used in a single thread.
     //if its desired to multi-thread within a single task, sync needs to be external
     struct GPUTask{
-        std::string name;
+        std::filesystem::path name;
         LogicalDevice& logicalDevice;
         //i think i define a command pool here, or at least a queue
         Queue& queue;
@@ -32,10 +32,10 @@ namespace EWE{
 
         Command::PackageRecord* pkgRecord; //just for viewing in reconstruction
 
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool& pp);
-        [[nodiscard]] explicit GPUTask(std::string_view name, LogicalDevice& logicalDevice, Command::PackageRecord& record, bool compile);
+        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);
+        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
+        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool& pp);
+        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Command::PackageRecord& record, bool compile);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask(GPUTask&&) = delete;

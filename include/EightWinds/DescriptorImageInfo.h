@@ -13,7 +13,7 @@ namespace EWE{
     
     struct DescriptorImageInfo{
 
-        std::string name;
+        std::filesystem::path name;
 
         Sampler* sampler; //optional?
         ImageView& view;

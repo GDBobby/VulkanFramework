@@ -26,7 +26,12 @@ namespace EWE{
     struct ImguiExtension;
 
     struct RenderGraph{
-        [[nodiscard]] explicit RenderGraph(LogicalDevice& logicalDevice, Swapchain& swapchain, Queue& renderQueue, Queue& computeQueue); //this cant be noexcept because Hive can throw if malloc fails
+        std::filesystem::path name;
+
+        [[nodiscard]] explicit RenderGraph(
+            LogicalDevice& logicalDevice, Swapchain& swapchain, 
+            Queue& renderQueue, Queue& computeQueue
+        );
         RenderGraph(RenderGraph const& copySrc) = delete;
         RenderGraph(RenderGraph&& moveSrc) = delete;
         RenderGraph& operator=(RenderGraph const& copySrc) = delete;
@@ -39,14 +44,10 @@ namespace EWE{
         Queue& renderQueue;
         Queue& computeQueue;
 
-        //its important that task dont get moved or copied
-        Hive<GPUTask> tasks;
-        Hive<SubmissionTask> submissions;
-        //PresentSubmission presentSubmission;
-
         PresentBridge presentBridge;
         SynchronizationManager syncManager;
 
+        std::vector<GPUTask*> tasks; //this is for adjusting prefixes
         //each inner vector needs to use only one queue
         std::vector<std::vector<SubmissionTask*>> execution_order;
 
@@ -69,6 +70,8 @@ namespace EWE{
         //this needs to be ran every frame
         void UpdateSemaphores(uint8_t frameIndex, STCManagement* frame_stc_manager);
 
+        SubmissionTask* graphics_stc_task;
+        SubmissionTask* compute_stc_task;
         RingBuffer<STCManagement, max_frames_in_flight + 1> stc_management;
         STCManagement* current_stc_manager;
 

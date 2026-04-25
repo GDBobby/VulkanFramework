@@ -31,7 +31,7 @@ namespace Command{
 		};
 
 		const Type type;
-        std::string name;
+        std::filesystem::path name;
 		ParamPool paramPool;
 		
 		virtual std::span<const Inst::Type> GetAllowedInstructions() {return std::span{allowed_instructions.begin(), allowed_instructions.end()};}

@@ -281,7 +281,7 @@ namespace EWE {
 			.logicOpEnable = false,//maybe, idk
 			.logicOp = VK_LOGIC_OP_MAX_ENUM,
 
-			.attachmentCount = static_cast<uint32_t>(taskConfig.attachment_set_info.colors.size()),
+			.attachmentCount = static_cast<uint32_t>(taskConfig.attachment_set_info.colors.Size()),
 			.pAttachments = &objectConfig.blendAttachment
 		};
         memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);

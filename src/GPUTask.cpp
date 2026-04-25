@@ -7,28 +7,28 @@
 
 namespace EWE{
 
-    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue)
+    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue)
     : name{ _name },
         logicalDevice{ _logicalDevice },
         queue{ _queue },
         pkgRecord{nullptr}
     {
     }
-    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::Record& cmdRecord)
+    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::Record& cmdRecord)
     : GPUTask{_name, _logicalDevice, _queue}//,
         //commandExecutor{std::in_place, logicalDevice, cmdRecord}
     {
         commandExecutor.emplace(logicalDevice, cmdRecord);
     }
 
-    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::ParamPool& pp)
+    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::ParamPool& pp)
     : GPUTask{_name, _logicalDevice, _queue}
     {
         paramPool.emplace(pp);
 
     }
 
-    GPUTask::GPUTask(std::string_view _name, LogicalDevice& _logicalDevice, Command::PackageRecord& record, bool compile)
+    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Command::PackageRecord& record, bool compile)
     : GPUTask{_name, _logicalDevice, *record.queue}
     {
         if(compile){

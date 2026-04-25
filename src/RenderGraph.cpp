@@ -5,7 +5,10 @@
 namespace EWE{
 
 
-    RenderGraph::RenderGraph(LogicalDevice& _logicalDevice, Swapchain& _swapchain, Queue& _renderQueue, Queue& _computeQueue)
+    RenderGraph::RenderGraph(
+        LogicalDevice& _logicalDevice, Swapchain& _swapchain, 
+        Queue& _renderQueue, Queue& _computeQueue
+    )
         : logicalDevice{_logicalDevice},
         swapchain{_swapchain},
         renderQueue{_renderQueue}, computeQueue{_computeQueue},
@@ -35,15 +38,12 @@ namespace EWE{
         semaphores{0, logicalDevice},
         stc_management{
             logicalDevice,
-            renderQueue, computeQueue,
-            submissions.AddElement("graphics STC task", logicalDevice, renderQueue), submissions.AddElement("compute STC task", logicalDevice, computeQueue)
+            renderQueue, computeQueue
         },
         current_stc_manager{stc_management.GetNext()}
         //binary_semaphores{0, logicalDevice}
     {
         auto& stc_m = *stc_management.begin();
-        stc_m.graphics_stc_task.specializedSubmission = true;
-        stc_m.compute_stc_task.specializedSubmission = true;
     
 #if EWE_DEBUG_BOOL
         Logger::Print<Logger::Warning>("need visual feedback for rendergraph\n");
@@ -69,16 +69,16 @@ namespace EWE{
         const bool submitting_compute_stc = frame_stc_manager->CheckSize(Queue::Compute);
         const bool submitting_graphics_stc = frame_stc_manager->CheckSize(Queue::Graphics);
         if(submitting_compute_stc){
-            frame_stc_manager->compute_stc_task.packaged_tasks.clear();
-            frame_stc_manager->compute_stc_task.packaged_tasks.push_back(frame_stc_manager->compute_task);
-            frame_stc_manager->compute_stc_task.Execute(frameIndex);
-            computeQueue.Submit2(frame_stc_manager->compute_stc_task.submitInfo[frameIndex].Expand());
+            compute_stc_task->packaged_tasks.clear();
+            compute_stc_task->packaged_tasks.push_back(frame_stc_manager->compute_task);
+            compute_stc_task->Execute(frameIndex);
+            computeQueue.Submit2(compute_stc_task->submitInfo[frameIndex].Expand());
         }
         if(submitting_graphics_stc){
-            frame_stc_manager->graphics_stc_task.packaged_tasks.clear();
-            frame_stc_manager->graphics_stc_task.packaged_tasks.push_back(frame_stc_manager->graphics_task);
-            frame_stc_manager->graphics_stc_task.Execute(frameIndex);
-            auto& stc_subInfo = frame_stc_manager->graphics_stc_task.submitInfo[frameIndex];
+            graphics_stc_task->packaged_tasks.clear();
+            graphics_stc_task->packaged_tasks.push_back(frame_stc_manager->graphics_task);
+            graphics_stc_task->Execute(frameIndex);
+            auto& stc_subInfo = graphics_stc_task->submitInfo[frameIndex];
             renderQueue.Submit2(stc_subInfo.Expand());
         }
 
@@ -137,8 +137,8 @@ namespace EWE{
 
     void RenderGraph::ClearAllBarriers(uint8_t frameIndex) {
         for (auto& task : tasks) {
-            task.prefix.Clear(frameIndex);
-            task.suffix.Clear(frameIndex);
+            task->prefix.Clear(frameIndex);
+            task->suffix.Clear(frameIndex);
         }
     }
     void RenderGraph::RecreateBarriers(uint8_t frameIndex) {
@@ -146,9 +146,9 @@ namespace EWE{
         syncManager.PopulateAffixes(frameIndex);
 
         for (auto& task : tasks) {
-            auto& pref_barr = task.prefix.barriers[frameIndex];
+            auto& pref_barr = task->prefix.barriers[frameIndex];
             pref_barr.FixPointers();
-            auto& suff_barr = task.suffix.barriers[frameIndex];
+            auto& suff_barr = task->suffix.barriers[frameIndex];
             suff_barr.FixPointers();
         }
     }
@@ -191,8 +191,7 @@ namespace EWE{
                 EWE_ASSERT(false, "not supported yet");
             }
             else{
-                //the graphics stc task is the same per all managers
-                stc_management.data[0].graphics_stc_task.submitInfo[frame].signalSemaphores.emplace_back(
+                graphics_stc_task->submitInfo[frame].signalSemaphores.emplace_back(
                     VkSemaphoreSubmitInfo{
                         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                         .pNext = nullptr,
@@ -329,7 +328,7 @@ namespace EWE{
 
 
         if(first_graphics_task_group >= 0){
-            auto& sig_sem = frame_stc_manager->graphics_stc_task.submitInfo[frameIndex].signalSemaphores[0];
+            auto& sig_sem = graphics_stc_task->submitInfo[frameIndex].signalSemaphores[0];
             if(submitting_graphics_stc){
                 auto& first_graphics_group = execution_order[first_graphics_task_group];
                 for(auto& ind_sub : first_graphics_group){
@@ -342,7 +341,7 @@ namespace EWE{
         }
 
         if(first_compute_task_group >= 0){
-            auto& sig_sem = frame_stc_manager->compute_stc_task.submitInfo[frameIndex].signalSemaphores[0];             
+            auto& sig_sem = compute_stc_task->submitInfo[frameIndex].signalSemaphores[0];             
             if(submitting_compute_stc){
                 auto& first_compute_group = execution_order[first_compute_task_group];
                 for(auto& ind_sub : first_compute_group){

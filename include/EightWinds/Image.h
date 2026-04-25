@@ -5,6 +5,7 @@
 #include "EightWinds/Queue.h"
 
 #include <string>
+#include <filesystem>
 #if EWE_DEBUG_NAMING
 #include <stacktrace>
 #endif
@@ -19,7 +20,7 @@ namespace EWE{
         
         LogicalDevice& logicalDevice;
         VkImage image;
-        std::string name; //directory, this is the hash key for an unordered_set
+        std::filesystem::path name; //directory, this is the hash key for an unordered_set
 
         [[nodiscard]] explicit Image(LogicalDevice& logicalDevice) noexcept;
         
