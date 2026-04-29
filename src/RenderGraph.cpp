@@ -167,7 +167,7 @@ namespace EWE{
             }
             max_width = std::max(max_width, std::size_t(1));
             if(max_width != semaphores[0].Size()){
-                for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+                for_each_frame{
                     semaphores[frame].ClearAndResize(max_width, logicalDevice);
                 }
             }
@@ -176,14 +176,14 @@ namespace EWE{
             //the binary semaphores aren't per flight, they're per swap image
             EWE_ASSERT(execution_order.back().size() == 1);
 
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            for_each_frame{
                 present_wait_raw_semaphore_data[frame].clear();
             }
         }
 
         std::size_t present_image_used_index = execution_order.size();
 
-        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+        for_each_frame{
 
             //stcs
             if(execution_order.size() == 0){

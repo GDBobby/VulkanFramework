@@ -30,6 +30,36 @@ namespace EWE {
         bool ReadFromFile(std::filesystem::path const& path);
     };
 
+
+    struct PushConstant{
+        uint32_t offset;
+        uint32_t size;
+
+        struct Member{
+            std::string name;
+            uint32_t offset;
+            uint32_t size;
+            enum Type{
+                Buffer,
+                Texture
+            };
+            Type type;
+        };
+        std::vector<Member> buffers;
+        std::vector<Member> textures;
+
+        [[nodiscard]] PushConstant();
+
+        operator VkPushConstantRange() const{
+            return VkPushConstantRange{
+                //i dont think tghis has a performance impact. if it does, i'll need to remove it 
+                .stageFlags = VK_SHADER_STAGE_ALL,
+                .offset = offset,
+                .size = size
+            };
+        }
+    };
+
 	struct Shader {
         LogicalDevice& logicalDevice;
 
@@ -38,28 +68,6 @@ namespace EWE {
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo;
 		Backend::Descriptor::LayoutPack descriptorSets;
 
-        struct PushConstant{
-            uint32_t offset;
-            uint32_t size;
-            struct BufferAddress{
-                std::string name;
-            };
-            struct TextureIndex{
-                std::string name;
-            };
-            std::vector<std::string> buffers;
-            std::vector<std::string> textures;
-
-            [[nodiscard]] PushConstant();
-
-            operator VkPushConstantRange() const{
-                return VkPushConstantRange{
-                    .stageFlags = VK_SHADER_STAGE_ALL,
-                    .offset = offset,
-                    .size = size
-                };
-            }
-        };
         PushConstant pushRange;
         ShaderMeta meta;
 

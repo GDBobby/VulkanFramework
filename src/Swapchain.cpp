@@ -120,7 +120,6 @@ namespace EWE{
 
         EWE_VK(vkCreateSwapchainKHR, logicalDevice.device, &swapCreateInfo, nullptr, &activeSwapchain);
 
-        //10 is an arbitrary number meant to be at least as large as the most images that would ever be acquired
         uint32_t swapImageCount = 0;
         EWE_VK(vkGetSwapchainImagesKHR, logicalDevice.device, activeSwapchain, &swapImageCount, nullptr);
         std::vector<VkImage> raw_images(swapImageCount);

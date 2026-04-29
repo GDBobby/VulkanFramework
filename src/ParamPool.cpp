@@ -1,6 +1,8 @@
 #include "EightWinds/Command/ParamPool.h"
 #include "EightWinds/VulkanHeader.h"
 
+#include "EightWinds/Shader.h"
+
 namespace EWE{
 namespace Command{
 
@@ -20,7 +22,7 @@ namespace Command{
         PerFlight<std::size_t> starting_copy_src_addr{reinterpret_cast<std::size_t>(copySrc.params[0].memory), reinterpret_cast<std::size_t>(copySrc.params[1].memory)};
         PerFlight<std::size_t> starting_dst_addr{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
         for(std::size_t i = 0; i < param_data.size(); i++){
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            for_each_frame{
                 const std::size_t offset = copySrc.param_data[i].data[frame] - starting_copy_src_addr[frame];
                 param_data[i].data[frame] = offset + starting_dst_addr[frame];
             }
@@ -31,13 +33,13 @@ namespace Command{
         instructions{std::move(moveSrc.instructions)},
         param_data{std::move(moveSrc.param_data)}
     {
-        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+        for_each_frame{
             params[frame] = moveSrc.params[frame];
         }
     }
 
     ParamPool& ParamPool::operator=(ParamPool const& copySrc){
-        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+        for_each_frame{
             params[frame] = copySrc.params[frame];
         }
         instructions = copySrc.instructions;
@@ -46,17 +48,12 @@ namespace Command{
         //need to readjust pointers. could potentially recalculate it
         PerFlight<std::size_t> starting_copy_src_addr{reinterpret_cast<std::size_t>(copySrc.params[0].memory), reinterpret_cast<std::size_t>(copySrc.params[1].memory)};
         PerFlight<std::size_t> starting_dst_addr{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
-        for(std::size_t i = 0; i < param_data.size(); i++){
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                const std::size_t offset = copySrc.param_data[i].data[frame] - starting_copy_src_addr[frame];
-                param_data[i].data[frame] = offset + starting_dst_addr[frame];
-            }
-        }
+        ReadjustOffsets(starting_copy_src_addr, starting_dst_addr);
         return *this;
     }
 
     ParamPool& ParamPool::Append(ParamPool const& other){
-        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+        for_each_frame{
             const std::size_t first_size = params[frame].Size();
             HeapBlock<std::byte> temp{first_size + other.params[frame].Size()};
             memcpy(temp.memory, params[frame].memory, first_size);
@@ -68,13 +65,13 @@ namespace Command{
     void ParamPool::Clear(){
         instructions.clear();
         param_data.clear();
-        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+        for_each_frame{
             params[frame].Clear();
         }
     }
 
     void ParamPool::ReadjustOffsets(PerFlight<std::size_t> previous_addr, PerFlight<std::size_t> next_addr){
-        for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+        for_each_frame{
             for(std::size_t i = 0; i < param_data.size(); i++){
                 const std::size_t offset = param_data[i].data[frame] - previous_addr[frame];
                 param_data[i].data[frame] = next_addr[frame] + offset;
@@ -90,7 +87,7 @@ namespace Command{
 
             const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             const std::size_t param_pool_size = params[0].Size();
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
+            for_each_frame {
                 //temporarily, this will be a dangling ptr, and point outside of accounted memory bounds
                 inst_back.data[frame] = reinterpret_cast<std::size_t>(&params[frame].memory[param_pool_size]);
                 inst_back.adjusted = true;
@@ -139,7 +136,7 @@ namespace Command{
             const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             param_data.erase(param_data.begin() + pack_index);
 
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
+            for_each_frame {
                 HeapBlock<std::byte> temp{starting_size - removed_inst_size};
                 memcpy(temp.memory, params[frame].memory, removed_pack_start);
                 memcpy(temp.memory + removed_pack_start, params[frame].memory + removed_pack_start + removed_inst_size, starting_size - removed_pack_start - removed_inst_size);
@@ -178,7 +175,7 @@ namespace Command{
             param_data.erase(param_data.begin() + first_erasure, param_data.end());
 
             const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            for_each_frame{
 
                 HeapBlock<std::byte> temp{shrunk_size};
                 memcpy(temp.memory, params[frame].memory, shrunk_size);
@@ -202,7 +199,7 @@ namespace Command{
             
             const PerFlight<std::size_t> previous_memory_addresses{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
             
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
+            for_each_frame {
                 HeapBlock<std::byte> temp{param_pool_size + added_inst_size};
                 memcpy(temp.memory, params[frame].memory, param_offset);
                 memcpy(temp.memory + param_offset + added_inst_size, params[frame].memory + param_offset, param_pool_size - param_offset);
@@ -216,5 +213,29 @@ namespace Command{
             ReadjustOffsets(previous_memory_addresses, current_memory_addresses);
         }
     }
+
+    void ParamPool::AdjustPushConstants(PushConstant const& push) noexcept {
+        PerFlight<std::size_t> param_addr{reinterpret_cast<std::size_t>(params[0].memory), reinterpret_cast<std::size_t>(params[1].memory)};
+
+        for(auto& inst : instructions){
+            for_each_frame{
+                if(inst == Inst::Push){
+                    auto* i_push = reinterpret_cast<ParamPack<Inst::Push>*>(param_addr[frame]);
+                    const std::size_t old_buf_count = i_push->buffer_count;
+                    const std::size_t old_tex_count = i_push->texture_count;
+                    i_push->buffer_count = push.buffers.size();
+                    i_push->texture_count = push.textures.size();
+                    for(std::size_t i = old_buf_count; i < i_push->buffer_count; i++){
+                        i_push->GetDeviceAddress(i) = null_buffer;
+                    }
+                    for(std::size_t i = old_tex_count; i < i_push->texture_count; i++){
+                        i_push->GetTextureIndex(i) = null_texture;
+                    }
+                }
+                param_addr[frame] += Inst::GetParamSize(inst);
+            }
+        }
+    }
+
 } //namespce Command
 } //namespace EWE

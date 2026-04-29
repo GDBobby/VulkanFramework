@@ -145,7 +145,7 @@ namespace EWE{
 		};
 
 
-		for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
+		for_each_frame {
 			for (uint8_t i = 0; i < color_images.Size(); i++) {
 				SetImageData(*color_images[i][frame], graphicsQueue, width, height, setInfo.colors[i].format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vmaAllocCreateInfo);
 				color_images[i][frame]->data.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;

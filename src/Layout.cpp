@@ -1,8 +1,12 @@
 #include "EightWinds/Pipeline/Layout.h"
+#include "EightWinds/Preprocessor.h"
 
 //#include "EightWinds/ShaderFactory.h"
 
 #include <algorithm>
+
+#include <vector>
+#include <vulkan/vulkan_core.h>
 
 namespace EWE {
 
@@ -99,9 +103,80 @@ namespace EWE {
 		}
 		return ret;
 	}
-	template<typename Container>
-	std::vector<VkPushConstantRange> MergePushRanges(Container shaders) {
+	PushConstant MergePushRanges(std::span<Shader*> shaders) {
 
+		uint32_t temp_offset = UINT32_MAX;
+		uint32_t temp_size = 0;
+
+		struct Range{
+			PushConstant::Member const* member;
+			uint32_t start;
+			uint32_t end;
+
+			[[nodiscard]] explicit Range(PushConstant::Member const& _member)
+			: member{&_member},
+				start{_member.offset},
+				end{_member.offset + _member.size}
+			{}
+
+			bool Overlaps(Range const& other) const{
+				return 
+					start >= other.start && start < other.end
+					|| end <= other.end && end > other.start;
+			}
+			bool operator==(Range const& other) const{
+				return start == other.start && end == other.end;
+			}
+		};
+		std::vector<Range> member_ranges{};
+		for(auto const& shader : shaders){
+			if(shader == nullptr){
+				continue;
+			}
+			if(shader->pushRange.size != 0){
+				for(auto const& buffer : shader->pushRange.buffers){
+					member_ranges.emplace_back(buffer);
+					temp_offset = std::min(temp_offset, member_ranges.back().start);
+					temp_size = std::max(temp_size, member_ranges.back().end);
+				}
+				for(auto const& tex : shader->pushRange.textures){
+					member_ranges.emplace_back(tex);
+					temp_offset = std::min(temp_offset, member_ranges.back().start);
+					temp_size = std::max(temp_size, member_ranges.back().end);
+				}
+			}
+		}
+
+		for(std::size_t i = 0; i < member_ranges.size(); i++){
+			for(std::size_t j = i + 1; j < member_ranges.size(); j++){
+				if(member_ranges[i].Overlaps(member_ranges[j])){
+					EWE_ASSERT(member_ranges[i] == member_ranges[j]);
+					EWE_ASSERT(member_ranges[i].member->name == member_ranges[j].member->name);
+
+					//may not be worth erasing if new data is allocated
+					member_ranges.erase(member_ranges.begin() + j); 
+					j--;
+				}
+			}
+		}
+
+		PushConstant ret{};
+		ret.offset = temp_offset;
+		ret.size = temp_size;
+
+		for(auto const& mr : member_ranges){
+			if(mr.member->type == PushConstant::Member::Texture){
+				ret.textures.push_back(*mr.member);
+			}
+			else if(mr.member->type == PushConstant::Member::Buffer){
+				ret.buffers.push_back(*mr.member);
+			}
+		}
+		return ret;
+
+
+
+		/*
 		std::vector<VkPushConstantRange> ranges{};
 		ranges.reserve(shaders.size());
 		for (auto& shader : shaders) {
@@ -110,6 +185,14 @@ namespace EWE {
 			}
 			if (shader->pushRange.size != 0) {
 				ranges.push_back(shader->pushRange);
+				if(ranges.size() > 0){
+					if(ranges[0].size != ranges.back().size || ranges[0].offset != ranges.back().offset){
+						Logger::Print<Logger::Warning>("push constants are not identical between shaders\n");
+						EWE_Debug_Breakpoint();
+						//print the shaders? or just debug breakpoint it
+						//i could assert the names are equal?
+					}
+				}
 			}
 		}
 		if (ranges.size() == 0) {
@@ -136,6 +219,7 @@ namespace EWE {
 			}
 		}
 		return merged;
+		*/
 	}
 
 	PipeLayout::PipeLayout(LogicalDevice& _logicalDevice, std::span<::EWE::Shader*> _shaders, VkDescriptorSetLayout dsl) noexcept
@@ -148,7 +232,7 @@ namespace EWE {
 			}
 		}
 		descriptorSets = MergeDescriptorSets(this->shaders);
-		pushConstantRanges = MergePushRanges(this->shaders);
+		pushConstantRange = MergePushRanges(std::span<EWE::Shader*>{this->shaders});
 		CreateVkPipeLayout(dsl);
 		bindPoint = BindPointFromType(pipelineType);
 	}
@@ -217,8 +301,8 @@ namespace EWE {
 			.setLayoutCount = static_cast<uint32_t>(hasSets),
 			.pSetLayouts = &logicalDevice.bindlessDescriptor.layout,
 
-			.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
-			.pPushConstantRanges = pushConstantRanges.data()
+			.pushConstantRangeCount = 1,
+			.pPushConstantRanges = &pushConstantRange
 		};
 
 		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
@@ -233,10 +317,9 @@ namespace EWE {
 		}
 		Logger::Print<Logger::Error>("memory leak here - descriptor sets not freed before recreated\n");
 		//Deconstruct(descriptorSets); //need this to be stored then deleted stale
-		pushConstantRanges.clear();
 
 		descriptorSets = MergeDescriptorSets(this->shaders);
-		pushConstantRanges = MergePushRanges(this->shaders);
+		pushConstantRange = MergePushRanges(this->shaders);
 		CreateVkPipeLayout();
 	}
 

@@ -45,4 +45,35 @@ namespace EWE{
 		pipelineRenderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 	}
 
+#define cast_write(data) reinterpret_cast<char const*>(&data), sizeof(data)
+	bool TaskRasterConfig::WriteToFile(TaskRasterConfig& config, std::filesystem::path const& path){
+		std::ofstream outFile{path, std::ios::binary};
+
+		outFile.write(cast_write(config.viewportCount));
+		outFile.write(cast_write(config.scissorCount));
+		outFile.write(cast_write(config.rastSamples));
+		outFile.write(cast_write(config.enable_sampleShading));
+		outFile.write(cast_write(config.minSampleShading));
+		outFile.write(cast_write(alphaToCoverageEnable));
+		outFile.write(cast_write(config.alphaToOneEnable));
+		outFile.write(cast_write(config.depthStencilInfo));
+
+		outFile.write(cast_write(config.attachment_set_info.width));
+		outFile.write(cast_write(config.attachment_set_info.height));
+		outFile.write(cast_write(config.attachment_set_info.renderingFlags));
+		outFile.write(cast_write(config.attachment_set_info.depth));
+		std::size_t size_buffer = attachment_set_info.colors.Size();
+		outFile.write(cast_write(size_buffer));
+		if(size_buffer > 0){
+			outFile.write(reinterpret_cast<const char*>(config.attachment_set_info.colors.Data()), sizeof(config.attachment_set_info.colors[0]) * size_buffer);
+		}
+		size_buffer = dynamicState.size();
+		outFile.write(cast_write(size_buffer));
+		if(size_buffer > 0){
+			outFile.write(reinterpret_cast<const char*>(config.dynamicState.data()), sizeof(VkDynamicState) * size_buffer);
+		}
+	}
+#undef cast_write
+
+	bool TaskRasterConfig::ReadFromFile(TaskRasterConfig& write_path, std::filesystem::path const& path);
 }

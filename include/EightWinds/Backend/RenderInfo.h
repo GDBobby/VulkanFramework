@@ -47,8 +47,14 @@ namespace EWE{
     };
 
     struct AttachmentSetInfo {
-        uint32_t width;
-        uint32_t height;
+		
+		union PotentiallyRelativeSize{
+			float relative;
+			uint32_t absolute;
+		};
+
+        PotentiallyRelativeSize width;
+        PotentiallyRelativeSize height;
 		VkRenderingFlags renderingFlags{ 0 };
         RuntimeArray<AttachmentInfo> colors{0};
         AttachmentInfo depth; //should be optional
@@ -90,7 +96,7 @@ namespace EWE{
 		void CreateImageViews();
 		void InitialTransition();
 
-		void Init();
+		void Init();	
 	};
 
 

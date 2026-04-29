@@ -4,10 +4,14 @@
 #include "EightWinds/Command/InstructionPointer.h"
 #include "EightWinds/Command/ParamPacks.h"
 #include "EightWinds/Command/Instruction.h"
+#include "EightWinds/VulkanHeader.h"
 
 #include <string.h> //memcpy
 
 namespace EWE{
+
+    struct PushConstant;
+
 namespace Command{
     //can this be template generated? would that be worth the effort?
     struct ParamPool{
@@ -71,12 +75,13 @@ namespace Command{
         void PushBack(std::size_t index, PerFlight<ParamPack<IType>*> const& pp){
             Insert(index, IType);
             const std::size_t pack_index = GetPackIndex(index);
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+            for_each_frame{
                 memcpy(reinterpret_cast<void*>(param_data[pack_index].data[frame]), pp[frame], sizeof(ParamPack<IType>));
             }
         }
 
-        
+    
+        void AdjustPushConstants(PushConstant const& meta) noexcept;
     };
 
 } //namepsace Command

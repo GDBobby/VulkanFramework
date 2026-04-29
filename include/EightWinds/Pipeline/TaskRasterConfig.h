@@ -22,6 +22,7 @@ namespace EWE{
 		bool alphaToOneEnable;
 		std::vector<VkDynamicState> dynamicState{};
 
+		//use a pointer as a dynamic reference to a FullRenderInfo object <----
 		AttachmentSetInfo attachment_set_info;
 
 		//VkPipelineViewportStateCreateInfo viewportInfo{}; //condensed to just vp/scissor count
@@ -33,12 +34,16 @@ namespace EWE{
 
 		//depth controlled exclusively by the pass?
 		VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
-		VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{};
+		RenderAttachments* attachments; //dynamic reference, not optional
 		//^these are going to be defined externally, in the rendergraph i think.
 		//the user wont put their hands on this
 		//im going to leave it as is for the moment, it can probably be simplified
 
 		void SetDefaults() noexcept;
 
+
+		static bool WriteToFile(std::filesystem::path const& path);
+		static bool ReadFromFile(TaskRasterConfig& write_path, std::filesystem::path const& path);
 	};
+
 }

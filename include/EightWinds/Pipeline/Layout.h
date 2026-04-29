@@ -23,12 +23,13 @@ namespace EWE {
 		COUNT
 	};
 
+	PushConstant MergePushRanges(std::span<Shader*> shaders);
 
 	struct PipeLayout {
 		LogicalDevice& logicalDevice;
 		VkPipelineLayout vkLayout;
 		//i suspect theres a mismangement of the Tracker references here
-		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::span<::EWE::Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
+		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::span<Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
 
 		static PipeLayout* DefaultLayoutCreation(LogicalDevice& logicalDevice, std::array<Shader*, ShaderStage::COUNT> shaders){
 			return new PipeLayout(logicalDevice, shaders);
@@ -41,7 +42,7 @@ namespace EWE {
 		std::array<Shader*, ShaderStage::COUNT> shaders;
 
 		Backend::Descriptor::LayoutPack descriptorSets;
-		std::vector<VkPushConstantRange> pushConstantRanges{};
+		VkPushConstantRange pushConstantRange{};
 		PipelineType pipelineType;
 		VkPipelineBindPoint bindPoint; //
 

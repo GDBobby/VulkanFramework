@@ -64,13 +64,10 @@ namespace EWE {
 		return true;
 	}
 
-	Shader::PushConstant::PushConstant() 
+	PushConstant::PushConstant() 
 	: offset{0}, size{0},
 		buffers{}, textures{} 
 	{}
-
-#undef char_cast
-#undef c_char_cast
 
 	constexpr ShaderVariable::Type ConvertVariableType(spirv_cross::SPIRType::BaseType spirv_var_type) {
 		switch (spirv_var_type) {
@@ -232,19 +229,41 @@ namespace EWE {
 		}
 	}
 
-	void ParsePushBufferAddress(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID buf_id, std::string const& push_mem_name){
+	void ParsePushBufferAddress(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::SPIRType const& push_type, uint8_t buffer_member_offset, std::string const& push_mem_name){
+		auto const& buf_id = push_type.member_types[buffer_member_offset];
 		auto const& buf_type = compiler.get_type(buf_id);
 		EWE_ASSERT(buf_type.pointer);
+
+		std::size_t member_offset = 0;
+		if(shader.pushRange.buffers.size() > 0){
+			member_offset = shader.pushRange.buffers.back().offset + shader.pushRange.buffers.back().size;
+		}
 
 		if(buf_type.op == spirv_cross::OpTypeArray){
 			EWE_ASSERT(buf_type.array.size() == 1); //not supporting array of arrays here
 			for(uint8_t i = 0; i < buf_type.array[0]; i++){
-				shader.pushRange.buffers.push_back(push_mem_name);
-				shader.pushRange.buffers.back() += (std::string("[") + std::to_string(i) + "]");
+				const std::string buf_name = push_mem_name + std::string("[") + std::to_string(i) + "]";
+
+				shader.pushRange.buffers.push_back(
+					PushConstant::Member{
+						.name = buf_name,
+						.offset = member_offset,
+						.size = 8, //ptr in bytes
+						.type = PushConstant::Member::Buffer
+					}
+				);
+				member_offset += 8;
 			}
 		}
 		else{
-			shader.pushRange.buffers.push_back(push_mem_name);
+			shader.pushRange.buffers.push_back(
+				PushConstant::Member{
+					.name = push_mem_name,
+					.offset = member_offset,
+					.size = 8, //ptr in bytes
+					.type = PushConstant::Member::Buffer
+				}
+			);
 		}
 		return;
 
@@ -292,29 +311,58 @@ namespace EWE {
 			}
 		}
 	}
-	void ParsePushTextureIndex(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::ID var_id, std::string const& push_mem_name){
-		auto const& buf_type = compiler.get_type(var_id);
-		EWE_ASSERT(buf_type.basetype == spirv_cross::SPIRType::Int);
-		auto const& buf_name = compiler.get_name(buf_type.self);
-		if(buf_type.op == spirv_cross::OpTypeArray){
-			EWE_ASSERT(buf_type.array.size() == 1); //not supporting array of arrays here
-			for(uint8_t i = 0; i < buf_type.array[0]; i++){
-				shader.pushRange.textures.push_back(push_mem_name);
-				shader.pushRange.textures.back() += (std::string("[") + std::to_string(i) + "]");
+	void ParsePushTextureIndex(spirv_cross::Compiler const& compiler, Shader& shader, spirv_cross::SPIRType const& push_type, uint8_t tex_member_offset, std::string const& push_mem_name){
+		auto const& var_id = push_type.member_types[tex_member_offset];
+		auto const& tex_type = compiler.get_type(var_id);
+		EWE_ASSERT(tex_type.basetype == spirv_cross::SPIRType::Int);
+		//auto const& tex_name = compiler.get_name(tex_type.self);
+
+		std::size_t member_offset = 0;
+		if(shader.pushRange.textures.size() == 0){
+			if(shader.pushRange.buffers.size() > 0){
+				member_offset = shader.pushRange.buffers.back().offset + shader.pushRange.buffers.back().size;
 			}
 		}
 		else{
-			shader.pushRange.textures.push_back(push_mem_name);
+			member_offset = shader.pushRange.textures.back().offset + shader.pushRange.textures.back().size;
 		}
 
-		if(buf_type.parent_type != 0){
-			auto const& parent_name = compiler.get_name(buf_type.parent_type);
-			auto const& parent_type = compiler.get_type(buf_type.parent_type);
+		if(tex_type.op == spirv_cross::OpTypeArray){
+			EWE_ASSERT(tex_type.array.size() == 1); //not supporting array of arrays here
+			for(uint8_t i = 0; i < tex_type.array[0]; i++){
+
+				const std::string tex_name = push_mem_name + std::string("[") + std::to_string(i) + "]";
+
+				shader.pushRange.textures.push_back(
+					PushConstant::Member{
+						.name = tex_name,
+						.offset = member_offset,
+						.size = 4, //int in bytes
+						.type = PushConstant::Member::Texture
+					}
+				);
+				member_offset += 4;
+			}
 		}
-		if(buf_type.member_types.size() > 0){
-			auto const& buf_child = compiler.get_type(buf_type.member_types[0]);
-			auto const& buf_child_name = compiler.get_name(buf_child.self);
-			auto const& buf_child_op = buf_child.op;
+		else{
+			shader.pushRange.textures.push_back(
+				PushConstant::Member{
+					.name = push_mem_name,
+					.offset = member_offset,
+					.size = 4, //int in bytes
+					.type = PushConstant::Member::Texture
+				}
+			);
+		}
+
+		if(tex_type.parent_type != 0){
+			auto const& parent_name = compiler.get_name(tex_type.parent_type);
+			auto const& parent_type = compiler.get_type(tex_type.parent_type);
+		}
+		if(tex_type.member_types.size() > 0){
+			auto const& tex_child = compiler.get_type(tex_type.member_types[0]);
+			auto const& tex_child_name = compiler.get_name(tex_child.self);
+			auto const& tex_child_op = tex_child.op;
 		}
 	}
 
@@ -356,10 +404,10 @@ namespace EWE {
 			for (uint32_t m = 0; m < push_type.member_types.size(); m++) {
 				auto const& member_type = compiler.get_type(push_type.member_types[m]);
 				if(member_type.pointer){
-					ParsePushBufferAddress(compiler, shader, push_type.member_types[m], compiler.get_member_name(push_id, m));
+					ParsePushBufferAddress(compiler, shader, push_type, m, compiler.get_member_name(push_id, m));
 				}
 				else if(member_type.basetype == spirv_cross::SPIRType::Int){
-					ParsePushTextureIndex(compiler, shader, push_type.member_types[m], compiler.get_member_name(push_id, m));
+					ParsePushTextureIndex(compiler, shader, push_type, m, compiler.get_member_name(push_id, m));
 				}
 				else if(member_type.basetype == spirv_cross::SPIRType::UInt64){
 					Logger::Print<Logger::Warning>("non-pointer address in shader : %s\n", shader.name.string().c_str());

@@ -31,6 +31,8 @@ namespace EWE{
     
     static constexpr uint8_t max_frames_in_flight = 2;
 
+    #define for_each_frame for(uint8_t frame = 0; frame < max_frames_in_flight; frame++)
+
     using TextureIndex = int;
     using PipelineID = uint64_t;
 
