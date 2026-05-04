@@ -63,9 +63,9 @@ namespace EWE{
 	}
 
 
-	void Render_Vk_Data::Init(RenderAttachments const& attachments, VkRenderingFlags renderingFlags)
+	void Render_Vk_Data::Init(RenderAttachments const& attachments, VkRenderingFlags renderingFlags, uint32_t screen_width, uint32_t screen_height)
 	{
-		for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+		for_each_frame{
 			vk_data[frame].Init(attachments, frame);
 		}
 		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
@@ -73,7 +73,7 @@ namespace EWE{
 				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 				.pNext = nullptr,
 				.flags = renderingFlags,
-				.renderArea = attachments.setInfo.CalculateRenderArea(),
+				.renderArea = attachments.setInfo.CalculateRenderArea(screen_width, screen_height),
 				.layerCount = 1,
 				.viewMask = 0,
 				.colorAttachmentCount = static_cast<uint32_t>(vk_data[i].colors.size()),
@@ -92,7 +92,7 @@ namespace EWE{
 				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 				.pNext = nullptr,
 				.flags = renderingFlags,
-				.renderArea = attachments.setInfo.CalculateRenderArea(),
+				.renderArea = attachments.setInfo.CalculateRenderArea(1, 1),
 				.layerCount = 1,
 				.viewMask = 0,
 				.colorAttachmentCount = static_cast<uint32_t>(vk_data[i].colors.size()),
@@ -105,18 +105,36 @@ namespace EWE{
 
 
 
-	VkRect2D AttachmentSetInfo::CalculateRenderArea() const{
-		VkRect2D ret{};
-		ret.offset.x = 0;
-		ret.offset.y = 0;
+	VkRect2D AttachmentSetInfo::CalculateRenderArea(uint32_t screen_width, uint32_t screen_height) const{
 		//if we're not enforcing uniform size, render area will be equal to the smallest size here
-		ret.extent.width = width;
-		ret.extent.height = height;
-		return ret;
+		if(relative_size){
+			return VkRect2D{
+				.offset{
+					.x = 0,
+					.y = 0
+				},
+				.extent{
+					.width = static_cast<uint32_t>(width * static_cast<float>(screen_width)),
+					.height = static_cast<uint32_t>(height * static_cast<float>(screen_height))
+				}
+			};
+		}
+		else{
+			return VkRect2D{
+				.offset{
+					.x = 0,
+					.y = 0
+				},
+				.extent{
+					.width = width,
+					.height = height
+				}
+			};
+		}
 	}
 
 	void FullRenderInfo::Undefer(InstructionPointer<VkRenderingInfo>* deferred_render_info){
-		for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+		for_each_frame{
 			auto& temp_info = render_data.vk_info[frame];
 			deferred_render_info->GetRef(frame) = temp_info;
 		}
@@ -147,19 +165,34 @@ namespace EWE{
 
 		for_each_frame {
 			for (uint8_t i = 0; i < color_images.Size(); i++) {
-				SetImageData(*color_images[i][frame], graphicsQueue, width, height, setInfo.colors[i].format, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, vmaAllocCreateInfo);
+				SetImageData(*color_images[i][frame], graphicsQueue, 
+					width, height, 
+					setInfo.colors[i].format, 
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+					vmaAllocCreateInfo
+				);
 				color_images[i][frame]->data.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 #if EWE_DEBUG_NAMING
-				const std::string resource_name = "color[" + std::to_string(frame) + "][" + std::to_string(i) + "]";
+				const std::string resource_name = "generated[" + 
+												std::to_string(reinterpret_cast<std::size_t>(this))
+												+ "] color[" + std::to_string(i) 
+												+ "][" + std::to_string(frame) + "]";
 				color_images[i][frame]->SetName(resource_name);
 
 #endif
 			}
 			if(depth_image[frame] != nullptr){
-				SetImageData(*depth_image[frame], graphicsQueue, width, height, setInfo.depth.format, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, vmaAllocCreateInfo);
+				SetImageData(*depth_image[frame], graphicsQueue, 
+					width, height, 
+					setInfo.depth.format, 
+					VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+					vmaAllocCreateInfo
+				);
 				depth_image[frame]->data.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
 #if EWE_DEBUG_NAMING
-				const std::string resource_name = "depth[" + std::to_string(frame) + "]";
+				const std::string resource_name = "generated["
+												+ std::to_string(reinterpret_cast<std::size_t>(this))
+												+ "] depth[" + std::to_string(frame) + "]";
 				depth_image[frame]->SetName(resource_name);
 #endif
 			}
@@ -174,7 +207,23 @@ namespace EWE{
 	: width{_width}, height{_height},
 		renderingFlags{_renderingFlags},
 		colors{_colors.size()},
+		using_depth{true},
 		depth{_depth}
+	{
+		for(std::size_t i = 0; i < _colors.size(); i++){
+			colors[i] = _colors[i];
+		}
+	}
+	AttachmentSetInfo::AttachmentSetInfo(
+		uint32_t _width, uint32_t _height, 
+		VkRenderingFlags _renderingFlags,
+		std::span<const AttachmentInfo> _colors
+	)	
+	: width{_width}, height{_height},
+		renderingFlags{_renderingFlags},
+		colors{_colors.size()},
+		using_depth{false},
+		depth{}
 	{
 		for(std::size_t i = 0; i < _colors.size(); i++){
 			colors[i] = _colors[i];
@@ -193,9 +242,9 @@ namespace EWE{
 		}
 	}
 
-	void RenderAttachments::Init(){
+	void RenderAttachments::Init(uint32_t screen_width, uint32_t screen_height){
 
-		CreateImages(setInfo.width, setInfo.height);
+		CreateImages(screen_width, screen_height);
 
 		InitialTransition();
 		CreateImageViews();
@@ -284,7 +333,7 @@ namespace EWE{
 
 	void RenderAttachments::CreateImageViews() {
 		for (uint8_t i = 0; i < color_images.Size(); i++) {
-			for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+			for_each_frame{
 				color_views[i][frame] = new ImageView(*color_images[i][frame]);
 				//printf("view : img - i : frame - %zu : %zu - %u : %u\n", 
 				//	reinterpret_cast<std::size_t>(color_views[i][frame]->image.image), 
@@ -294,28 +343,15 @@ namespace EWE{
 			}
 		}
 		if(depth_image[0] == nullptr){
-			for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+			for_each_frame{
 				depth_views[frame] = nullptr;
 			}
 		}
 		else{
-			for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
+			for_each_frame{
 				depth_views[frame] = new ImageView(*depth_image[frame]);
 			}
 		}
-	}
-
-	void FullRenderInfo::Init(){
-		full.color_images.ClearAndResize(full.setInfo.colors.Size());
-		full.color_views.ClearAndResize(full.setInfo.colors.Size());
-
-		for(uint8_t i = 0; i < full.setInfo.colors.Size(); i++){
-			for(uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++){
-				full.color_images[0][frame] = new EWE::Image(full.logicalDevice);
-			}
-		}
-		full.Init();
-		render_data.Init(full, full.setInfo.renderingFlags);
 	}
 
 	FullRenderInfo::FullRenderInfo(
@@ -325,8 +361,22 @@ namespace EWE{
 		AttachmentSetInfo const& _setInfo
 	)
 	: full{_name, _logicalDevice, _graphicsQueue, _setInfo},
-			render_data{}
+		render_data{},
+		name{full.name}
 	{
 
+	}
+
+	void FullRenderInfo::Init(uint32_t screen_width, uint32_t screen_height){
+		full.color_images.ClearAndResize(full.setInfo.colors.Size());
+		full.color_views.ClearAndResize(full.setInfo.colors.Size());
+
+		for(uint8_t i = 0; i < full.setInfo.colors.Size(); i++){
+			for(uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++){
+				full.color_images[0][frame] = new EWE::Image(full.logicalDevice);
+			}
+		}
+		full.Init(screen_width, screen_height);
+		render_data.Init(full, full.setInfo.renderingFlags, screen_width, screen_height);
 	}
 }// namespace EWE

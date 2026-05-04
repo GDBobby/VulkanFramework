@@ -44,7 +44,6 @@ namespace EWE{
 	//a mesh shader can write to resources I believe
 	//what about shaders????
 	struct RasterPackage : Command::InstructionPackage{
-		const std::filesystem::path name;
 		LogicalDevice& logicalDevice;
 		Queue& graphicsQueue;
 
@@ -54,16 +53,20 @@ namespace EWE{
 		VkViewport viewport; //is viewport x/y going to be permanently tied to attachment width/height?
 		VkRect2D scissor;
 
-		FullRenderInfo* renderInfo;
+		FullRenderInfo& renderInfo; //reference to task_config.renderInfo
 		InstructionPointer<VkRenderingInfo>* deferred_vk_render_info{ nullptr };
 
 		bool ownsAttachmentLifetime = true;
 
-		[[nodiscard]] explicit RasterPackage(std::string_view name, LogicalDevice& logicalDevice, Queue& graphicsQueue, TaskRasterConfig const& config, FullRenderInfo* renderInfo);
+		[[nodiscard]] explicit RasterPackage(
+			std::string_view name, 
+			LogicalDevice& logicalDevice, Queue& graphicsQueue, 
+			TaskRasterConfig const& config
+		);
 		
 		std::vector<Command::ObjectPackage*> objectPackages;
 
-		std::vector<Pipeline*> created_pipelines;
+		std::vector<Pipeline*> created_pipelines; //tracked for deconstruction
 		
 		void Compile();
 		

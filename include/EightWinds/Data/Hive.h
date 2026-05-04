@@ -128,6 +128,12 @@ namespace EWE{
             std::size_t combIndex = 0;
             std::size_t slotIndex = 0;
 
+            using iterator_category = std::forward_iterator_tag;
+            using value_type        = T;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = T*;
+            using reference         = T&;
+
             iterator(Hive* _hive, std::size_t _combIndex, std::size_t _slotIndex)
                 : hive(_hive), combIndex(_combIndex), slotIndex(_slotIndex) {
                 if (combIndex < hive->combs.size())
@@ -177,6 +183,12 @@ namespace EWE{
             Hive const* hive = nullptr;
             std::size_t combIndex = 0;
             std::size_t slotIndex = 0;
+
+            using iterator_category = std::forward_iterator_tag;
+            using value_type        = T;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = const T*;
+            using reference         = const T&;
 
             const_iterator(Hive const* _hive, std::size_t _combIndex, std::size_t _slotIndex)
                 : hive(_hive), combIndex(_combIndex), slotIndex(_slotIndex) {

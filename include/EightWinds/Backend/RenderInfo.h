@@ -34,7 +34,7 @@ namespace EWE{
 		PerFlight<RenderInfo> vk_data;
 		PerFlight<VkRenderingInfo> vk_info;
 
-		void Init(RenderAttachments const& attachments, VkRenderingFlags renderingFlags);
+		void Init(RenderAttachments const& attachments, VkRenderingFlags renderingFlags, uint32_t screen_width, uint32_t screen_height);
 		[[nodiscard]] Render_Vk_Data() = default;
 		[[nodiscard]] explicit Render_Vk_Data(RenderAttachments const& attachments, VkRenderingFlags renderingFlags);
 	};
@@ -48,16 +48,13 @@ namespace EWE{
 
     struct AttachmentSetInfo {
 		
-		union PotentiallyRelativeSize{
-			float relative;
-			uint32_t absolute;
-		};
-
-        PotentiallyRelativeSize width;
-        PotentiallyRelativeSize height;
+		float relative_size = true;
+        float width;
+        float height;
 		VkRenderingFlags renderingFlags{ 0 };
         RuntimeArray<AttachmentInfo> colors{0};
-        AttachmentInfo depth; //should be optional
+		bool using_depth = true;
+        AttachmentInfo depth;
 
 		[[nodiscard]] AttachmentSetInfo() = default;
 		[[nodiscard]] AttachmentSetInfo(
@@ -66,14 +63,19 @@ namespace EWE{
         	std::span<const AttachmentInfo> _colors,
         	AttachmentInfo _depth 
 		);
+		[[nodiscard]] AttachmentSetInfo(
+			uint32_t _width, uint32_t _height, 
+			VkRenderingFlags _renderingFlags,
+        	std::span<const AttachmentInfo> _colors
+		);
 
 		[[nodiscard]] AttachmentSetInfo(AttachmentSetInfo const& copySrc);
 
-		VkRect2D CalculateRenderArea() const;
+		VkRect2D CalculateRenderArea(uint32_t screen_width, uint32_t screen_height) const;
     };
 
 	struct RenderAttachments {
-		const std::string name;
+		std::filesystem::path name;
 		LogicalDevice& logicalDevice;
 		Queue& graphicsQueue;
 
@@ -96,13 +98,15 @@ namespace EWE{
 		void CreateImageViews();
 		void InitialTransition();
 
-		void Init();	
+		void Init(uint32_t screen_width, uint32_t screen_height);	
 	};
 
 
 	struct FullRenderInfo {
 		RenderAttachments full;
 		Render_Vk_Data render_data;
+		std::filesystem::path& name; //reference to full.name
+
 
 		[[nodiscard]] explicit FullRenderInfo(
 			std::string_view name,
@@ -111,7 +115,7 @@ namespace EWE{
 			AttachmentSetInfo const& setInfo
 		);
 
-		void Init();
+		void Init(uint32_t screen_width, uint32_t screen_height);
 
 		void Undefer(InstructionPointer<VkRenderingInfo>* deferred_render_info);
 	};

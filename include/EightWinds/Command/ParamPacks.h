@@ -13,15 +13,21 @@ namespace EWE{
 
     template<> struct ParamPack<Inst::Push> {
         uint32_t size; 
-        uint8_t buffer_count; //for later reference, not necessary for vulkan
-        uint8_t texture_count; //for later reference, not necessary for vulkan
+        uint8_t buffer_count; //cpu sided, the shader already knows
+        uint8_t texture_count; //cpu sided, the shader already knows
         //assert(ele_count * ele_size == size);
 
         static constexpr std::size_t data_size = 128 / sizeof(std::byte);
         std::byte data[data_size];
 
         VkDeviceAddress& GetDeviceAddress(uint8_t index){
+#if EWE_DEBUG_BOOL
+            VkDeviceAddress* temp_array = reinterpret_cast<VkDeviceAddress*>(data);
+            auto& ret = temp_array[index];
+            return ret;
+#else
             return reinterpret_cast<VkDeviceAddress*>(data)[index];
+#endif
         }
         TextureIndex& GetTextureIndex(uint8_t index){
             auto* starting_addr = reinterpret_cast<VkDeviceAddress*>(data) + buffer_count;

@@ -45,125 +45,6 @@ namespace EWE {
 		dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 	}
 #endif
-	/*
-	void PipelineConfigInfo::RenderIMGUI() {
-		static int currentImguiIndex = 0;
-		if (imguiIndex < 0) {
-			imguiIndex = currentImguiIndex;
-			currentImguiIndex++;
-		}
-
-
-		std::string extension = "##p";
-		extension += std::to_string(imguiIndex);
-
-		std::string treeName = "pipeline config info";
-		treeName += extension;
-
-		std::string optionStr;
-		if (ImGui::TreeNode(treeName.c_str())) {
-
-			optionStr = "viewport info";
-			optionStr += extension;
-			if (ImGui::TreeNode(optionStr.c_str())) {
-
-				optionStr = "topology";
-				optionStr += extension;
-				imgui_enum(optionStr, inputAssemblyInfo.topology, 0, 10);
-
-				optionStr = "primitive restart enable";
-				optionStr += extension;
-				imgui_vkbool(optionStr, inputAssemblyInfo.primitiveRestartEnable);
-
-				ImGui::TreePop();
-			}
-			//input assembly
-			optionStr = "rasterzation info";
-			optionStr += extension;
-			if (ImGui::TreeNode(optionStr.c_str())) {
-
-				optionStr = "depth clamp enable";
-				optionStr += extension;
-				imgui_vkbool(optionStr, rasterizationInfo.depthClampEnable);
-
-				optionStr = "rasterizer discard enable";
-				optionStr += extension;
-				imgui_vkbool(optionStr, rasterizationInfo.rasterizerDiscardEnable);
-
-				optionStr = "polygonMode";
-				optionStr += extension;
-				imgui_enum(optionStr, rasterizationInfo.polygonMode, 0, 2);
-
-				optionStr = "cullMode";
-				optionStr += extension;
-				ImGui::DragInt(optionStr.c_str(), reinterpret_cast<int*>(&rasterizationInfo.cullMode), 1, 0, 100);
-				VkCullModeFlagBits copyCull = static_cast<VkCullModeFlagBits>(rasterizationInfo.cullMode);
-				imgui_enum(optionStr.c_str(), copyCull, 0, 3);
-				rasterizationInfo.cullMode = copyCull;
-
-				optionStr = "frontFace";
-				optionStr += extension;
-				imgui_enum(optionStr, rasterizationInfo.frontFace, 0, 1);
-
-				optionStr = "depthBiasEnable";
-				optionStr += extension;
-				imgui_vkbool(optionStr, rasterizationInfo.depthBiasEnable);
-
-				optionStr = "depth bias constant factor";
-				optionStr += extension;
-				ImGui::DragFloat(optionStr.c_str(), &rasterizationInfo.depthBiasConstantFactor, 0.1f, 0.f, 100.f);
-
-				optionStr = "depth bias clamp";
-				optionStr += extension;
-				ImGui::DragFloat(optionStr.c_str(), &rasterizationInfo.depthBiasClamp, 0.1f, 0.f, 100.f);
-
-				optionStr = "depth bias slope factor";
-				optionStr += extension;
-				ImGui::DragFloat(optionStr.c_str(), &rasterizationInfo.depthBiasSlopeFactor, 0.1f, 0.f, 100.f);
-
-				optionStr = "line width";
-				optionStr += extension;
-				ImGui::DragFloat(optionStr.c_str(), &rasterizationInfo.lineWidth, 0.1f, 0.f, 100.f);
-
-
-				ImGui::TreePop();
-			}
-
-			optionStr = "color blend";
-			optionStr += extension;
-			if (ImGui::TreeNode(optionStr.c_str())) {
-
-				optionStr = "blend constants";
-				optionStr += extension;
-				ImGui::DragFloat4(optionStr.c_str(), colorBlendInfo.blendConstants, 0.01f, 0.f, 1.f);
-
-				optionStr = "logic op";
-				optionStr += extension;
-				//ImGui::SliderInt(optionStr.c_str(), reinterpret_cast<int*>(&colorBlendInfo.logicOp), 0, 15, magic_enum::enum_name(colorBlendInfo.logicOp).data());
-				imgui_enum(optionStr, colorBlendInfo.logicOp, 0, 15);
-
-				optionStr = "logic op enable";
-				optionStr += extension;
-				imgui_vkbool(optionStr, colorBlendInfo.logicOpEnable);
-				ImGui::TreePop();
-			}
-			optionStr = "dynamic states";
-			optionStr += extension;
-			if (ImGui::TreeNode(optionStr.c_str())) {
-				for (auto const& dynState : dynamicStateEnables) {
-					ImGui::Text("%s - %d", magic_enum::enum_name(dynState).data(), dynState);
-				}
-				ImGui::TreePop();
-			}
-
-			//if(ImGui::TreeNode(optionStr.c_str(), ))
-
-			ImGui::TreePop();
-		}
-
-
-	}
-    */
 
 	void GraphicsPipeline::CreateVkPipeline(
 		TaskRasterConfig const& taskConfig,
@@ -180,10 +61,24 @@ namespace EWE {
 			temp[i].value = Shader::VkSpecInfo_RAII(copySpecInfo[i].value);
 		}
 		*/
+		std::vector<VkFormat> collected_color_formats{taskConfig.renderInfo->full.setInfo.colors.Size()};
+		for(std::size_t i = 0; i < collected_color_formats.size(); i++){
+			collected_color_formats[i] = taskConfig.renderInfo->full.setInfo.colors[i].format;
+		}
+
+		VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+			.pNext = nullptr,
+			.colorAttachmentCount = static_cast<uint32_t>(collected_color_formats.size()),
+			.pColorAttachmentFormats = collected_color_formats.data(),
+			.depthAttachmentFormat = taskConfig.renderInfo->full.setInfo.using_depth ? taskConfig.renderInfo->full.setInfo.depth.format : VK_FORMAT_UNDEFINED,
+			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED
+		};
+
 		auto shaderStages = layout->GetStageData();//temp);
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-			.pNext = &taskConfig.pipelineRenderingCreateInfo,
+			.pNext = &pipelineRenderingCreateInfo,
 			.stageCount = static_cast<uint32_t>(shaderStages.Size()),
 			.pStages = shaderStages.Data(),
 			.layout = layout->vkLayout,
@@ -281,11 +176,10 @@ namespace EWE {
 			.logicOpEnable = false,//maybe, idk
 			.logicOp = VK_LOGIC_OP_MAX_ENUM,
 
-			.attachmentCount = static_cast<uint32_t>(taskConfig.attachment_set_info.colors.Size()),
+			.attachmentCount = static_cast<uint32_t>(taskConfig.renderInfo->full.setInfo.colors.Size()),
 			.pAttachments = &objectConfig.blendAttachment
 		};
         memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);
-
         pipelineCreateInfo.pColorBlendState = &blendCreateInfo;
 
         //const  VkPipelineDynamicStateCreateInfo *  pDynamicState;
@@ -296,7 +190,6 @@ namespace EWE {
 			.dynamicStateCount = static_cast<uint32_t>(taskConfig.dynamicState.size()),
 			.pDynamicStates = taskConfig.dynamicState.data()
 		};
-
         pipelineCreateInfo.pDynamicState = &dynamicStateCreateInfo;
 
 		EWE_VK(vkCreateGraphicsPipelines,
