@@ -22,14 +22,14 @@ Each pNext member of any structure (including this one) in the pNext chain must 
 
 namespace EWE{
 	void RenderInfo::Init(RenderAttachments const& attachments, uint8_t frameIndex){
-		for (uint8_t i = 0; i < attachments.color_images.Size(); i++) {
+		for (uint8_t i = 0; i < attachments.color_views.Size(); i++) {
 			auto& caiv = attachments.color_views[i][frameIndex];
 			colors.push_back(
 				VkRenderingAttachmentInfo{
 					.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 					.pNext = nullptr,
 					.imageView = caiv->view,
-					.imageLayout = caiv->image.data.layout,
+					.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 					.resolveMode = VK_RESOLVE_MODE_NONE,
 					.resolveImageView = VK_NULL_HANDLE,
 					.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -39,12 +39,13 @@ namespace EWE{
 				}
 			);
 		}
-		if(attachments.depth_views[frameIndex] != nullptr){
+		if(attachments.setInfo.using_depth){
+			EWE_ASSERT(attachments.depth_views[frameIndex] != nullptr);
 			depth = VkRenderingAttachmentInfo{
 				.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 				.pNext = nullptr,
 				.imageView = attachments.depth_views[frameIndex]->view,
-				.imageLayout = attachments.depth_views[frameIndex]->image.data.layout,
+				.imageLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
 				.resolveMode = VK_RESOLVE_MODE_NONE,
 				.resolveImageView = VK_NULL_HANDLE,
 				.resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -78,7 +79,7 @@ namespace EWE{
 				.viewMask = 0,
 				.colorAttachmentCount = static_cast<uint32_t>(vk_data[i].colors.size()),
 				.pColorAttachments = vk_data[i].colors.data(),
-				.pDepthAttachment = vk_data[i].depth.sType != VK_STRUCTURE_TYPE_MAX_ENUM ? &vk_data[i].depth : nullptr,
+				.pDepthAttachment = attachments.setInfo.using_depth ? &vk_data[i].depth : nullptr,
 				.pStencilAttachment = nullptr
 			};
 		}
@@ -133,14 +134,14 @@ namespace EWE{
 		}
 	}
 
-	void FullRenderInfo::Undefer(InstructionPointer<VkRenderingInfo>* deferred_render_info){
+	void FullRenderInfo::Undefer(InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_render_info){
 		for_each_frame{
 			auto& temp_info = render_data.vk_info[frame];
 			deferred_render_info->GetRef(frame) = temp_info;
 		}
 	}
 
-	void SetImageData(Image& image, Queue& queue, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VmaAllocationCreateInfo& vmaAllocCreateInfo) {
+	void SetImageData(Image& image, Queue& queue, uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VmaAllocationCreateInfo const& vmaAllocCreateInfo) {
 		image.data.arrayLayers = 1;
 		image.data.extent = { width, height, 1 };
 		image.data.mipLevels = 1;
@@ -153,51 +154,94 @@ namespace EWE{
 		image.Create(vmaAllocCreateInfo);
 	}
 
+	void GenerateImage(Image* img_ptr, ImageView* view_ptr, uint32_t width, uint32_t height){
+		
+	}
 
-	void RenderAttachments::CreateImages(uint32_t width, uint32_t height) {
-		VmaAllocationCreateInfo vmaAllocCreateInfo{
+	void RenderAttachments::GenerateImage(
+		PerFlight<Image*> img_con_addr, 
+		PerFlight<ImageView*> view_con_addr, 
+		uint32_t width, uint32_t height,
+		int index
+	) {
+		const VmaAllocationCreateInfo vmaAllocCreateInfo{
 		//if(imageCreateInfo.width * height > some amount){
 			.flags = static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT) |
 					static_cast<VmaAllocationCreateFlags>(VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT),
 			.usage = VMA_MEMORY_USAGE_AUTO
 		};
 
-
-		for_each_frame {
-			for (uint8_t i = 0; i < color_images.Size(); i++) {
-				SetImageData(*color_images[i][frame], graphicsQueue, 
-					width, height, 
-					setInfo.colors[i].format, 
-					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
-					vmaAllocCreateInfo
-				);
-				color_images[i][frame]->data.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-#if EWE_DEBUG_NAMING
-				const std::string resource_name = "generated[" + 
-												std::to_string(reinterpret_cast<std::size_t>(this))
-												+ "] color[" + std::to_string(i) 
-												+ "][" + std::to_string(frame) + "]";
-				color_images[i][frame]->SetName(resource_name);
-
-#endif
+		for_each_frame{
+			if(img_con_addr[frame] == nullptr){
+				img_con_addr[frame] = new Image(logicalDevice);
 			}
-			if(depth_image[frame] != nullptr){
-				SetImageData(*depth_image[frame], graphicsQueue, 
+			else{
+				std::construct_at(img_con_addr[frame], logicalDevice);
+			}
+
+			if(index < 0){ //if index is less than 0, its the depth image
+
+				//generating depth
+				SetImageData(*img_con_addr[frame], graphicsQueue, 
 					width, height, 
 					setInfo.depth.format, 
 					VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
 					vmaAllocCreateInfo
 				);
-				depth_image[frame]->data.layout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+
+				if(view_con_addr[frame] != nullptr){
+					std::construct_at(view_con_addr[frame], *img_con_addr[frame]);
+					depth_views[frame] = view_con_addr[frame];
+				}
+				else{
+					depth_views[frame] = new ImageView(*img_con_addr[frame]);
+				}
 #if EWE_DEBUG_NAMING
 				const std::string resource_name = "generated["
 												+ std::to_string(reinterpret_cast<std::size_t>(this))
 												+ "] depth[" + std::to_string(frame) + "]";
-				depth_image[frame]->SetName(resource_name);
+				depth_views[frame]->image.SetName(resource_name);
 #endif
+			}
+			else{ //index is into the color array
+
+				SetImageData(*img_con_addr[frame], graphicsQueue, 
+					width, height, 
+					setInfo.colors[index].format, 
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+					vmaAllocCreateInfo
+				);
+				if(view_con_addr[frame] != nullptr){
+					std::construct_at(view_con_addr[frame], *img_con_addr[frame]);
+					color_views[index][frame] = view_con_addr[frame];
+				}
+				else{
+					color_views[index][frame] = new ImageView(*img_con_addr[frame]);
+				}
+#if EWE_DEBUG_NAMING
+				const std::string resource_name = "generated[" + 
+												std::to_string(reinterpret_cast<std::size_t>(this))
+												+ "] color[" + std::to_string(index) 
+												+ "][" + std::to_string(frame) + "]";
+				color_views[index][frame]->image.SetName(resource_name);
+
+#endif
+			}
+			img_con_addr[frame]->data.layout = VK_IMAGE_LAYOUT_UNDEFINED;
+		}
+	}
+	void RenderAttachments::CreateImages(uint32_t width, uint32_t height){
+		for(std::size_t i = 0; i < color_views.Size(); i++){
+			if(color_views[i][0] == nullptr){
+				//potentially assert frame[1] is also nullptr
+				GenerateImage(PerFlight<Image*>{nullptr}, color_views[i], width, height, i);
+			}
+			if(setInfo.using_depth){
+				GenerateImage(PerFlight<Image*>{nullptr}, depth_views[i], width, height, -1);
 			}
 		}
 	}
+
 	AttachmentSetInfo::AttachmentSetInfo(
 		uint32_t _width, uint32_t _height, 
 		VkRenderingFlags _renderingFlags,
@@ -231,10 +275,12 @@ namespace EWE{
 	}
 
 	AttachmentSetInfo::AttachmentSetInfo(AttachmentSetInfo const& copySrc)
-	: width{copySrc.width},
+	: relative_size{copySrc.relative_size},
+		width{copySrc.width},
 		height{copySrc.height},
 		renderingFlags{copySrc.renderingFlags},
 		colors{copySrc.colors.Size()},
+		using_depth{copySrc.using_depth},
 		depth{copySrc.depth}
 	{
 		for(std::size_t i = 0; i < colors.Size(); i++){
@@ -242,12 +288,27 @@ namespace EWE{
 		}
 	}
 
+	AttachmentSetInfo& AttachmentSetInfo::operator=(AttachmentSetInfo const& copySrc){
+		relative_size = copySrc.relative_size;
+		width = copySrc.width;
+		height = copySrc.height;
+		renderingFlags = copySrc.renderingFlags;
+		colors.ClearAndResize(copySrc.colors.Size());
+
+		using_depth = copySrc.using_depth;
+		depth = copySrc.depth;
+		
+		for(std::size_t i = 0; i < colors.Size(); i++){
+			colors[i] = copySrc.colors[i];
+		}
+		return *this;
+	}
+
 	void RenderAttachments::Init(uint32_t screen_width, uint32_t screen_height){
 
 		CreateImages(screen_width, screen_height);
 
 		InitialTransition();
-		CreateImageViews();
 	}
 
 	RenderAttachments::RenderAttachments(
@@ -262,54 +323,76 @@ namespace EWE{
 		//this should pass args to PerFlight
 		//which puts the args to each (per frame in flight) RuntimeArray
 		//which will construct a color_formats.size() amount of images with the argument, logicalDevice
-		color_images{ _setInfo.colors.Size(), nullptr },
-		color_views{ _setInfo.colors.Size() },
-		depth_image{ nullptr },
+		color_views{ _setInfo.colors.Size(), nullptr },
 		depth_views{ nullptr },
 		setInfo{_setInfo}
 	{
 	}
 
 	void RenderAttachments::InitialTransition() {
-		const std::size_t color_image_count = color_images.Size() * EWE::max_frames_in_flight;
-		const std::size_t depth_image_count = EWE::max_frames_in_flight * static_cast<uint8_t>(depth_image[0] != nullptr);
-		const std::size_t total_image_count = color_image_count + depth_image_count;
+
+		std::vector<Image*> color_images{};
+		for(auto& view : color_views){
+			for_each_frame{
+				EWE_ASSERT(view[frame] != nullptr);
+				if(view[frame]->image.data.layout == VK_IMAGE_LAYOUT_UNDEFINED){
+					color_images.push_back(&view[frame]->image);
+				}
+			}
+		}
+		const std::size_t color_image_count = color_images.size();
+		std::size_t total_image_count = color_image_count;
+
+		PerFlight<bool> trans_depth{false};
+		for_each_frame{
+			if(depth_views[frame] != nullptr){
+				if(depth_views[frame]->image.data.layout == VK_IMAGE_LAYOUT_UNDEFINED){
+					total_image_count++;
+					trans_depth[frame] = true;
+				}
+			}
+		}
 
 		RuntimeArray<VkImageMemoryBarrier2> transition_barriers{ total_image_count };
 
-		for (uint8_t i = 0; i < color_image_count; i++) {
-			const std::size_t frame = i >= color_images.Size();
-			const std::size_t image_index = i % color_images.Size();
+		std::size_t barrier_index = 0;
+		for (auto* img : color_images) {
 
-			auto& barr = transition_barriers[i];
+			auto& barr = transition_barriers[barrier_index];
 			barr.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
 			barr.pNext = nullptr;
 			barr.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barr.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barr.srcAccessMask = VK_ACCESS_2_NONE;
 			barr.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-			barr.image = color_images[image_index][frame]->image;
+			barr.image = img->image;
 			barr.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			barr.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			barr.subresourceRange = EWE::ImageView::GetDefaultSubresource(*color_images[image_index][frame]);
+			barr.subresourceRange = EWE::ImageView::GetDefaultSubresource(*img);
 			barr.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
 			barr.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+			barrier_index++;
 		}
 
-		for (std::size_t i = 0; i < depth_image_count; i++) {
-			auto& barr = transition_barriers[i + color_image_count];
-			barr.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-			barr.pNext = nullptr;
-			barr.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barr.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			barr.srcAccessMask = VK_ACCESS_2_NONE;
-			barr.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			barr.image = depth_image[i]->image;
-			barr.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			barr.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-			barr.subresourceRange = EWE::ImageView::GetDefaultSubresource(*depth_image[i]);
-			barr.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-			barr.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+		for_each_frame{
+			if(trans_depth[frame]){
+				auto& barr = transition_barriers[barrier_index];
+				barr.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+				barr.pNext = nullptr;
+				barr.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barr.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				barr.srcAccessMask = VK_ACCESS_2_NONE;
+				barr.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				barr.image = depth_views[frame]->image.image;
+				barr.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				barr.newLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+				barr.subresourceRange = EWE::ImageView::GetDefaultSubresource(depth_views[frame]->image);
+				barr.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+				barr.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+
+				barrier_index++;
+			}
 		}
 
 		VkDependencyInfo transition_dependency{
@@ -321,35 +404,19 @@ namespace EWE{
 			.imageMemoryBarrierCount = static_cast<uint32_t>(transition_barriers.Size()),
 			.pImageMemoryBarriers = transition_barriers.heap.GetMemory()
 		};
-
+		
 		Command_Helper::Transition(logicalDevice, graphicsQueue, transition_dependency, true);
 
-		for (uint8_t i = 0; i < color_image_count; i++) {
-			const std::size_t frame = i >= color_images.Size();
-			const std::size_t image_index = i % color_images.Size();
-			color_images[image_index][frame]->data.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		}
-	}
-
-	void RenderAttachments::CreateImageViews() {
-		for (uint8_t i = 0; i < color_images.Size(); i++) {
+		for (auto& view : color_views) {
 			for_each_frame{
-				color_views[i][frame] = new ImageView(*color_images[i][frame]);
-				//printf("view : img - i : frame - %zu : %zu - %u : %u\n", 
-				//	reinterpret_cast<std::size_t>(color_views[i][frame]->image.image), 
-				//	reinterpret_cast<std::size_t>(color_images[i][frame]->image), 
-				//	i, frame
-				//);
-			}
-		}
-		if(depth_image[0] == nullptr){
-			for_each_frame{
-				depth_views[frame] = nullptr;
-			}
-		}
-		else{
-			for_each_frame{
-				depth_views[frame] = new ImageView(*depth_image[frame]);
+				auto& img = view[frame]->image;
+				if(img.data.layout == VK_IMAGE_LAYOUT_UNDEFINED){
+					img.data.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+				}
+				else{
+					EWE_ASSERT(img.data.layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+						"the image alreayd had a layout, and it's invalid");
+				}
 			}
 		}
 	}
@@ -368,13 +435,8 @@ namespace EWE{
 	}
 
 	void FullRenderInfo::Init(uint32_t screen_width, uint32_t screen_height){
-		full.color_images.ClearAndResize(full.setInfo.colors.Size());
-		full.color_views.ClearAndResize(full.setInfo.colors.Size());
-
-		for(uint8_t i = 0; i < full.setInfo.colors.Size(); i++){
-			for(uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++){
-				full.color_images[0][frame] = new EWE::Image(full.logicalDevice);
-			}
+		if(full.color_views.Size() != full.setInfo.colors.Size()){
+			full.color_views.ClearAndResize(full.setInfo.colors.Size());
 		}
 		full.Init(screen_width, screen_height);
 		render_data.Init(full, full.setInfo.renderingFlags, screen_width, screen_height);

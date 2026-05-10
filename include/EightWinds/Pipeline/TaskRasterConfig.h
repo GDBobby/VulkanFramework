@@ -31,7 +31,7 @@ namespace EWE{
 
 		//depth controlled exclusively by the pass?
 		VkPipelineDepthStencilStateCreateInfo depthStencilInfo{};
-		FullRenderInfo* renderInfo; //dynamic reference, not optional
+		AttachmentSetInfo attachment_info;
 		//^these are going to be defined externally, in the rendergraph i think.
 		//the user wont put their hands on this
 		//im going to leave it as is for the moment, it can probably be simplified

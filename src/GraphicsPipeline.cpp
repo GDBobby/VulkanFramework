@@ -61,9 +61,9 @@ namespace EWE {
 			temp[i].value = Shader::VkSpecInfo_RAII(copySpecInfo[i].value);
 		}
 		*/
-		std::vector<VkFormat> collected_color_formats{taskConfig.renderInfo->full.setInfo.colors.Size()};
+		std::vector<VkFormat> collected_color_formats{taskConfig.attachment_info.colors.Size()};
 		for(std::size_t i = 0; i < collected_color_formats.size(); i++){
-			collected_color_formats[i] = taskConfig.renderInfo->full.setInfo.colors[i].format;
+			collected_color_formats[i] = taskConfig.attachment_info.colors[i].format;
 		}
 
 		VkPipelineRenderingCreateInfo pipelineRenderingCreateInfo{
@@ -71,7 +71,7 @@ namespace EWE {
 			.pNext = nullptr,
 			.colorAttachmentCount = static_cast<uint32_t>(collected_color_formats.size()),
 			.pColorAttachmentFormats = collected_color_formats.data(),
-			.depthAttachmentFormat = taskConfig.renderInfo->full.setInfo.using_depth ? taskConfig.renderInfo->full.setInfo.depth.format : VK_FORMAT_UNDEFINED,
+			.depthAttachmentFormat = taskConfig.attachment_info.using_depth ? taskConfig.attachment_info.depth.format : VK_FORMAT_UNDEFINED,
 			.stencilAttachmentFormat = VK_FORMAT_UNDEFINED
 		};
 
@@ -176,7 +176,7 @@ namespace EWE {
 			.logicOpEnable = false,//maybe, idk
 			.logicOp = VK_LOGIC_OP_MAX_ENUM,
 
-			.attachmentCount = static_cast<uint32_t>(taskConfig.renderInfo->full.setInfo.colors.Size()),
+			.attachmentCount = static_cast<uint32_t>(taskConfig.attachment_info.colors.Size()),
 			.pAttachments = &objectConfig.blendAttachment
 		};
         memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);

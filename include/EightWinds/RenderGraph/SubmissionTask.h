@@ -22,6 +22,11 @@ namespace EWE{
         std::filesystem::path name;
         PerFlight<Backend::SubmitInfo> submitInfo;
 
+        //optional
+        //only exists if the queue is graphics
+        //if the queue is graphics/render, it is required
+        FullRenderInfo* renderInfo; 
+
         //specialized tasks are like the imgui task, which doesnt use GPUTask
         //more specifically, they aren't generated in graphs, but 'hand' coded
         bool specializedSubmission = false; 

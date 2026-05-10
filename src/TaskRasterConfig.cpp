@@ -27,5 +27,21 @@ namespace EWE{
 		depthStencilInfo.back = {};   // Optional
 		depthStencilInfo.minDepthBounds = 0.0f;  // Optional
 		depthStencilInfo.maxDepthBounds = 1.0f;  // Optional
+
+		attachment_info.relative_size = true;
+		attachment_info.width = 1.f;
+		attachment_info.height = 1.f;
+		attachment_info.renderingFlags = 0;
+		attachment_info.colors.ClearAndResize(1);
+		attachment_info.colors[0].format = VK_FORMAT_R8G8B8A8_UNORM;
+		attachment_info.colors[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachment_info.colors[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachment_info.colors[0].clearValue.color = {0.f, 0.f, 0.f, 0.f};
+
+		attachment_info.using_depth = true;
+		attachment_info.depth.format = VK_FORMAT_D16_UNORM;
+		attachment_info.depth.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		attachment_info.depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachment_info.depth.clearValue.color = {0.f, 0.f, 0.f, 0.f};
 	}
 }

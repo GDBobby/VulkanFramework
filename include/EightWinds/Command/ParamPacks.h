@@ -39,7 +39,9 @@ namespace EWE{
                 + texture_count * sizeof(TextureIndex);
         }
     };
-    template<> struct ParamPack<Inst::BeginRender> : public VkRenderingInfo{}; //i need to figure something out here
+    template<> struct ParamPack<Inst::BeginRender> : public VkRenderingInfo{
+        using VkRenderingInfo::operator=;
+    }; //i need to figure something out here
 
     template<> struct ParamPack<Inst::BindPipeline>{
         VkPipeline pipe;

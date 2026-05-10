@@ -17,7 +17,6 @@ namespace EWE{
 		logicalDevice{ _logicalDevice },
 		graphicsQueue{ _graphicsQueue },
 		task_config{ config },
-		renderInfo{ *task_config.renderInfo },
 		ownsAttachmentLifetime{ false }
 	{
 		name = _name;
@@ -122,11 +121,18 @@ namespace EWE{
 
 		if(objectPackages.size() > 0){
 			paramPool.PushBack(Inst::EndRender);
-			deferred_vk_render_info = reinterpret_cast<InstructionPointer<VkRenderingInfo>*>(&paramPool.param_data[0]);
-			renderInfo.Undefer(deferred_vk_render_info);
 		}
 
 	}
+
+
+		void RasterPackage::Undefer(FullRenderInfo& info){
+			//is begin render guaranteed to be first?
+			//for_each_frame{
+				deferred_vk_render_info = paramPool.param_data.front().CastTo<ParamPack<Inst::BeginRender>>();
+				info.Undefer(deferred_vk_render_info);
+			//}
+		}
 
 
 #if EWE_IMGUI

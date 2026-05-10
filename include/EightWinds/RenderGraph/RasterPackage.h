@@ -53,8 +53,7 @@ namespace EWE{
 		VkViewport viewport; //is viewport x/y going to be permanently tied to attachment width/height?
 		VkRect2D scissor;
 
-		FullRenderInfo& renderInfo; //reference to task_config.renderInfo
-		InstructionPointer<VkRenderingInfo>* deferred_vk_render_info{ nullptr };
+		InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_vk_render_info{ nullptr };
 
 		bool ownsAttachmentLifetime = true;
 
@@ -71,6 +70,8 @@ namespace EWE{
 		void Compile();
 		
 		void AdjustPipelines();
+
+		void Undefer(FullRenderInfo& info);
 	};
 } //namespace EWE
 

@@ -5,6 +5,8 @@
 #include "EightWinds/Data/PerFlight.h"
 #include "EightWinds/Data/RuntimeArray.h"
 #include "EightWinds/Command/InstructionPointer.h"
+#include "EightWinds/Command/InstructionType.h"
+#include "EightWinds/Command/ParamPacks.h"
 #include "EightWinds/Image.h"
 #include "EightWinds/ImageView.h"
 
@@ -48,7 +50,7 @@ namespace EWE{
 
     struct AttachmentSetInfo {
 		
-		float relative_size = true;
+		bool relative_size = true;
         float width;
         float height;
 		VkRenderingFlags renderingFlags{ 0 };
@@ -71,18 +73,28 @@ namespace EWE{
 
 		[[nodiscard]] AttachmentSetInfo(AttachmentSetInfo const& copySrc);
 
+		AttachmentSetInfo& operator=(AttachmentSetInfo const& copySrc);
+
 		VkRect2D CalculateRenderArea(uint32_t screen_width, uint32_t screen_height) const;
     };
+
+	struct FullRenderInfo; //forward declare
 
 	struct RenderAttachments {
 		std::filesystem::path name;
 		LogicalDevice& logicalDevice;
 		Queue& graphicsQueue;
+		
+		//a color view can be generated in a different render attachment object. it can be referenced.
+		//this tracks those references, specifically for cross-runtime stability
+		struct ViewTracker{
+			FullRenderInfo* source_owner; //if source_owner is nullptr, 'this' is the owner
+			int8_t src_index;//
+			int8_t dst_index;//dst is inside 'this'
+		};
+		std::vector<ViewTracker> generated_reference_tracker;
 
-		RuntimeArray<PerFlight<Image*>> color_images;
 		RuntimeArray<PerFlight<ImageView*>> color_views;
-		//these should be optional
-		PerFlight<Image*> depth_image;
 		PerFlight<ImageView*> depth_views;
 
 		AttachmentSetInfo setInfo; //do I even need this here?
@@ -94,8 +106,15 @@ namespace EWE{
 			AttachmentSetInfo const& setInfo
 		);
 
+		//use negative index to generate depth
+		void GenerateImage(
+			PerFlight<Image*> img_con_addr, 
+			PerFlight<ImageView*> view_con_addr, 
+			uint32_t width, uint32_t height,
+			int index
+		); 
+
 		void CreateImages(uint32_t width, uint32_t height);
-		void CreateImageViews();
 		void InitialTransition();
 
 		void Init(uint32_t screen_width, uint32_t screen_height);	
@@ -107,7 +126,6 @@ namespace EWE{
 		Render_Vk_Data render_data;
 		std::filesystem::path& name; //reference to full.name
 
-
 		[[nodiscard]] explicit FullRenderInfo(
 			std::string_view name,
 			LogicalDevice& logicalDevice,
@@ -117,6 +135,6 @@ namespace EWE{
 
 		void Init(uint32_t screen_width, uint32_t screen_height);
 
-		void Undefer(InstructionPointer<VkRenderingInfo>* deferred_render_info);
+		void Undefer(InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_render_info);
 	};
 } //namespace EWE
