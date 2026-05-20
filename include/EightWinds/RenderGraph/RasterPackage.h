@@ -53,9 +53,9 @@ namespace EWE{
 		VkViewport viewport; //is viewport x/y going to be permanently tied to attachment width/height?
 		VkRect2D scissor;
 
+		//attachmentmeta along iwth deferred_vk_render_info, combined with attachmentsetinfo in task_config, will be used to deduce fullrenderinfo
+		RuntimeArray<AttachmentMeta> attachmentMeta; //
 		InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_vk_render_info{ nullptr };
-
-		bool ownsAttachmentLifetime = true;
 
 		[[nodiscard]] explicit RasterPackage(
 			std::string_view name, 

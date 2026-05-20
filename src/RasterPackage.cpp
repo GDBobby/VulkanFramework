@@ -17,7 +17,7 @@ namespace EWE{
 		logicalDevice{ _logicalDevice },
 		graphicsQueue{ _graphicsQueue },
 		task_config{ config },
-		ownsAttachmentLifetime{ false }
+		attachmentMeta{config.attachment_info.colors.Size() + config.attachment_info.using_depth}
 	{
 		name = _name;
 		/*

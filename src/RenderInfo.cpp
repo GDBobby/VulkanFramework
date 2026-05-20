@@ -63,42 +63,20 @@ namespace EWE{
 		Init(attachments, frameIndex);
 	}
 
-
-	void Render_Vk_Data::Init(RenderAttachments const& attachments, VkRenderingFlags renderingFlags, uint32_t screen_width, uint32_t screen_height)
-	{
-		for_each_frame{
-			vk_data[frame].Init(attachments, frame);
-		}
-		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-			vk_info[i] = VkRenderingInfo{
-				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-				.pNext = nullptr,
-				.flags = renderingFlags,
-				.renderArea = attachments.setInfo.CalculateRenderArea(screen_width, screen_height),
-				.layerCount = 1,
-				.viewMask = 0,
-				.colorAttachmentCount = static_cast<uint32_t>(vk_data[i].colors.size()),
-				.pColorAttachments = vk_data[i].colors.data(),
-				.pDepthAttachment = attachments.setInfo.using_depth ? &vk_data[i].depth : nullptr,
-				.pStencilAttachment = nullptr
-			};
-		}
-	}
-
-	Render_Vk_Data::Render_Vk_Data(RenderAttachments const& attachments, VkRenderingFlags renderingFlags)
+	Render_Vk_Data::Render_Vk_Data(RenderAttachments const& attachments, uint32_t screen_width, uint32_t screen_height)
 		: vk_data{ ArgumentPack_ConstructionHelper<2>{}, attachments, 0, attachments, 1 } //only going to work if max frames in flight is 2
 	{
 		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
 			vk_info[i] = VkRenderingInfo{
 				.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 				.pNext = nullptr,
-				.flags = renderingFlags,
-				.renderArea = attachments.setInfo.CalculateRenderArea(1, 1),
+				.flags = attachments.setInfo.renderingFlags,
+				.renderArea = attachments.setInfo.CalculateRenderArea(screen_width, screen_height),
 				.layerCount = 1,
 				.viewMask = 0,
 				.colorAttachmentCount = static_cast<uint32_t>(vk_data[i].colors.size()),
 				.pColorAttachments = vk_data[i].colors.data(),
-				.pDepthAttachment = &vk_data[i].depth,
+				.pDepthAttachment = attachments.setInfo.using_depth ? &vk_data[i].depth : nullptr,
 				.pStencilAttachment = nullptr
 			};
 		}
@@ -136,6 +114,7 @@ namespace EWE{
 
 	void FullRenderInfo::Undefer(InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_render_info){
 		for_each_frame{
+			//this reference is just for debugging purposes
 			auto& temp_info = render_data.vk_info[frame];
 			deferred_render_info->GetRef(frame) = temp_info;
 		}
@@ -304,29 +283,67 @@ namespace EWE{
 		return *this;
 	}
 
-	void RenderAttachments::Init(uint32_t screen_width, uint32_t screen_height){
-
-		CreateImages(screen_width, screen_height);
-
-		InitialTransition();
-	}
-
 	RenderAttachments::RenderAttachments(
-		std::string_view _name,
+		std::filesystem::path const& _name,
 		LogicalDevice& _logicalDevice,
 		Queue& _graphicsQueue,
-		AttachmentSetInfo const& _setInfo
+		AttachmentSetInfo const& _setInfo,
+		uint32_t width, uint32_t height
 	)
 		: name{ _name },
 		logicalDevice{ _logicalDevice },
 		graphicsQueue{ _graphicsQueue },
-		//this should pass args to PerFlight
-		//which puts the args to each (per frame in flight) RuntimeArray
-		//which will construct a color_formats.size() amount of images with the argument, logicalDevice
+		setInfo{_setInfo},
+		meta{setInfo.colors.Size() + setInfo.using_depth},
 		color_views{ _setInfo.colors.Size(), nullptr },
-		depth_views{ nullptr },
-		setInfo{_setInfo}
+		depth_views{ nullptr }
 	{
+		for(auto& src : meta){
+			src.src_owner = this;
+		}
+		CreateImages(width, height);
+		InitialTransition();
+	}
+	RenderAttachments::RenderAttachments(
+		std::filesystem::path const& _name,
+		LogicalDevice& _logicalDevice,
+		Queue& _graphicsQueue,
+		AttachmentSetInfo const& _setInfo,
+		std::span<const AttachmentMeta> _meta,
+		uint32_t width, uint32_t height
+	)
+	: name{ _name },
+		logicalDevice{ _logicalDevice },
+		graphicsQueue{ _graphicsQueue },
+		setInfo{_setInfo},
+		meta{_meta.size()},
+		color_views{ _setInfo.colors.Size(), nullptr },
+		depth_views{ nullptr }
+	{
+		for(std::size_t i = 0; i < meta.Size(); i++){
+			meta[i].src_owner = _meta[i].src_owner;
+			meta[i].src_index = _meta[i].src_index;
+		}
+		for(std::size_t i = 0; i < _setInfo.colors.Size(); i++){
+			for(auto& info : meta){
+				if(info.src_owner == this){
+					//generate
+					//CreateImages already accounts for partial construction
+				}
+				else if(info.src_owner != nullptr){
+					for_each_frame{
+						if(info.src_index >= 0){
+							color_views[i][frame] = info.src_owner->full.color_views[info.src_index][frame];
+						}
+						else{
+							depth_views[frame] = info.src_owner->full.depth_views[frame];
+						}
+					}
+				}
+			}
+		}
+		CreateImages(width, height);
+		InitialTransition();
 	}
 
 	void RenderAttachments::InitialTransition() {
@@ -422,23 +439,28 @@ namespace EWE{
 	}
 
 	FullRenderInfo::FullRenderInfo(
-		std::string_view _name,
+		std::filesystem::path const& _name,
 		LogicalDevice& _logicalDevice,
 		Queue& _graphicsQueue,
-		AttachmentSetInfo const& _setInfo
+		AttachmentSetInfo const& _setInfo,
+		uint32_t width, uint32_t height
 	)
-	: full{_name, _logicalDevice, _graphicsQueue, _setInfo},
-		render_data{},
+	: full{_name, _logicalDevice, _graphicsQueue, _setInfo, width, height},
+		render_data{full, width, height},
 		name{full.name}
 	{
-
 	}
-
-	void FullRenderInfo::Init(uint32_t screen_width, uint32_t screen_height){
-		if(full.color_views.Size() != full.setInfo.colors.Size()){
-			full.color_views.ClearAndResize(full.setInfo.colors.Size());
-		}
-		full.Init(screen_width, screen_height);
-		render_data.Init(full, full.setInfo.renderingFlags, screen_width, screen_height);
+	FullRenderInfo::FullRenderInfo(
+		std::filesystem::path const& _name,
+		LogicalDevice& _logicalDevice,
+		Queue& _graphicsQueue,
+		AttachmentSetInfo const& _setInfo,
+		std::span<const AttachmentMeta> _meta,
+		uint32_t width, uint32_t height
+	)
+	: full{_name, _logicalDevice, _graphicsQueue, _setInfo, _meta, width, height},
+		render_data{full, width, height},
+		name{full.name}
+	{
 	}
 }// namespace EWE

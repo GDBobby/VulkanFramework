@@ -3,16 +3,14 @@
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/Backend/RenderInfo.h"
-#include "EightWinds/Command/Execute.h"
 #include "EightWinds/RenderGraph/Resources.h"
 #include "EightWinds/RenderGraph/TaskAffix.h"
 
 #include "EightWinds/CommandPool.h"
 
+#include "EightWinds/Command/Execute.h"
 #include "EightWinds/Command/PackageRecord.h"
-
-#include <optional>
-#include <string_view>
+#include "EightWinds/Command/ParamPointerChain.h"
 
 namespace EWE{
     namespace Command {
@@ -31,6 +29,12 @@ namespace EWE{
         std::optional<Command::ParamPool> paramPool;
 
         Command::PackageRecord* pkgRecord; //just for viewing in reconstruction
+
+        struct Meta{
+            //i can deduce whether it's a buffer or texture without further information
+            std::vector<ParamPointerChain> resource_pointers;
+        };
+        Meta meta;
 
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
@@ -54,6 +58,4 @@ namespace EWE{
         TaskAffix suffix{};
         void GenerateWorkload();
     };
-
-
-}
+} //namespace EWE

@@ -38,7 +38,7 @@ namespace EWE{
 
 		void Init(RenderAttachments const& attachments, VkRenderingFlags renderingFlags, uint32_t screen_width, uint32_t screen_height);
 		[[nodiscard]] Render_Vk_Data() = default;
-		[[nodiscard]] explicit Render_Vk_Data(RenderAttachments const& attachments, VkRenderingFlags renderingFlags);
+		[[nodiscard]] explicit Render_Vk_Data(RenderAttachments const& attachments, uint32_t screen_width, uint32_t screen_height);
 	};
 
     struct AttachmentInfo {
@@ -80,30 +80,49 @@ namespace EWE{
 
 	struct FullRenderInfo; //forward declare
 
+	struct AttachmentMeta{
+		/*
+			a color view can be generated in a different render attachment object. it can be referenced.
+			this tracks those references, specifically for cross-runtime stability
+
+			if the owner is this, the attachment will be generated
+
+			if the owner is nullptr, the image view will not be generated, and will be left null
+			the programmer is responsible for ensuring it gets populated
+			this can be useful for putting an arbitrary image into the attachment slot (like the present image)
+		*/
+
+		FullRenderInfo* src_owner; //if source_owner is nullptr, 'this' is the owner
+		int8_t src_index;
+	};
+
 	struct RenderAttachments {
 		std::filesystem::path name;
 		LogicalDevice& logicalDevice;
 		Queue& graphicsQueue;
-		
-		//a color view can be generated in a different render attachment object. it can be referenced.
-		//this tracks those references, specifically for cross-runtime stability
-		struct ViewTracker{
-			FullRenderInfo* source_owner; //if source_owner is nullptr, 'this' is the owner
-			int8_t src_index;//
-			int8_t dst_index;//dst is inside 'this'
-		};
-		std::vector<ViewTracker> generated_reference_tracker;
+
+		AttachmentSetInfo setInfo;
+
+		RuntimeArray<AttachmentMeta> meta;
 
 		RuntimeArray<PerFlight<ImageView*>> color_views;
 		PerFlight<ImageView*> depth_views;
 
-		AttachmentSetInfo setInfo; //do I even need this here?
 
 		[[nodiscard]] explicit RenderAttachments(
-			std::string_view name,
+			std::filesystem::path const& name,
 			LogicalDevice& logicalDevice,
 			Queue& graphicsQueue,
-			AttachmentSetInfo const& setInfo
+			AttachmentSetInfo const& setInfo,
+			uint32_t width, uint32_t height
+		);
+		[[nodiscard]] explicit RenderAttachments(
+			std::filesystem::path const& name,
+			LogicalDevice& logicalDevice,
+			Queue& graphicsQueue,
+			AttachmentSetInfo const& setInfo,
+			std::span<const AttachmentMeta> _meta,
+			uint32_t width, uint32_t height
 		);
 
 		//use negative index to generate depth
@@ -116,8 +135,6 @@ namespace EWE{
 
 		void CreateImages(uint32_t width, uint32_t height);
 		void InitialTransition();
-
-		void Init(uint32_t screen_width, uint32_t screen_height);	
 	};
 
 
@@ -127,13 +144,19 @@ namespace EWE{
 		std::filesystem::path& name; //reference to full.name
 
 		[[nodiscard]] explicit FullRenderInfo(
-			std::string_view name,
+			std::filesystem::path const& name,
 			LogicalDevice& logicalDevice,
 			Queue& graphicsQueue,
-			AttachmentSetInfo const& setInfo
+			AttachmentSetInfo const& setInfo,
+			uint32_t width, uint32_t height
 		);
-
-		void Init(uint32_t screen_width, uint32_t screen_height);
+		[[nodiscard]] explicit FullRenderInfo(
+			std::filesystem::path const& name,
+			LogicalDevice& logicalDevice, Queue& graphicsQueue,
+			AttachmentSetInfo const& setInfo,
+			std::span<const AttachmentMeta> _meta,
+			uint32_t width, uint32_t height
+		);
 
 		void Undefer(InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_render_info);
 	};
