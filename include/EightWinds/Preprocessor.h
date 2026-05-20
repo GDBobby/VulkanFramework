@@ -51,7 +51,7 @@ static inline void EWE_Debug_Breakpoint() {
 inline void EWE_ASSERT_BACK_2(bool statement, std::string_view print = "") {
 #if EWE_DEBUG_BOOL
     if (!statement) {
-        EWE::Logger::Print<EWE::Logger::Error>("Assert failed : %s\n", print.data());
+        EWE::Log::Error("Assert failed : %s\n", print.data());
         EWE_Debug_Breakpoint();
     }
 #endif
@@ -60,10 +60,10 @@ inline void EWE_ASSERT_BACK(bool statement, std::string_view statement_print, st
 #if EWE_DEBUG_BOOL
     if (!statement) {
         if(print != ""){
-            EWE::Logger::Print<EWE::Logger::Error>("Assert failed[%s] : %s\n", statement_print.data(), print.data());  
+            EWE::Log::Error("Assert failed[%s] : %s\n", statement_print.data(), print.data());  
         }
         else{
-            EWE::Logger::Print<EWE::Logger::Error>("Assert failed[%s]\n", statement_print.data());
+            EWE::Log::Error("Assert failed[%s]\n", statement_print.data());
         }
         EWE_Debug_Breakpoint();
     }

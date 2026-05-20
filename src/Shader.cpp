@@ -21,7 +21,7 @@
 
 #if EWE_DEBUG_BOOL
 #define SPV_REFLECT(func, ...) {auto result = func(__VA_ARGS__); \
-	if (result != SPV_REFLECT_RESULT_SUCCESS) {Logger::Print<Logger::Error>("failed to read reflected shader data - %s - %s\n", #func, magic_enum::enum_name(result).data());}}
+	if (result != SPV_REFLECT_RESULT_SUCCESS) {Log::Error("failed to read reflected shader data - %s - %s\n", #func, magic_enum::enum_name(result).data());}}
 #endif
 
 namespace EWE {
@@ -101,7 +101,7 @@ namespace EWE {
 	void PrintAllDecorations(std::string_view name, spirv_cross::Bitset const& bitset){
 		for(auto& dec : Reflect::Enum::enum_data<spv::Decoration>){
 			if(bitset.get(dec.GetUnderlyingValue())){
-				Logger::Print("%s has decoration[%s]\n", name.data(), Reflect::Enum::ToString(dec.value).data());
+				Log::Debug("%s has decoration[%s]\n", name.data(), Reflect::Enum::ToString(dec.value).data());
 			}
 		}
 	}
@@ -166,7 +166,7 @@ namespace EWE {
 				return ret;
 			}
 			else{
-				Logger::Print("inspecitng op types : %s\n", Reflect::Enum::ToString(var_type.op).data());
+				Log::Debug("inspecitng op types : %s\n", Reflect::Enum::ToString(var_type.op).data());
 			}
 			
 			switch(ret->baseType){
@@ -213,7 +213,7 @@ namespace EWE {
 				case ShaderVariable::Type::Image:
 				case ShaderVariable::Type::SampledImage:
 				case ShaderVariable::Type::AtomicCounter:{
-					Logger::Print<Logger::Warning>("unhandled spirv variable types\n");
+					Log::Warning("unhandled spirv variable types\n");
 					break;
 				}
 				default: {
@@ -279,7 +279,7 @@ namespace EWE {
 		PrintAllDecorations("buffer child", child_bitset);
 
 		if(buf_type.storage != spirv_cross::StorageClassPhysicalStorageBuffer){
-			Logger::Print<Logger::Warning>("unexpected push buffer storage type : %s\n", Reflect::Enum::ToString(buf_type.storage).data());
+			Log::Warning("unexpected push buffer storage type : %s\n", Reflect::Enum::ToString(buf_type.storage).data());
 		}
 
 		switch(buf_type.storage){
@@ -294,15 +294,15 @@ namespace EWE {
 		// i cant even catch this properly
 		//try{
 		//	auto bitset = compiler.get_buffer_block_flags(parent_type.self);
-		//	Logger::Print("bitset nonwriteable : %d\n", bitset.get(spirv_cross::DecorationNonWritable));
+		//	Log::Debug("bitset nonwriteable : %d\n", bitset.get(spirv_cross::DecorationNonWritable));
 		//}
-		//catch(spirv_cross::CompilerError const& e){Logger::Print<Logger::Warning>("exception : %s\n", e.what());}
+		//catch(spirv_cross::CompilerError const& e){Log::Warning("exception : %s\n", e.what());}
 
 
 		auto const dec_ret = compiler.get_decoration(buf_type.parent_type, spirv_cross::Decoration::DecorationBlock);
 		EWE_ASSERT(dec_ret > 0);
 		
-		Logger::Print("push buffer basetype[%s] and optype[%s]\n", Reflect::Enum::ToString(buf_type.basetype).data(), Reflect::Enum::ToString(buf_type.op).data());
+		Log::Debug("push buffer basetype[%s] and optype[%s]\n", Reflect::Enum::ToString(buf_type.basetype).data(), Reflect::Enum::ToString(buf_type.op).data());
 		//idk if other basetypes are allowable, but i can handle them as they come up
 		if(buf_type.basetype == spirv_cross::SPIRType::Struct){
 			if(buf_type.op == spirv_cross::OpTypeRuntimeArray){
@@ -392,7 +392,7 @@ namespace EWE {
 					texture_count++;
 				}
 				else if(member_type.basetype == spirv_cross::SPIRType::UInt64){
-					Logger::Print<Logger::Warning>("non-pointer address in shader : %s\n", shader.filepath.string().c_str());
+					Log::Warning("non-pointer address in shader : %s\n", shader.filepath.string().c_str());
 				}
 				else{
 					EWE_ASSERT(false, "invalid spirv type");
@@ -410,7 +410,7 @@ namespace EWE {
 					ParsePushTextureIndex(compiler, shader, push_type, m, compiler.get_member_name(push_id, m));
 				}
 				else if(member_type.basetype == spirv_cross::SPIRType::UInt64){
-					Logger::Print<Logger::Warning>("non-pointer address in shader : %s\n", shader.name.string().c_str());
+					Log::Warning("non-pointer address in shader : %s\n", shader.name.string().c_str());
 				}
 				else{
 					EWE_ASSERT(false, "invalid spirv type");
@@ -434,7 +434,7 @@ namespace EWE {
 		shaderFile.open(filepath, std::ios::binary);
 		if (!shaderFile.is_open()) {
 #if EWE_DEBUG_BOOL
-			Logger::Print<Logger::Error>("failed ot open shader file - %s : %s\n", std::filesystem::current_path().string().c_str(), filepath.string().c_str());
+			Log::Error("failed ot open shader file - %s : %s\n", std::filesystem::current_path().string().c_str(), filepath.string().c_str());
 			EWE_ASSERT(shaderFile.is_open(), "failed to open shader");
 #endif
 		}
@@ -525,8 +525,8 @@ namespace EWE {
 		spirv_cross::Compiler compiler(reinterpret_cast<const uint32_t*>(data), dataSize / sizeof(uint32_t));
 		auto const& entryPoints = compiler.get_entry_points_and_stages();
 		if(entryPoints.size() > 1){
-			Logger::Print<Logger::Warning>("multiple entry points[%zu] not supported : in shader[%s]\n", entryPoints.size(), name.string().c_str());
-			Logger::Print<Logger::Warning>("\t using entry point : %s\n", entryPoints[0].name.c_str());
+			Log::Warning("multiple entry points[%zu] not supported : in shader[%s]\n", entryPoints.size(), name.string().c_str());
+			Log::Warning("\t using entry point : %s\n", entryPoints[0].name.c_str());
 		}
 		//for (auto& entryPoint : entryPoints) {
 			switch (entryPoints[0].execution_model)	{
@@ -546,7 +546,7 @@ namespace EWE {
 		template for(constexpr auto mem : std::define_static_array(std::meta::nonstatic_data_members_of(^^std::decay_t<decltype(resources)>, std::meta::access_context::current()))){
 			if constexpr(requires{resources.[:mem:].size();}){
 				if(resources.[:mem:].size() > 0){
-					Logger::Print("shader resource member[%s] has %d elements\n", Reflect::GetName<mem>().data(), resources.[:mem:].size());
+					Log::Debug("shader resource member[%s] has %d elements\n", Reflect::GetName<mem>().data(), resources.[:mem:].size());
 				}
 			}
 		}
@@ -559,7 +559,7 @@ namespace EWE {
 			InterpretPushConstant(compiler, *this, resources.push_constant_buffers[0].base_type_id);
 			//pushRange = SPIRTypeToShaderVariable(compiler, *this, resources.push_constant_buffers[0].base_type_id);
 			if(resources.push_constant_buffers.size() > 1){
-				Logger::Print<Logger::Warning>("multiple push constants[%zu] not supported : in shader[%s]\n", resources.push_constant_buffers.size(), name.string().c_str());
+				Log::Warning("multiple push constants[%zu] not supported : in shader[%s]\n", resources.push_constant_buffers.size(), name.string().c_str());
 			}
 		}
 
@@ -598,9 +598,9 @@ namespace EWE {
 		meta{}
 	{
 		std::vector<char> shaderData = ReadShaderFile(fileLocation);
-		Logger::Print("beginning reflection of : %s\n", fileLocation.string().c_str());
+		Log::Debug("beginning reflection of : %s\n", fileLocation.string().c_str());
 		ReadReflection(shaderData.size(), shaderData.data());
-		Logger::Print("ending reflection of : %s\n", fileLocation.string().c_str());
+		Log::Debug("ending reflection of : %s\n", fileLocation.string().c_str());
 		CompileModule(shaderData.size(), shaderData.data());
 #if EWE_DEBUG_NAMING
 		SetDebugName(fileLocation.string());
@@ -614,9 +614,9 @@ namespace EWE {
 		name{ fileLocation }, 
 		descriptorSets{} 
 	{
-		Logger::Print("beginning reflection of : %s\n", fileLocation.string().c_str());
+		Log::Debug("beginning reflection of : %s\n", fileLocation.string().c_str());
 		ReadReflection(dataSize, data);
-		Logger::Print("ending reflection of : %s\n", fileLocation.string().c_str());
+		Log::Debug("ending reflection of : %s\n", fileLocation.string().c_str());
 		CompileModule(dataSize, data);
 #if EWE_DEBUG_NAMING
 		SetDebugName(fileLocation.string());

@@ -24,7 +24,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if(vkFence == VK_NULL_HANDLE){
-            Logger::Print<Logger::Error>("invalid fence?\n");
+            Log::Error("invalid fence?\n");
         }
 #endif
         VkResult ret = vkWaitForFences(logicalDevice.device, 1, &vkFence, true, time);

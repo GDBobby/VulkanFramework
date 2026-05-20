@@ -40,7 +40,7 @@ namespace EWE{
 
     GPUTask::~GPUTask(){
 #if EWE_DEBUG_BOOL
-        Logger::Print<Logger::Error>("need to destruct deferred pointers from CommandRecord, currently memory leak\n");
+        Log::Error("need to destruct deferred pointers from CommandRecord, currently memory leak\n");
 #endif
     }
     bool GPUTask::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {

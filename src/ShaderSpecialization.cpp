@@ -22,7 +22,7 @@ namespace EWE{
 		}
 		catch (const std::runtime_error& e) {
 #if EWE_DEBUG_BOOL
-			Logger::Print<Logger::Error>("malloc error - %s\n", e.what());
+			Log::Error("malloc error - %s\n", e.what());
 #endif
 			specInfo.mapEntryCount = 0;
 			specInfo.pData = nullptr;

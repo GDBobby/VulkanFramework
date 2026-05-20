@@ -187,7 +187,7 @@ namespace EWE {
 				ranges.push_back(shader->pushRange);
 				if(ranges.size() > 0){
 					if(ranges[0].size != ranges.back().size || ranges[0].offset != ranges.back().offset){
-						Logger::Print<Logger::Warning>("push constants are not identical between shaders\n");
+						Log::Warning("push constants are not identical between shaders\n");
 						EWE_Debug_Breakpoint();
 						//print the shaders? or just debug breakpoint it
 						//i could assert the names are equal?
@@ -286,7 +286,7 @@ namespace EWE {
 			pipelineType = PipelineType::Compute;
 		}
 		else {
-			Logger::Print<Logger::Error>("this is going to be raytracing i guess?\n");
+			Log::Error("this is going to be raytracing i guess?\n");
 			EWE_ASSERT(false);
 		}
 
@@ -315,7 +315,7 @@ namespace EWE {
 				shader->HotReload();
 			}
 		}
-		Logger::Print<Logger::Error>("memory leak here - descriptor sets not freed before recreated\n");
+		Log::Error("memory leak here - descriptor sets not freed before recreated\n");
 		//Deconstruct(descriptorSets); //need this to be stored then deleted stale
 
 		descriptorSets = MergeDescriptorSets(this->shaders);

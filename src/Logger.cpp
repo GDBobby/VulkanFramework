@@ -28,7 +28,7 @@ namespace EWE{
         //static constexpr std::string_view reset{"\033[0m]"};
     }
 
-    void InternalPrint(Logger::Level ll, std::string_view format, va_list args){
+    void InternalPrint(LogType ll, std::string_view format, va_list args){
 
         char buffer[1024];
         vsnprintf(buffer, sizeof(buffer), format.data(), args);
@@ -36,43 +36,43 @@ namespace EWE{
         fflush(stdout);
     }
 
-    template<> void Logger::Print<Logger::Level::Sanity>(std::string_view fmt, ...){
-        if(Logger::Minimum <= Logger::Sanity){
+    void Log::Sanity(std::string_view fmt, ...){
+        if(Log::Minimum <= LogType::Sanity){
             va_list args;
             va_start(args, fmt);
-            InternalPrint(Level::Sanity, fmt, args);
+            InternalPrint(LogType::Sanity, fmt, args);
             va_end(args);
         }
     }
-    template<> void Logger::Print<Logger::Level::Normal>(std::string_view fmt, ...){
-        if(Logger::Minimum <= Logger::Normal){
+    void Log::Normal(std::string_view fmt, ...){
+        if(Log::Minimum <= LogType::Normal){
             va_list args;
             va_start(args, fmt);
-            InternalPrint(Level::Normal, fmt, args);
+            InternalPrint(LogType::Normal, fmt, args);
             va_end(args);
         }
     }
-    template<> void Logger::Print<Logger::Level::Debug>(std::string_view fmt, ...){
-        if(Logger::Minimum <= Logger::Debug){
+    void Log::Debug(std::string_view fmt, ...){
+        if(Log::Minimum <= LogType::Debug){
             va_list args;
             va_start(args, fmt);
-            InternalPrint(Level::Debug, fmt, args);
+            InternalPrint(LogType::Debug, fmt, args);
             va_end(args);
         }
     }
-    template<> void Logger::Print<Logger::Level::Warning>(std::string_view fmt, ...){
-        if(Logger::Minimum <= Logger::Warning){
+    void Log::Warning(std::string_view fmt, ...){
+        if(Log::Minimum <= LogType::Warning){
             va_list args;
             va_start(args, fmt);
-            InternalPrint(Level::Warning, fmt, args);
+            InternalPrint(LogType::Warning, fmt, args);
             va_end(args);
         }
     }
-    template<> void Logger::Print<Logger::Level::Error>(std::string_view fmt, ...){
-        if(Logger::Minimum <= Logger::Error){
+    void Log::Error(std::string_view fmt, ...){
+        if(Log::Minimum <= LogType::Error){
             va_list args;
             va_start(args, fmt);
-            InternalPrint(Level::Error, fmt, args);
+            InternalPrint(LogType::Error, fmt, args);
             va_end(args);
             EWE_Debug_Breakpoint();
         }

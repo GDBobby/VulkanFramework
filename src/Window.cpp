@@ -40,7 +40,7 @@ namespace EWE {
 				screenDimensions.height = mode->height;
 			}
 			else {
-				Logger::Print<Logger::Error>("failed to find primary monitor \n");
+				Log::Error("failed to find primary monitor \n");
 				screenDimensions.width = 1280;
 				screenDimensions.height = 720;
 			}

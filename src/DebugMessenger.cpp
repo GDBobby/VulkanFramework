@@ -17,18 +17,18 @@ namespace EWE {
     ) {
         switch (messageSeverity) {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                Logger::Print<Logger::Debug>("validation verbose: %d : %s\n", messageType, pCallbackData->pMessage);
+                Log::Debug("validation verbose: %d : %s\n", messageType, pCallbackData->pMessage);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-                Logger::Print<Logger::Debug>("validation info: %d : %s\n", messageType, pCallbackData->pMessage);
+                Log::Debug("validation info: %d : %s\n", messageType, pCallbackData->pMessage);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
                 //std::string idName = pCallbackData->pMessageIdName;
-                Logger::Print<Logger::Warning>("validation warning: %d : %s\n", messageType, pCallbackData->pMessage);
+                Log::Warning("validation warning: %d : %s\n", messageType, pCallbackData->pMessage);
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-                Logger::Print<Logger::Error>("validation error: %d : %s\n", messageType, pCallbackData->pMessage);
+                Log::Error("validation error: %d : %s\n", messageType, pCallbackData->pMessage);
 
 #if GPU_LOGGING
                 std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
@@ -56,7 +56,7 @@ namespace EWE {
                 break;
             }
             default:
-                Logger::Print<Logger::Error>("validation default: %s \n", pCallbackData->pMessage);
+                Log::Error("validation default: %s \n", pCallbackData->pMessage);
                 EWE_UNREACHABLE;
                 break;
 

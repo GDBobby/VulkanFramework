@@ -121,7 +121,7 @@ namespace Command{
 
     void ParamPool::Erase(std::size_t index){
         if(index >= instructions.size() || instructions.size() == 0){
-            Logger::Print<Logger::Warning>("attempting to erase out of bounds\n");
+            Log::Warning("attempting to erase out of bounds\n");
             return;
         }
 

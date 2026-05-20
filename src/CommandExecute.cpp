@@ -72,7 +72,7 @@ namespace Exec{
     
 #ifdef EXECUTOR_DEBUGGING
         void Print(){
-            Logger::Print<Logger::Debug>("\t[%d]:[%zu]:[%zu]:[%zu]\n", iterator, paramPool.data(), instructions[iterator].paramOffset, &paramPool[instructions[iterator].paramOffset]);
+            Log::Debug("\t[%d]:[%zu]:[%zu]:[%zu]\n", iterator, paramPool.data(), instructions[iterator].paramOffset, &paramPool[instructions[iterator].paramOffset]);
         }
 #endif
     };
@@ -396,17 +396,17 @@ namespace Exec{
     
     void LoopBegin(ExecContext& ctx){
         //i need to wait and see how this pans out before i code it
-        Logger::Print<Logger::Error>("not enabled currently\n");
+        Log::Error("not enabled currently\n");
     }
 
     void Switch(ExecContext& ctx){
-        Logger::Print<Logger::Error>("not enabled currently\n");
+        Log::Error("not enabled currently\n");
     }
     void Case(ExecContext& ctx){
-        Logger::Print<Logger::Error>("not enabled currently\n");
+        Log::Error("not enabled currently\n");
     }
     void Default(ExecContext& ctx){
-        Logger::Print<Logger::Error>("not enabled currently\n");
+        Log::Error("not enabled currently\n");
     }
 
     void Ext_Pool(ExecContext& ctx){

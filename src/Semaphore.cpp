@@ -108,7 +108,7 @@ namespace EWE{
     VkSemaphoreSubmitInfo TimelineSemaphore::GetSignalSubmitInfo(VkPipelineStageFlags2 stageMask) noexcept{
         value++;
 #if EWE_DEBUG_BOOL
-        Logger::Print("semaphore[%s] subinfo signaling : %zu\n", debugName.c_str(), value);
+        Log::Debug("semaphore[%s] subinfo signaling : %zu\n", debugName.c_str(), value);
 #endif
         return VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -121,7 +121,7 @@ namespace EWE{
     }
     VkSemaphoreSubmitInfo TimelineSemaphore::GetWaitSubmitInfo(VkPipelineStageFlags2 stageMask) const noexcept{
 #if EWE_DEBUG_BOOL
-        Logger::Print("semaphore[%s] subinfo waiting : %zu\n", debugName.c_str(), value);
+        Log::Debug("semaphore[%s] subinfo waiting : %zu\n", debugName.c_str(), value);
 #endif
         return VkSemaphoreSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
@@ -141,7 +141,7 @@ namespace EWE{
     
     void TimelineSemaphore::WaitOn(uint64_t val){
 #if EWE_DEBUG_BOOL
-        Logger::Print("semaphore[%s] waiting : %zu\n", debugName.c_str(), value);
+        Log::Debug("semaphore[%s] waiting : %zu\n", debugName.c_str(), value);
 #endif
         VkSemaphoreWaitInfo waitInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
@@ -163,7 +163,7 @@ namespace EWE{
     bool TimelineSemaphore::Check(uint64_t val) const {
         uint64_t current_val = GetCurrentValue();
 #if EWE_DEBUG_BOOL
-        Logger::Print("semaphore[%s] checking : %zu : [%zu : %zu]\n", debugName.c_str(), value, val, current_val);
+        Log::Debug("semaphore[%s] checking : %zu : [%zu : %zu]\n", debugName.c_str(), value, val, current_val);
 #endif
         if(current_val >= val){
             //potentially check current_val <-> this->value?

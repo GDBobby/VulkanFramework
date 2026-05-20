@@ -138,7 +138,7 @@ namespace EWE{
             .vulkanApiVersion = api_version
         };
 
-        Logger::Print<Logger::Normal>("vma vk version : %zu\n", VMA_VULKAN_VERSION);
+        Log::Normal("vma vk version : %zu\n", VMA_VULKAN_VERSION);
 
         VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
         EWE_VK_RESULT(result);
@@ -171,7 +171,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if (renderExcept.result == VK_ERROR_DEVICE_LOST) {
-            Logger::Print<Logger::Error>("device was lost\n");
+            Log::Error("device was lost\n");
             PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfo = nullptr;
             GetDeviceFaultInfo = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(device, "vkGetDeviceFaultInfoEXT"));
             if (GetDeviceFaultInfo == nullptr) {
@@ -208,15 +208,15 @@ namespace EWE{
             }
             GetDeviceFaultInfo(device, &faultCounts, &faultInfo);
 
-            Logger::Print<Logger::Error>("fault info ~~~\n");
+            Log::Error("fault info ~~~\n");
             if (faultInfo.description != nullptr && faultInfo.description[0] != '\0') {
-                Logger::Print<Logger::Error>("\tdescription - %s\n", faultInfo.description);
+                Log::Error("\tdescription - %s\n", faultInfo.description);
             }
             else {
-                Logger::Print<Logger::Error>("\tblank description\n");
+                Log::Error("\tblank description\n");
             }
 
-            Logger::Print<Logger::Error>("address info - %u\n", faultCounts.addressInfoCount);
+            Log::Error("address info - %u\n", faultCounts.addressInfoCount);
             for (uint32_t i = 0; i < faultCounts.addressInfoCount; i++) {
                 auto& addrInfo = faultInfo.pAddressInfos[i];
                 std::string addrType;
@@ -230,19 +230,19 @@ namespace EWE{
                     case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT: addrType = "pointer fault"; break;
                     default: addrType = "unknown address type?"; break;
                 }
-                Logger::Print<Logger::Error>("\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n", i, addrType.c_str(), addrInfo.reportedAddress, addrInfo.addressPrecision);
+                Log::Error("\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n", i, addrType.c_str(), addrInfo.reportedAddress, addrInfo.addressPrecision);
             }
 
-            Logger::Print<Logger::Error>("\nvendor description - %u\n", faultCounts.vendorInfoCount);
+            Log::Error("\nvendor description - %u\n", faultCounts.vendorInfoCount);
             for (uint32_t i = 0; i < faultCounts.vendorInfoCount; i++) {
                 auto& vendorInfo = faultInfo.pVendorInfos[i];
                 if (vendorInfo.description[0] != '\0') {
-                    Logger::Print<Logger::Error>("[%u]\t %s\n", i, vendorInfo.description);
+                    Log::Error("[%u]\t %s\n", i, vendorInfo.description);
                 }
-                Logger::Print<Logger::Error>("\t\tcode[%zu] - data[%zu]\n", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultData);
+                Log::Error("\t\tcode[%zu] - data[%zu]\n", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultData);
             }
 
-            Logger::Print<Logger::Error>("vendor binary data address and size - [%zu][%zu]\n", reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData), faultCounts.vendorBinarySize);
+            Log::Error("vendor binary data address and size - [%zu][%zu]\n", reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData), faultCounts.vendorBinarySize);
             //once finished with it, probably move this
             free(faultInfo.pAddressInfos);
             free(faultInfo.pVendorInfos);

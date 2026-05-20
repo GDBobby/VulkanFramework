@@ -50,7 +50,7 @@ namespace EWE{
             SetLayout& SetLayout::operator=(SetLayout&& moveSrc) noexcept{
                 EWE_ASSERT(pool == moveSrc.pool);
 
-                Logger::Print<Logger::Error>("not fulyl setup, the old dsl needs to be deconstructed");
+                Log::Error("not fulyl setup, the old dsl needs to be deconstructed");
                 vkDSL = moveSrc.vkDSL;
                 return *this;
             }

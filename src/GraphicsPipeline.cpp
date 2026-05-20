@@ -28,7 +28,7 @@ namespace EWE {
 		rasterizationInfo = other.rasterizationInfo;
 		multisampleInfo = other.multisampleInfo;
 		if (other.multisampleInfo.pSampleMask != other.sampleMask) {
-			Logger::Print<Logger::Warning>("invalid copy of sampel mask, BE WARNED\n");
+			Log::Warning("invalid copy of sampel mask, BE WARNED\n");
 		}
 		memcpy(sampleMask, other.sampleMask, sizeof(uint32_t) * 2);
 		multisampleInfo.pSampleMask = sampleMask;          // Optional

@@ -299,7 +299,7 @@ namespace EWE{
 		depth_views{ nullptr }
 	{
 		for(auto& src : meta){
-			src.src_owner = this;
+			src.src_owner = reinterpret_cast<FullRenderInfo*>(this);
 		}
 		CreateImages(width, height);
 		InitialTransition();
@@ -326,7 +326,7 @@ namespace EWE{
 		}
 		for(std::size_t i = 0; i < _setInfo.colors.Size(); i++){
 			for(auto& info : meta){
-				if(info.src_owner == this){
+				if(info.src_owner == reinterpret_cast<FullRenderInfo*>(this)){
 					//generate
 					//CreateImages already accounts for partial construction
 				}

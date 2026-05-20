@@ -220,7 +220,7 @@ namespace EWE {
 			auto& rh_img = *rh_resource.resource[frameIndex];
 #if EWE_DEBUG_BOOL
 			if (lh_resource.resource[frameIndex]->image != rh_resource.resource[frameIndex]->image) {
-				Logger::Print<Logger::Error>("transitioning invalid? - {%s}:{%s}\n", lh_img.name.c_str(), rh_img.name.c_str());
+				Log::Error("transitioning invalid? - {%s}:{%s}\n", lh_img.name.c_str(), rh_img.name.c_str());
 			}
 			EWE_ASSERT(lh_resource.resource[frameIndex]->image == rh_resource.resource[frameIndex]->image);
 #endif

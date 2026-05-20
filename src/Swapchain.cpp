@@ -221,9 +221,9 @@ namespace EWE{
             vkDestroySwapchainKHR
         */
        
-        //Logger::Print<Logger::Debug>("lock queue mutex here\n");
+        //Log::Debug("lock queue mutex here\n");
         VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, acquire_semaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &image_index);
-        //Logger::Print<Logger::Debug>("unlock queue mutex\n");
+        //Log::Debug("unlock queue mutex\n");
         
         switch(acquireResult){
             case VK_SUCCESS: break; //dont do anything
@@ -233,7 +233,7 @@ namespace EWE{
         }
 
 #if EWE_DEBUG_BOOL
-        //Logger::Print<Logger::Debug>("acquired image index : %u\n", image_index);
+        //Log::Debug("acquired image index : %u\n", image_index);
 #endif
 
         imageIndex = image_index; //object index equal to local index
@@ -274,7 +274,7 @@ namespace EWE{
         }
 
 #if EWE_DEBUG_BOOL
-        Logger::Print<Logger::Debug>("potentially need to debug this default return, idk how it behaves\n");
+        Log::Debug("potentially need to debug this default return, idk how it behaves\n");
 #endif
         return VkSurfaceFormatKHR{};
     }

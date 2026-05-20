@@ -24,7 +24,7 @@ namespace EWE{
         for (const auto& required : requiredExtensions) {
             //std::cout << "\t" << required << std::endl;
             if (available.find(required) == available.end()) {
-                Logger::Print<Logger::Error>("failed to find extension[%s]\n", required);
+                Log::Error("failed to find extension[%s]\n", required);
                 throw std::runtime_error("missing required extension");
                 return false;
             }
@@ -80,7 +80,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if (!DebugMessenger::CheckValidationLayerSupport()) {
-            Logger::Print<Logger::Error>("validation layers not available \n");
+            Log::Error("validation layers not available \n");
             EWE_ASSERT(false && "validation layers requested, but not available!");
         }
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = DebugMessenger::GetPopulatedDebugMessengerCreateInfo();
