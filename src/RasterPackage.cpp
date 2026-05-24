@@ -125,14 +125,90 @@ namespace EWE{
 
 	}
 
+	/*
+	std::vector<ParamPointerChain> CompileAdjustPPCs(std::vector<ParamPointerChain> const& unadjusted) {
+		paramPool.Clear();
 
-		void RasterPackage::Undefer(FullRenderInfo& info){
-			//is begin render guaranteed to be first?
-			//for_each_frame{
-				deferred_vk_render_info = paramPool.param_data.front().CastTo<ParamPack<Inst::BeginRender>>();
-				info.Undefer(deferred_vk_render_info);
-			//}
+		if(objectPackages.size() > 0){
+			paramPool.PushBack(Inst::BeginRender);
 		}
+		std::vector<ParamPointerChain> ret{};
+		for(auto const& u_ppc : unadjusted){
+			Command::PackageRecord& pkgRecord = *m_rp.base;
+			RasterPackage* pointed_rasterPkg = reinterpret_cast<RasterPackage*>(pkgRecord.packages[m_rp.package_iter]);
+			if(pointed_rasterPkg == this){
+				ret.push_back(u_ppc);
+			}
+		}
+
+		//keyvaluecontainer here might be significantly faster? worth benchmarking???
+		std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> vertex_pipeline_groups;
+		std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> mesh_pipeline_groups;
+
+		for(auto& pkg : objectPackages){
+			if(pkg->GetDrawType() == Command::ObjectPackage::DrawType::Vertex){
+				AssignToPipeline(logicalDevice, vertex_pipeline_groups, pkg);
+			}
+			else if(pkg->GetDrawType() == Command::ObjectPackage::DrawType::Mesh){
+				AssignToPipeline(logicalDevice, mesh_pipeline_groups, pkg);
+			}
+		}
+
+		for(auto& group : vertex_pipeline_groups){
+			auto latest_pipeline = new GraphicsPipeline(
+				logicalDevice, 0,
+				group.first.layout, 
+				task_config, group.first.config,
+				std::vector<VkDynamicState>{VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT} 
+			);
+			created_pipelines.push_back(latest_pipeline);
+			
+			paramPool.PushBack(
+				ParamPack<Inst::BindPipeline>{
+					.pipe = latest_pipeline->vkPipe,
+					.layout = latest_pipeline->layout->vkLayout,
+					.bindPoint = latest_pipeline->layout->bindPoint
+				}
+			);
+			
+			if (latest_pipeline->layout->descriptorSets.sets.size() > 0) {
+				paramPool.PushBack(Inst::BindDescriptor);
+			}
+				
+			paramPool.PushBack(
+				ParamPack<Inst::DS_Viewport>{
+					.viewport = viewport
+				}
+			);
+			
+			paramPool.PushBack(
+				ParamPack<Inst::DS_Scissor>{
+					.scissor = scissor
+				}
+			);
+
+			for(auto& obj : group.second){
+				paramPool.PushBack(
+					ParamPack<Inst::Ext_Pool>{
+						.pool = &obj->paramPool
+					}
+				);
+			}
+		}
+
+		if(objectPackages.size() > 0){
+			paramPool.PushBack(Inst::EndRender);
+		}
+	}
+	*/
+
+	void RasterPackage::Undefer(FullRenderInfo& info){
+		//is begin render guaranteed to be first?
+		//for_each_frame{
+			deferred_vk_render_info = paramPool.param_data.front().CastTo<ParamPack<Inst::BeginRender>>();
+			info.Undefer(deferred_vk_render_info);
+		//}
+	}
 
 
 #if EWE_IMGUI

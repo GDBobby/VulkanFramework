@@ -68,7 +68,10 @@ namespace EWE{
 		std::vector<Pipeline*> created_pipelines; //tracked for deconstruction
 		
 		void Compile();
-		
+
+		//i dont need this yet, currently im using Inst::ExtPool to prevent copying/moving the data
+		//std::vector<ParamPointerChain> CompileAdjustPPCs(std::vector<ParamPointerChain> const& unadjusted);
+
 		void AdjustPipelines();
 
 		void Undefer(FullRenderInfo& info);

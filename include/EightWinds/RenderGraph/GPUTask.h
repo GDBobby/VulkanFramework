@@ -35,6 +35,7 @@ namespace EWE{
             std::vector<ParamPointerChain> resource_pointers;
         };
         Meta meta;
+        Meta compiled_meta; //put this into subtask or rendergraph maybe?
 
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
