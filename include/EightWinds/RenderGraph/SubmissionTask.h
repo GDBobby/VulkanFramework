@@ -31,7 +31,7 @@ namespace EWE{
 
         bool uses_present_image = false;
         
-        [[nodiscard]] explicit SubmissionTask(std::string_view name, LogicalDevice& logicalDevice, Queue& queue);
+        [[nodiscard]] explicit SubmissionTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);
 
         void CollectTaskWorkloads();
         bool Execute(uint8_t frameIndex);

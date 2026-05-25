@@ -25,8 +25,8 @@ namespace EWE{
 
 #if EWE_DEBUG_NAMING
         std::string name;
-        void SetName(std::string_view name);
 #endif
+        void SetName(std::string_view name);
 
         void Create();
         void Create(VkImageViewCreateInfo const& createInfo);

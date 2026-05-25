@@ -133,10 +133,6 @@ namespace EWE{
 		image.Create(vmaAllocCreateInfo);
 	}
 
-	void GenerateImage(Image* img_ptr, ImageView* view_ptr, uint32_t width, uint32_t height){
-		
-	}
-
 	void RenderAttachments::GenerateImage(
 		PerFlight<Image*> img_con_addr, 
 		PerFlight<ImageView*> view_con_addr, 

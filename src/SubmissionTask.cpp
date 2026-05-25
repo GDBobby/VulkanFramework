@@ -15,7 +15,7 @@ namespace EWE{
     }
     */
 
-    SubmissionTask::SubmissionTask(std::string_view _name, LogicalDevice& _logicalDevice, Queue& _queue)
+    SubmissionTask::SubmissionTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue)
         : logicalDevice{_logicalDevice}, queue{&_queue},
         cmdPool{logicalDevice, *queue, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
         cmdBuffers{ cmdPool.AllocateCommandsPerFlight(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },

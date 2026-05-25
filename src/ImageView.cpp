@@ -124,10 +124,10 @@ namespace EWE{
     }
 
 
-#if EWE_DEBUG_NAMING
     void ImageView::SetName(std::string_view _name) {
+#if EWE_DEBUG_NAMING
         name = _name;
         image.logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE_VIEW, name);
-    }
 #endif
+    }
 }

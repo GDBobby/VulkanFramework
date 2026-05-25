@@ -618,9 +618,7 @@ namespace EWE {
 		ReadReflection(dataSize, data);
 		Log::Debug("ending reflection of : %s\n", fileLocation.string().c_str());
 		CompileModule(dataSize, data);
-#if EWE_DEBUG_NAMING
 		SetDebugName(fileLocation.string());
-#endif
 		logicalDevice.shaders.Add(this);
 	}
 
@@ -653,10 +651,10 @@ namespace EWE {
 	}
 #endif
 
-#if EWE_DEBUG_NAMING
 	void Shader::SetDebugName(std::string_view _name) {
+#if EWE_DEBUG_NAMING
 		logicalDevice.SetObjectName(shaderStageCreateInfo.module, VK_OBJECT_TYPE_SHADER_MODULE, _name);
-	}
 #endif
+	}
 
 } //namespace EWE

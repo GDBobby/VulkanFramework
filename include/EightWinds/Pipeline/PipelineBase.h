@@ -41,9 +41,7 @@ namespace EWE {
 		//im retiring shader specialization constants for at least a moment
 		//KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> copySpecInfo;
 		
-#if EWE_DEBUG_NAMING
 		void SetDebugName(const char* name);
-#endif
 	};
 
 

@@ -56,8 +56,6 @@ namespace EWE {
 		void HotReload();
 		void DrawImgui();
 #endif
-#if EWE_DEBUG_NAMING
-		void SetDebugName(const char* name);
-#endif
+		void SetDebugName(std::string_view name);
 	};
 } //namespace EWE

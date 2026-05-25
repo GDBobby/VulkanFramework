@@ -16,7 +16,7 @@ namespace EWE{
 
         std::vector<QueueFamily> queueFamilies{};
         queueFamilies.reserve(vkFamilies.size());
-        EWE_ASSERT(vkFamilies.size() <= 255); //this would be an embarrassing bug
+        EWE_ASSERT(vkFamilies.size() <= 255);
         for (uint8_t i = 0; i < vkFamilies.size(); i++) {
             VkBool32 tempBool;
             vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &tempBool);

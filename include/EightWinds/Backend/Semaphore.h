@@ -32,8 +32,8 @@ namespace EWE{
         
 #if EWE_DEBUG_NAMING
         std::string debugName;
-        void SetName(std::string_view name);
 #endif
+        void SetName(std::string_view name);
 
         bool operator==(BinarySemaphore const& other) const{
             return vkSemaphore == other.vkSemaphore;
@@ -80,8 +80,8 @@ namespace EWE{
         
 #if EWE_DEBUG_NAMING
         std::string debugName;
-        void SetName(std::string_view name);
 #endif
+        void SetName(std::string_view name);
 
         bool operator==(TimelineSemaphore const& other) const{
             return vkSemaphore == other.vkSemaphore;

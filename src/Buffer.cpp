@@ -171,5 +171,5 @@ namespace EWE{
         name = _name;
         logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);   
 #endif
-}
+    }
 } //namespace EWE

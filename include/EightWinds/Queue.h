@@ -54,7 +54,7 @@ namespace EWE{
 
 #if EWE_DEBUG_NAMING
         std::string debugName;
-        void SetName(std::string_view name);
 #endif
+        void SetName(std::string_view name);
     };
 }

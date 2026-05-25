@@ -3,6 +3,7 @@
 #include "EightWinds/CommandBuffer.h"
 
 #include <array>
+#include <vulkan/vulkan_core.h>
 
 namespace EWE{
 
@@ -17,6 +18,7 @@ namespace EWE{
             .flags = flags,
             .queueFamilyIndex = queue.family.index
         };
+        //Log::Debug("vkcreatecommandpool addr : %zu\n", reinterpret_cast<std::size_t>(reinterpret_cast<void*>(vkCreateCommandPool)));
         EWE_VK(vkCreateCommandPool,
             logicalDevice.device, 
             &commandPoolCreateInfo, 

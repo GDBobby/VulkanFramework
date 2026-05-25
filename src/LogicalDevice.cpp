@@ -31,8 +31,8 @@ namespace EWE{
         };
 
         for (uint8_t i = 0; i < physicalDevice.queueFamilies.size(); i++) {
-            queueCreateInfo.queueFamilyIndex = physicalDevice.queueFamilies[i].index;
             auto& family = physicalDevice.queueFamilies[i];
+            queueCreateInfo.queueFamilyIndex = family.index;
 
             const float familyOffset = (i * 0.01f);
 

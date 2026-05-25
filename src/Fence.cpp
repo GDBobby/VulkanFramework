@@ -50,9 +50,9 @@ namespace EWE{
         return true;
     }
     
-#if EWE_DEBUG_NAMING
         void Fence::SetName(std::string_view name){
+#if EWE_DEBUG_NAMING
             logicalDevice.SetObjectName(vkFence, VK_OBJECT_TYPE_FENCE, name);
-        }
 #endif
+        }
 }

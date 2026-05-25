@@ -55,10 +55,10 @@ namespace EWE {
 	{}
 	*/
 
-#if EWE_DEBUG_NAMING
 	void Pipeline::SetDebugName(const char* name) {
+#if EWE_DEBUG_NAMING
 		logicalDevice.SetObjectName(vkPipe, VK_OBJECT_TYPE_PIPELINE, name);
 		layout->SetDebugName(name);
-	}
 #endif
+	}
 }

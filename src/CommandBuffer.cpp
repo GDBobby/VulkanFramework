@@ -62,10 +62,10 @@ namespace EWE{
         EWE_VK(vkBeginCommandBuffer, cmdBuf, &beginInfo);
     }
 
-#if EWE_DEBUG_NAMING
     void CommandBuffer::SetDebugName(std::string_view name) {
+#if EWE_DEBUG_NAMING
         debugName = name;
         commandPool.logicalDevice.SetObjectName(cmdBuf, VK_OBJECT_TYPE_COMMAND_BUFFER, name);
-    }
 #endif
+    }
 }

@@ -38,8 +38,8 @@ namespace EWE{
         }
 #if EWE_DEBUG_NAMING
         std::stacktrace creation_trace{std::stacktrace::current(1)};
-        void SetName(std::string_view name);
 #endif
+        void SetName(std::string_view name);
 
         struct Data{
             VkExtent3D extent;

@@ -30,7 +30,9 @@ namespace EWE{
 
         [[nodiscard]] explicit RenderGraph(
             LogicalDevice& logicalDevice, Swapchain& swapchain, 
-            Queue& renderQueue, Queue& computeQueue
+            Queue& renderQueue, Queue& computeQueue,
+            SubmissionTask& graphics_stc_task,
+            SubmissionTask& compute_stc_task
         );
         RenderGraph(RenderGraph const& copySrc) = delete;
         RenderGraph(RenderGraph&& moveSrc) = delete;
@@ -43,6 +45,9 @@ namespace EWE{
         Swapchain& swapchain;
         Queue& renderQueue;
         Queue& computeQueue;
+
+        SubmissionTask& graphics_stc_task;
+        SubmissionTask& compute_stc_task;
 
         PresentBridge presentBridge;
         SynchronizationManager syncManager;
@@ -70,8 +75,6 @@ namespace EWE{
         //this needs to be ran every frame
         void UpdateSemaphores(uint8_t frameIndex, STCManagement* frame_stc_manager);
 
-        SubmissionTask* graphics_stc_task;
-        SubmissionTask* compute_stc_task;
         RingBuffer<STCManagement, max_frames_in_flight + 1> stc_management;
         STCManagement* current_stc_manager;
 

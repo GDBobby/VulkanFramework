@@ -330,9 +330,9 @@ namespace EWE {
 	}
 #endif
 
+	void PipeLayout::SetDebugName(std::string_view name) {
 #if EWE_DEBUG_NAMING
-	void PipeLayout::SetDebugName(const char* name) {
 		logicalDevice.SetObjectName(vkLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name);
-	}
 #endif
+	}
 }

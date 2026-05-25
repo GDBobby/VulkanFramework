@@ -35,11 +35,11 @@ namespace EWE{
         return *this;
     }
     
-#if EWE_DEBUG_NAMING
         void BinarySemaphore::SetName(std::string_view name){
+#if EWE_DEBUG_NAMING
             logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
-        }
 #endif
+        }
 
 
 
@@ -98,11 +98,11 @@ namespace EWE{
         return *this;
     }
     
-#if EWE_DEBUG_NAMING
         void TimelineSemaphore::SetName(std::string_view name){
+#if EWE_DEBUG_NAMING
             logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
-        }
 #endif
+        }
 
 
     VkSemaphoreSubmitInfo TimelineSemaphore::GetSignalSubmitInfo(VkPipelineStageFlags2 stageMask) noexcept{
