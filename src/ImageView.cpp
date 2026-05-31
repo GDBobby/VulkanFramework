@@ -47,7 +47,6 @@ namespace EWE{
             default: 
                 break;
         }
-        
 
         return VkImageSubresourceRange{
             .aspectMask = aspectMask,
@@ -77,10 +76,10 @@ namespace EWE{
             .viewType = ImageTypeToViewType(image.data.type, image.data.arrayLayers),
             .format = image.data.format,
             .components = VkComponentMapping{
-                                        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                        .a = VK_COMPONENT_SWIZZLE_IDENTITY
+                .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                .a = VK_COMPONENT_SWIZZLE_IDENTITY
             },
 
             .subresourceRange = GetDefaultSubresource(image)

@@ -42,18 +42,7 @@ namespace EWE{
         //images only. use DBA for buffers
         struct BindlessDescriptor{
             LogicalDevice& logicalDevice;
-
-            [[nodiscard]] explicit BindlessDescriptor(LogicalDevice& logicalDevice);
-            ~BindlessDescriptor();
-
-
-            static constexpr std::size_t max_images_per_type{UINT16_MAX};
-
             std::array<std::bitset<max_images_per_type>, static_cast<size_t>(DescriptorType::COUNT)> occupancy;
-
-            TextureIndex BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType descriptorType);
-
-            void Unbind(TextureIndex index, DescriptorType type);
 
             //i can overfill this with information a bit since it's only every going to be created once
             VkDescriptorPool pool;
@@ -76,6 +65,15 @@ namespace EWE{
             */
             std::array<VkDescriptorSetLayoutBinding, static_cast<size_t>(DescriptorType::COUNT)> bindings;
 
+            [[nodiscard]] explicit BindlessDescriptor(LogicalDevice& logicalDevice);
+            ~BindlessDescriptor();
+
+
+            static constexpr std::size_t max_images_per_type{UINT16_MAX};
+
+            
+            TextureIndex BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType descriptorType);
+            void Unbind(TextureIndex index, DescriptorType type);
         private:
             //id prefer to put these in the implementation only, but I need to set other members. by reference maybe?
             void CreateLayout();
