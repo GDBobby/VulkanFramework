@@ -29,10 +29,16 @@ namespace EWE {
 		LogicalDevice& logicalDevice;
 		VkPipelineLayout vkLayout;
 		//i suspect theres a mismangement of the Tracker references here
-		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::span<Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
+		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
 
+		template<std::size_t... Is>
+		static PipeLayout* CreateWithArrayImpl(LogicalDevice& logicalDevice, 
+											const std::array<Shader*, ShaderStage::COUNT>& shaders, 
+											std::index_sequence<Is...>) {
+			return new PipeLayout(logicalDevice, { shaders[Is]... });
+		}
 		static PipeLayout* DefaultLayoutCreation(LogicalDevice& logicalDevice, std::array<Shader*, ShaderStage::COUNT> shaders){
-			return new PipeLayout(logicalDevice, shaders);
+			return CreateWithArrayImpl(logicalDevice, shaders, std::make_index_sequence<ShaderStage::COUNT>{});
 		}
 
 		inline static std::function<PipeLayout*(LogicalDevice& logicalDevice, std::array<Shader*, ShaderStage::COUNT> shaders)> GetLayout = DefaultLayoutCreation;

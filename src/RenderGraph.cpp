@@ -378,9 +378,14 @@ namespace EWE{
     }
 
 
-    template <> void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Image> data) {
+    template <> 
+    void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Image> data) {
         //do flip flop storage
         current_stc_manager->image_ownership.push_back(data);
 
+    }
+    template<>
+    void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Buffer> data){
+        current_stc_manager->buffer_ownership.push_back(data);
     }
 }

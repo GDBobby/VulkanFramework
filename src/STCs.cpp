@@ -55,10 +55,16 @@ namespace EWE{
 
         for(std::size_t i = 0; i < image_ownership.size(); i++){
             if(*image_ownership[i].dstQueue == graphicsQueue){
-                graphics_image_barriers.push_back(image_ownership[i].barrier);
+                graphics_image_barriers.push_back(image_ownership[i].barrier[0]);
+                if(image_ownership[i].res.UniquePerFlight()){
+                    graphics_image_barriers.push_back(image_ownership[i].barrier[1]);
+                }
             }
             else if(*image_ownership[i].dstQueue == computeQueue){
-                compute_image_barriers.push_back(image_ownership[i].barrier);
+                compute_image_barriers.push_back(image_ownership[i].barrier[0]);
+                if(image_ownership[i].res.UniquePerFlight()){
+                    compute_image_barriers.push_back(image_ownership[i].barrier[1]);
+                }
             }
             else{
                 EWE_UNREACHABLE;
@@ -66,10 +72,16 @@ namespace EWE{
         }
         for(std::size_t i = 0; i < buffer_ownership.size(); i++){
             if(*buffer_ownership[i].dstQueue == graphicsQueue){
-                graphics_buffer_barriers.push_back(buffer_ownership[i].barrier);
+                graphics_buffer_barriers.push_back(buffer_ownership[i].barrier[0]);
+                if(buffer_ownership[i].res.UniquePerFlight()){
+                    graphics_buffer_barriers.push_back(buffer_ownership[i].barrier[1]);
+                }
             }
             else if(*buffer_ownership[i].dstQueue == computeQueue){
-                compute_buffer_barriers.push_back(buffer_ownership[i].barrier);
+                compute_buffer_barriers.push_back(buffer_ownership[i].barrier[0]);
+                if(buffer_ownership[i].res.UniquePerFlight()){
+                    compute_buffer_barriers.push_back(buffer_ownership[i].barrier[1]);
+                }
             }
             else{
                 EWE_UNREACHABLE;
@@ -89,9 +101,6 @@ namespace EWE{
         //VK_DEPENDENCY_QUEUE_FAMILY_OWNERSHIP_TRANSFER_USE_ALL_STAGES_BIT_KHR probably use this? idk 
         //https://docs.vulkan.org/spec/latest/chapters/synchronization.html#synchronization-queue-transfers search for the flag
         //VUID-vkCmdPipelineBarrier-maintenance8-10206 : If the maintenance8 feature is not enabled, dependencyFlags must not include ^ 
-        
-
-        
     }
 
     void STCManagement::Clear(){
@@ -110,6 +119,12 @@ namespace EWE{
             img.res.resource[0]->data.layout = img.res.usage.layout;
             img.res.resource[0]->readyForUsage = true;
             img.res.resource[0]->owningQueue = img.dstQueue;
+        }
+        for(auto& buf : buffer_ownership){
+            for_each_frame{
+                buf.res.resource[frame]->owningQueue = buf.dstQueue;
+                buf.res.resource[frame]->existsOnTheGPU = true;
+            }
         }
         image_ownership.clear();
         buffer_ownership.clear();

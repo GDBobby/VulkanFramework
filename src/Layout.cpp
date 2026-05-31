@@ -33,8 +33,6 @@ namespace EWE {
 			if (shader == nullptr) {
 				continue;
 			}
-			//highestSize = lab::Max(highestSize, static_cast<uint8_t>(shader->descriptorSets->setLayouts.size()));
-			//im not including lab in the framework anymore
 			const uint8_t tempSize = static_cast<uint8_t>(shader->descriptorSets.sets.size());
 			highestSize = highestSize > tempSize ? highestSize : tempSize;
 		}
@@ -222,7 +220,7 @@ namespace EWE {
 		*/
 	}
 
-	PipeLayout::PipeLayout(LogicalDevice& _logicalDevice, std::span<::EWE::Shader*> _shaders, VkDescriptorSetLayout dsl) noexcept
+	PipeLayout::PipeLayout(LogicalDevice& _logicalDevice, std::initializer_list<::EWE::Shader*> _shaders, VkDescriptorSetLayout dsl) noexcept
 		: logicalDevice{_logicalDevice}
 	{
 		this->shaders.fill(nullptr);

@@ -103,10 +103,10 @@ namespace EWE {
 		std::vector<KVPair> inner_data;
 		using iterator = std::vector<KVPair>::iterator;
 	public:
-		constexpr KeyValueContainer() : inner_data{} {}
-		constexpr KeyValueContainer(std::size_t count) : inner_data{ count } {  }
-		constexpr KeyValueContainer(std::size_t count, KVPair const& value) : inner_data{ count, value } {  }
-		constexpr KeyValueContainer(std::initializer_list<KVPair> init) : inner_data{ init } {  }
+		[[nodiscard]] constexpr KeyValueContainer() : inner_data{} {}
+		[[nodiscard]] constexpr KeyValueContainer(std::size_t count) : inner_data{ count } {  }
+		[[nodiscard]] constexpr KeyValueContainer(std::size_t count, KVPair const& value) : inner_data{ count, value } {  }
+		[[nodiscard]] constexpr KeyValueContainer(std::initializer_list<KVPair> init) : inner_data{ init } {  }
 
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_copy_constructible_v<K>&& std::is_copy_constructible_v<V>>>
 		KeyValueContainer(KeyValueContainer& copySource) : inner_data{copySource.inner_data.begin(), copySource.inner_data.end() } {}

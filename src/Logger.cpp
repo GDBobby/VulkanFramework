@@ -1,4 +1,4 @@
-#include "EightWinds/Backend/Logger.h"
+#include "EightWinds/Logger.h"
 
 #include <cstdarg>
 #include <cstdio>

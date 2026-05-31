@@ -110,54 +110,18 @@ namespace EWE{
 			
 			CopyBufferToImage(cmdBuf, vkbuffer, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 		}
-		
-	}
 
-	//TransferCommandPackage::TransferCommandPackage(LogicalDevice& logicalDevice, Queue& queue)
-	//	: logicalDevice{logicalDevice},
-	//	queue{queue},
-	//	pool{ logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT },
-	//	cmdBuf{pool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY) }
-	//{
-
-	//}
-	
-	void SingleQueueTransferContext_Image::Commands(CommandBuffer& cmdBuf){
-		UsageData<Image> usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			.layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-		};
-		if(resource.usage.layout == VK_IMAGE_LAYOUT_GENERAL){
-			usage.layout = VK_IMAGE_LAYOUT_GENERAL;
+		void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs, VkBufferCopy const& copyInfo){
+			vkCmdCopyBuffer(cmdBuf, lhs.buffer, rhs.buffer_info.buffer, 1, &copyInfo);
 		}
-		Resource<Image> lh_resource{*resource.resource[0], usage};
+		void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs){
+			VkBufferCopy copyInfo{
+				.srcOffset = 0,
+				.dstOffset = 0,
+				.size = lhs.bufferSize
+			};
+			CopyBufferToBuffer(cmdBuf, lhs, rhs, copyInfo);
+		}
 		
-		{ //initial transition from UNDEFINED to either TRANSFER_DST_OPTIMAL or GENERAL
-			auto initial_transition_barrier = Barrier::Acquire_Image(dstQueue, lh_resource, 0);
-			VkDependencyInfo dependency_info{
-				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-				.pNext = nullptr,
-				.memoryBarrierCount = 0,
-				.bufferMemoryBarrierCount = 0,
-				.imageMemoryBarrierCount = 1,
-				.pImageMemoryBarriers = &initial_transition_barrier
-			};
-			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
-		}
-		Command_Helper::CopyBufferToImage(cmdBuf, stagingBuffer->buffer, *resource.resource[0], image_region, usage.layout);
-		if(lh_resource.usage.layout != resource.usage.layout){
-			auto ownershipBarrier = Barrier::Acquire_Image(dstQueue, resource, 0);
-			
-			VkDependencyInfo dependency_info{
-				.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-				.pNext = nullptr,
-				.memoryBarrierCount = 0,
-				.bufferMemoryBarrierCount = 0,
-				.imageMemoryBarrierCount = 1,
-				.pImageMemoryBarriers = &ownershipBarrier
-			};
-			vkCmdPipelineBarrier2(cmdBuf, &dependency_info);
-		}
 	}
 }

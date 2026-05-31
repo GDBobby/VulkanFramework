@@ -7,7 +7,7 @@
 #endif
 
 
-#include "EightWinds/Backend/Logger.h"
+#include "EightWinds/Logger.h"
 
 #define EWE_USING_EXCEPTIONS true
 

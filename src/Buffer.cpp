@@ -61,8 +61,9 @@ namespace EWE{
         CreateTheVkBuffer(vmaAllocCreateInfo);
 
 #if EWE_DEBUG_NAMING
-        if(name != ""){
-            SetName(name);
+        auto const name_str = name.string();
+        if(name_str != ""){
+            SetName(name_str);
         }
 #endif
     }
@@ -169,7 +170,7 @@ namespace EWE{
     void Buffer::SetName(std::string_view _name) {
 #if EWE_DEBUG_NAMING
         name = _name;
-        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, name);   
+        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, _name);   
 #endif
     }
 } //namespace EWE

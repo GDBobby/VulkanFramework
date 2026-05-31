@@ -20,9 +20,9 @@ namespace EWE{
 
         LogicalDevice& logicalDevice;
         Queue* owningQueue;
-        std::string name;
+        std::filesystem::path name;
 
-        [[nodiscard]] Buffer(LogicalDevice& device); //does not get initialized on the GPU
+        [[nodiscard]] explicit Buffer(LogicalDevice& device); //does not get initialized on the GPU
         
         [[nodiscard]] explicit Buffer(
             LogicalDevice& logicalDevice, 
@@ -32,9 +32,10 @@ namespace EWE{
         );
         ~Buffer();
 
-        void Init(VkDeviceSize instanceSize, uint32_t instanceCount,
-                  VmaAllocationCreateInfo const& vmaAllocCreateInfo,
-                  VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+        void Init(
+            VkDeviceSize instanceSize, uint32_t instanceCount,
+            VmaAllocationCreateInfo const& vmaAllocCreateInfo,
+            VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
         );
 
         Buffer(Buffer const& copySrc) = delete;

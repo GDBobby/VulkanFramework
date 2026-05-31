@@ -28,7 +28,7 @@ namespace EWE{
 
         template<typename R>
         struct Helper{
-            R::Barrier barrier;
+            PerFlight<typename R::Barrier> barrier;
             Resource<R> res;
             Queue* dstQueue;
         };

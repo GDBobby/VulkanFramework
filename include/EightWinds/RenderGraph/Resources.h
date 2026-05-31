@@ -46,6 +46,10 @@ namespace EWE{
         :resource{_resource},
             usage{ _usage }
         {}
+
+        bool UniquePerFlight() const{
+            return (resource[0] != resource[1]) && (resource[1] != nullptr);
+        }
     };
 
     struct TaskResourceUsage{
