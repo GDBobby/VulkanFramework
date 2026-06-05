@@ -31,12 +31,14 @@ namespace EWE{
 		dependencyInfo.pBufferMemoryBarriers = nullptr;
     }
     
-    void PresentBridge::UpdateSrcData(Queue* lhsQueue, Resource<Image>* resource, uint8_t frameIndex) {
-        imageBarrier.image = *resource->resource[frameIndex];
-        imageBarrier.srcQueueFamilyIndex = lhsQueue->family.index;
-        imageBarrier.srcAccessMask = resource->usage.accessMask; //idk what to put here
-        imageBarrier.srcStageMask = resource->usage.stage;
-        imageBarrier.oldLayout = resource->usage.layout;
+    void PresentBridge::UpdateSrcData(uint8_t frameIndex) {
+        auto& res = *final_swap_img_usage;
+        auto& swapImage = *res.resource[frameIndex];
+        imageBarrier.image = swapImage.image;
+        imageBarrier.srcQueueFamilyIndex = swapImage.owningQueue->family.index;
+        imageBarrier.srcAccessMask = res.usage.accessMask; //idk what to put here
+        imageBarrier.srcStageMask = res.usage.stage;
+        imageBarrier.oldLayout = res.usage.layout;
         return;
     }
 

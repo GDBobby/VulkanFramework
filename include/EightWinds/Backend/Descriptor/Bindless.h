@@ -41,6 +41,8 @@ namespace EWE{
 
         //images only. use DBA for buffers
         struct BindlessDescriptor{
+            static constexpr std::size_t max_images_per_type{UINT16_MAX};
+
             LogicalDevice& logicalDevice;
             std::array<std::bitset<max_images_per_type>, static_cast<size_t>(DescriptorType::COUNT)> occupancy;
 
@@ -67,10 +69,6 @@ namespace EWE{
 
             [[nodiscard]] explicit BindlessDescriptor(LogicalDevice& logicalDevice);
             ~BindlessDescriptor();
-
-
-            static constexpr std::size_t max_images_per_type{UINT16_MAX};
-
             
             TextureIndex BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType descriptorType);
             void Unbind(TextureIndex index, DescriptorType type);

@@ -2,7 +2,8 @@
 
 #include "EightWinds/ImageView.h"
 
-#include "EightWinds/Backend/STC_Helper.h"
+#include "EightWinds/Command/STC_Helper.h"
+
 #include <cstddef>
 #include <vulkan/vulkan_core.h>
 

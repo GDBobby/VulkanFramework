@@ -139,6 +139,16 @@ namespace EWE{
         }
     }
 
+    void RenderGraph::UpdateSwapImage(uint8_t frameIndex){
+        auto& swapImage = swapchain.GetCurrentImage();
+        swapImage.data.layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        for(auto& simg : swap_image_instances){
+            ChangeResource(*simg.task, simg.res_index, &swapImage, frameIndex);
+        }
+        presentBridge.UpdateSrcData(frameIndex);
+    }
+
     void RenderGraph::ClearAllBarriers(uint8_t frameIndex) {
         for (auto& task : tasks) {
             task->prefix.Clear(frameIndex);
@@ -290,9 +300,7 @@ namespace EWE{
         }
     }
 
-    void RenderGraph::UpdateSemaphores(uint8_t frameIndex, STCManagement* frame_stc_manager){
-
-
+    void RenderGraph::UpdateSemaphores(uint8_t frameIndex, STC_Submitter* frame_stc_manager) {
         const bool submitting_compute_stc = frame_stc_manager->CheckSize(Queue::Compute);
         const bool submitting_graphics_stc = frame_stc_manager->CheckSize(Queue::Graphics);
 
@@ -329,7 +337,6 @@ namespace EWE{
                 ind_sub->submitInfo[frameIndex].waitSemaphores.clear();
             }
         }
-
 
         if(first_graphics_task_group >= 0){
             auto& sig_sem = graphics_stc_task.submitInfo[frameIndex].signalSemaphores[0];
@@ -370,22 +377,18 @@ namespace EWE{
                 }
             }
         }
-
         present_wait_semaphore_data[frameIndex].semaphore = swapchain.GetAcquireSemaphore(frameIndex);
         present_wait_raw_semaphore_data[frameIndex].back() = swapchain.GetCurrentPresentSemaphore();
         execution_order.back()[0]->submitInfo[frameIndex].signalSemaphores[0].semaphore = present_wait_raw_semaphore_data[frameIndex].back();
-
     }
-
 
     template <> 
-    void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Image> data) {
+    void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Image> const& data) {
         //do flip flop storage
         current_stc_manager->image_ownership.push_back(data);
-
     }
     template<>
-    void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Buffer> data){
+    void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Buffer> const& data){
         current_stc_manager->buffer_ownership.push_back(data);
     }
 }

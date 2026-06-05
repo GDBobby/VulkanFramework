@@ -31,4 +31,31 @@ namespace EWE{
 		blendConstants[2] = 0.f;
 		blendConstants[3] = 0.f;
 	}
+
+	bool ObjectRasterConfig::operator==(ObjectRasterConfig const& other) const noexcept {
+		return
+			depthClamp == other.depthClamp &&
+			rasterizerDiscard == other.rasterizerDiscard &&
+			polygonMode == other.polygonMode &&
+			cullMode == other.cullMode &&
+			frontFace == other.frontFace &&
+			depthBias == other.depthBias &&
+			topology == other.topology &&
+			primitiveRestart == other.primitiveRestart &&
+
+			blendAttachment.blendEnable == other.blendAttachment.blendEnable &&
+			blendAttachment.srcColorBlendFactor == other.blendAttachment.srcColorBlendFactor &&
+			blendAttachment.dstColorBlendFactor == other.blendAttachment.dstColorBlendFactor &&
+			blendAttachment.colorBlendOp == other.blendAttachment.colorBlendOp &&
+			blendAttachment.srcAlphaBlendFactor == other.blendAttachment.srcAlphaBlendFactor &&
+			blendAttachment.dstAlphaBlendFactor == other.blendAttachment.dstAlphaBlendFactor &&
+			blendAttachment.alphaBlendOp == other.blendAttachment.alphaBlendOp &&
+			blendAttachment.colorWriteMask == other.blendAttachment.colorWriteMask &&
+
+			blendConstants[0] == other.blendConstants[0] &&
+			blendConstants[1] == other.blendConstants[1] &&
+			blendConstants[2] == other.blendConstants[2] &&
+			blendConstants[3] == other.blendConstants[3]
+		;
+	}
 }

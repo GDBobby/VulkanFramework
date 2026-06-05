@@ -449,6 +449,7 @@ namespace EWE {
 		return returnVec;
 	}
 
+	/*
 	void AddBinding(spirv_cross::Compiler const& compiler, Backend::Descriptor::LayoutPack& layoutPack, spirv_cross::Resource const& res, VkDescriptorType descType, VkShaderStageFlagBits stageFlag) {
 		const uint32_t setIndex = compiler.get_decoration(res.id, spv::DecorationDescriptorSet);
 		
@@ -519,6 +520,7 @@ namespace EWE {
 
 		return ret;
 	}
+	*/
 
 	void Shader::ReadReflection(const std::size_t dataSize, const void* data) {
 
@@ -541,6 +543,14 @@ namespace EWE {
 		auto const& resources = compiler.get_shader_resources();
 
 
+		//AddBindingType(resources.uniform_buffers, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+		//AddBindingType(resources.storage_buffers, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+		has_bindless_textures |= resources.sampled_images.size() > 0;
+		has_bindless_textures |= resources.storage_images.size() > 0;
+		has_bindless_textures |= resources.separate_samplers.size() > 0;
+		has_bindless_textures |= resources.separate_images.size() > 0;
+
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wshadow"
 		template for(constexpr auto mem : std::define_static_array(std::meta::nonstatic_data_members_of(^^std::decay_t<decltype(resources)>, std::meta::access_context::current()))){
@@ -551,7 +561,6 @@ namespace EWE {
 			}
 		}
 #pragma GCC diagnostic pop
-
 
 		pushRange.size = 0;
 		pushRange.offset = 0;
@@ -569,7 +578,7 @@ namespace EWE {
 		shaderStageCreateInfo.pSpecializationInfo = nullptr;
 		shaderStageCreateInfo.flags = 0;
 		
-		descriptorSets = CreateDescriptorLayoutPack(compiler, shaderStageCreateInfo.stage);
+		//descriptorSets = CreateDescriptorLayoutPack(compiler, shaderStageCreateInfo.stage);
 
 		//defaultSpecConstants.Clear();
 		//InterpretSpecializationConstants(compiler, defaultSpecConstants);
@@ -593,8 +602,7 @@ namespace EWE {
 
 	Shader::Shader(LogicalDevice& _logicalDevice, std::filesystem::path const& fileLocation) 
     : logicalDevice{_logicalDevice}, 
-		name{ fileLocation }, 
-		descriptorSets{},
+		name{ fileLocation },
 		meta{}
 	{
 		std::vector<char> shaderData = ReadShaderFile(fileLocation);
@@ -611,8 +619,7 @@ namespace EWE {
 
 	Shader::Shader(LogicalDevice& _logicalDevice, std::filesystem::path const& fileLocation, const std::size_t dataSize, const void* data) 
     : logicalDevice{_logicalDevice}, 
-		name{ fileLocation }, 
-		descriptorSets{} 
+		name{ fileLocation }
 	{
 		Log::Debug("beginning reflection of : %s\n", fileLocation.string().c_str());
 		ReadReflection(dataSize, data);
@@ -623,7 +630,8 @@ namespace EWE {
 	}
 
 	Shader::Shader(LogicalDevice& _logicalDevice) 
-    : logicalDevice{_logicalDevice}, name{} 
+    : logicalDevice{_logicalDevice}, 
+		name{} 
 	{
 		logicalDevice.shaders.Add(this);}
 	

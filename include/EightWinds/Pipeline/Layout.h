@@ -2,7 +2,6 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Shader.h"
-#include "EightWinds/Backend/Descriptor/SetLayout.h"
 
 #include "EightWinds/Data/KeyValueContainer.h"
 
@@ -47,7 +46,7 @@ namespace EWE {
 		//i dont like the array much, i might do a KeyValuePair or something
 		std::array<Shader*, ShaderStage::COUNT> shaders;
 
-		Backend::Descriptor::LayoutPack descriptorSets;
+		bool has_bindless_textures = false;
 		VkPushConstantRange pushConstantRange{};
 		PipelineType pipelineType;
 		VkPipelineBindPoint bindPoint; //

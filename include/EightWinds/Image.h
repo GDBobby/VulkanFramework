@@ -67,9 +67,6 @@ namespace EWE{
         //Queue owningQueue; //necessary? need to see the rendergraph first
 
         bool Create(VmaAllocationCreateInfo const& allocCreateInfo);
-
-        //this will handle the transfer behind the scenes
-        bool Create(VmaAllocationCreateInfo const& allocCreateInfo, StagingBuffer* pixeldata);
     };
     
     /*

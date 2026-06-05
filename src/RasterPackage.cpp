@@ -94,7 +94,7 @@ namespace EWE{
 				}
 			);
 			
-			if (latest_pipeline->layout->descriptorSets.sets.size() > 0) {
+			if (latest_pipeline->layout->has_bindless_textures) {
 				paramPool.PushBack(Inst::BindDescriptor);
 			}
 				

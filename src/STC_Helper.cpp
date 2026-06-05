@@ -1,24 +1,28 @@
-#include "EightWinds/Backend/STC_Helper.h"
+#include "EightWinds/Command/STC_Helper.h"
 
 #include "EightWinds/CommandBuffer.h"
 #include "EightWinds/CommandPool.h"
 #include "EightWinds/Image.h"
 #include "EightWinds/Buffer.h"
+#include "EightWinds/Queue.h"
 
 #include "EightWinds/Backend/Fence.h"
-
+#include "EightWinds/Backend/StagingBuffer.h"
 #include "EightWinds/Backend/PipelineBarrier.h"
+
+#include "EightWinds/Command/STC.h"
+
 
 
 namespace EWE{
 	
-	struct STC_Helper{
+	struct Transition_Helper{
 		LogicalDevice& logicalDevice;
 		Queue& queue;
 		EWE::CommandPool cmdPool;
 		EWE::CommandBuffer cmdBuf;
 		
-		STC_Helper(LogicalDevice& _logicalDevice, Queue& _queue)
+		Transition_Helper(LogicalDevice& _logicalDevice, Queue& _queue)
 		: logicalDevice{_logicalDevice},
 			queue{_queue},
 			cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
@@ -73,55 +77,55 @@ namespace EWE{
 		}
 	};
 	
-	namespace Command_Helper {
-		void Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait) {
-			STC_Helper stc_Helper(logicalDevice, queue);
+namespace Command_Helper {
+	void Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait) {
+		Transition_Helper stc_Helper(logicalDevice, queue);
 
-			vkCmdPipelineBarrier2(stc_Helper.cmdBuf, &dependencyInfo);
+		vkCmdPipelineBarrier2(stc_Helper.cmdBuf, &dependencyInfo);
 
-			stc_Helper.Submit(wait);
+		stc_Helper.Submit(wait);
 
-		}
-		void CopyBufferToImage(CommandBuffer& cmdBuf, VkBuffer buffer, Image& img, VkBufferImageCopy const& region, VkImageLayout layout){
-            vkCmdCopyBufferToImage(
-                cmdBuf,
-                buffer,
-                img.image, layout,
-                1, &region
-            );
-		}
-		void CopyBufferToImage(CommandBuffer& cmdBuf, VkBuffer vkbuffer, Image& img) {
-			
-            VkBufferImageCopy region{
-				.bufferOffset = 0,
-				.bufferRowLength = 0,
-				.bufferImageHeight = 0,
-
-				.imageSubresource = VkImageSubresourceLayers{
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.mipLevel = 0,
-					.baseArrayLayer = 0,
-					.layerCount = img.data.arrayLayers
-				},
-
-				.imageOffset = VkOffset3D{ 0, 0, 0 },
-				.imageExtent = img.data.extent
-			};
-			
-			CopyBufferToImage(cmdBuf, vkbuffer, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		}
-
-		void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs, VkBufferCopy const& copyInfo){
-			vkCmdCopyBuffer(cmdBuf, lhs.buffer, rhs.buffer_info.buffer, 1, &copyInfo);
-		}
-		void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs){
-			VkBufferCopy copyInfo{
-				.srcOffset = 0,
-				.dstOffset = 0,
-				.size = lhs.bufferSize
-			};
-			CopyBufferToBuffer(cmdBuf, lhs, rhs, copyInfo);
-		}
-		
 	}
-}
+	void CopyBufferToImage(CommandBuffer& cmdBuf, StagingBuffer& stagingBuffer, Image& img, VkBufferImageCopy const& region, VkImageLayout layout){
+		vkCmdCopyBufferToImage(
+			cmdBuf,
+			stagingBuffer.buffer,
+			img.image, layout,
+			1, &region
+		);
+	}
+	void CopyBufferToImage(CommandBuffer& cmdBuf, StagingBuffer& stagingBuffer, Image& img) {
+		
+		VkBufferImageCopy region{
+			.bufferOffset = 0,
+			.bufferRowLength = 0,
+			.bufferImageHeight = 0,
+
+			.imageSubresource = VkImageSubresourceLayers{
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.mipLevel = 0,
+				.baseArrayLayer = 0,
+				.layerCount = img.data.arrayLayers
+			},
+
+			.imageOffset = VkOffset3D{ 0, 0, 0 },
+			.imageExtent = img.data.extent
+		};
+		
+		CopyBufferToImage(cmdBuf, stagingBuffer, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	}
+
+	void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs, VkBufferCopy const& copyInfo){
+		vkCmdCopyBuffer(cmdBuf, lhs.buffer, rhs.buffer_info.buffer, 1, &copyInfo);
+	}
+	void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs){
+		VkBufferCopy copyInfo{
+			.srcOffset = 0,
+			.dstOffset = 0,
+			.size = lhs.bufferSize
+		};
+		CopyBufferToBuffer(cmdBuf, lhs, rhs, copyInfo);
+	}
+	
+} //namespace Command_Helper
+} //namespace EWE

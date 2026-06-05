@@ -23,84 +23,6 @@ namespace EWE {
 		return VK_PIPELINE_BIND_POINT_GRAPHICS;//error silencer
 	}
 
-
-	Backend::Descriptor::LayoutPack MergeDescriptorSets(std::array<Shader*, ShaderStage::COUNT> const& shaders) {
-		EWE_ASSERT(shaders.size() > 0);
-		Backend::Descriptor::LayoutPack ret{};
-
-		uint8_t highestSize = 0;
-		for (auto& shader : shaders) {
-			if (shader == nullptr) {
-				continue;
-			}
-			const uint8_t tempSize = static_cast<uint8_t>(shader->descriptorSets.sets.size());
-			highestSize = highestSize > tempSize ? highestSize : tempSize;
-		}
-		ret.sets.clear();
-		ret.sets.reserve(highestSize);
-
-		for (auto& shader : shaders) {
-			if (shader == nullptr) {
-				continue;
-			}
-			for (auto& set : shader->descriptorSets.sets) {
-				bool hasSetMatch = false;
-				for (auto& retSet : ret.sets) {
-					if (retSet.index == set.index) {
-						hasSetMatch = true;
-						auto& retBindings = retSet.bindings;
-						auto& shaderBindings = set.bindings;
-
-						for(uint64_t shader_index = 0; shader_index < shaderBindings.vkBindings.size(); shader_index++) {
-							auto& binding = shaderBindings.vkBindings[shader_index];
-
-							bool foundBindingMatch = false;
-							for(uint64_t ret_index = 0; ret_index < retBindings.vkBindings.size(); ret_index++){
-								auto& retBinding = retBindings.vkBindings[ret_index];
-
-								if (binding.binding == retBinding.binding) {
-									EWE_ASSERT(retBinding.descriptorType == binding.descriptorType);
-									retBinding.stageFlags |= binding.stageFlags;
-									foundBindingMatch = true;
-								}
-							}
-							if (!foundBindingMatch) {
-								//merge writes as well
-								retBindings.vkBindings.push_back(binding);
-								retBindings.writes.push_back(shaderBindings.writes[shader_index]);
-							}
-							else{
-								retBindings.writes[shader_index] = retBindings.writes[shader_index] || shaderBindings.writes[shader_index];
-							}
-						}
-						break;
-					}
-				}
-				if (!hasSetMatch) {
-					//this needs to be done so it's not moved, and is instead copied
-					//i could potentially use std::copy to pass it into the constructor as well
-					auto const& constRefBindings = set.bindings;
-
-					//ret->setLayouts.push_back(set.key, Construct<Descriptor::SetLayout>(constRefBindings));
-                    ret.sets.push_back(Backend::Descriptor::Set{.index = set.index, .bindings = constRefBindings});
-				}
-			}
-		}		
-		std::sort(ret.sets.begin(), ret.sets.end(),
-			[](const Backend::Descriptor::Set& a, const Backend::Descriptor::Set& b) {
-				return a.index < b.index;
-			}
-		);
-
-		for (auto& dsl : ret.sets) {
-			EWE_ASSERT(dsl.bindings.vkBindings.size() > 0);
-            //this needs to be promoted to a full dsl
-			//dsl.value->BuildVkDSL();
-			//std::string debug_name = std::string(fileLocation.data()) + std::string(" - dsl#") + std::to_string(dsl.first);
-			//DebugNaming::SetObjectName(dsl.second->vkDSL, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, debug_name.c_str());
-		}
-		return ret;
-	}
 	PushConstant MergePushRanges(std::span<Shader*> shaders) {
 
 		uint32_t temp_offset = UINT32_MAX;
@@ -226,10 +148,10 @@ namespace EWE {
 		this->shaders.fill(nullptr);
 		for (auto& shader : _shaders) {
 			if(shader != nullptr){
-				this->shaders[ShaderStage(shader->shaderStageCreateInfo.stage).value] = shader;
+				shaders[ShaderStage(shader->shaderStageCreateInfo.stage).value] = shader;
+				has_bindless_textures |= shader->has_bindless_textures;
 			}
 		}
-		descriptorSets = MergeDescriptorSets(this->shaders);
 		pushConstantRange = MergePushRanges(std::span<EWE::Shader*>{this->shaders});
 		CreateVkPipeLayout(dsl);
 		bindPoint = BindPointFromType(pipelineType);
@@ -288,15 +210,12 @@ namespace EWE {
 			EWE_ASSERT(false);
 		}
 
-		const bool hasSets = descriptorSets.sets.size() > 0;
-		EWE_ASSERT(descriptorSets.sets.size() <= 1);
-
 		VkPipelineLayoutCreateInfo plCreateInfo{
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = 0,
 			
-			.setLayoutCount = static_cast<uint32_t>(hasSets),
+			.setLayoutCount = static_cast<uint32_t>(has_bindless_textures),
 			.pSetLayouts = &logicalDevice.bindlessDescriptor.layout,
 
 			.pushConstantRangeCount = 1,

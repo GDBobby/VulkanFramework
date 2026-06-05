@@ -23,12 +23,14 @@ namespace EWE{
         PresentBridge& operator=(PresentBridge const& copySrc) = delete;
         PresentBridge& operator=(PresentBridge&& copySrc) = delete;
 
+        Resource<Image>* final_swap_img_usage;
+
         VkImageMemoryBarrier2 imageBarrier{};
 
 		VkDependencyInfo dependencyInfo{};
 
         void SetSubresource(VkImageSubresourceRange const& subresource);
-        void UpdateSrcData(Queue* lhsQueue, Resource<Image>* lhsResource, uint8_t frameIndex);
+        void UpdateSrcData(uint8_t frameIndex);
         void Execute(CommandBuffer& cmdBuf);
     };
 }

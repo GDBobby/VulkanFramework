@@ -15,8 +15,7 @@
 #include "EightWinds/RenderGraph/SynchronizationManager.h"
 
 #include "EightWinds/Backend/Semaphore.h"
-#include "EightWinds/Backend/SingleTimeCommand.h"
-#include "EightWinds/RenderGraph/STCs.h"
+#include "EightWinds/Command/STC_Manager.h"
 
 #include "EightWinds/Data/Hive.h"
 #include "EightWinds/Data/RingBuffer.h"
@@ -68,18 +67,24 @@ namespace EWE{
 
         void Execute(uint8_t frameIndex);
 
+        struct SwapImageInstance{
+            GPUTask* task;
+            uint32_t res_index;
+        };
+        std::vector<SwapImageInstance> swap_image_instances;
+        void UpdateSwapImage(uint8_t frameIndex);
         void ClearAllBarriers(uint8_t frameIndex);
         void RecreateBarriers(uint8_t frameIndex);
 
         void InitializeSemaphores(); //this prevents needing to branch every frame
         //this needs to be ran every frame
-        void UpdateSemaphores(uint8_t frameIndex, STCManagement* frame_stc_manager);
+        void UpdateSemaphores(uint8_t frameIndex, STC_Submitter* frame_stc_manager);
 
-        RingBuffer<STCManagement, max_frames_in_flight + 1> stc_management;
-        STCManagement* current_stc_manager;
+        RingBuffer<STC_Submitter, max_frames_in_flight + 1> stc_management;
+        STC_Submitter* current_stc_manager;
 
         template<typename R>
-        void ResourceOwnershipTransfer(STCManagement::Helper<R> data);
+        void ResourceOwnershipTransfer(STC_Sub_Package<R> const& data);
 
         template<typename T>
         void ChangeResource(GPUTask& task, uint32_t res_index, T* resource, uint8_t frameIndex) {
@@ -95,6 +100,6 @@ namespace EWE{
         friend struct ImguiExtension;
     };
 
-    template <> void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Image> data);
-    template <> void RenderGraph::ResourceOwnershipTransfer(STCManagement::Helper<Buffer> data);
+    template <> void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Image> const& data);
+    template <> void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Buffer> const& data);
 }//namespace EWE

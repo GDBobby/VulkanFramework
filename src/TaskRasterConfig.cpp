@@ -18,7 +18,7 @@ namespace EWE{
 		depthStencilInfo.flags = 0;
 		depthStencilInfo.depthTestEnable = VK_TRUE;
 		depthStencilInfo.depthWriteEnable = VK_TRUE;
-		depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
+		depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 		//need to play with all of this
 		depthStencilInfo.depthBoundsTestEnable = VK_FALSE;

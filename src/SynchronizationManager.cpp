@@ -52,9 +52,10 @@ namespace EWE{
 		// potentially put validaiton in here that all touched tasks have 0 existing barriers
 		for (auto& trans : buffer_transitions) {
 			auto const& barr = Barrier::Transition_Buffer(
-                trans.lhs->queue, trans.lhs->resources.buffers[trans.lh_index], 
-                trans.rhs->queue, trans.rhs->resources.buffers[trans.rh_index], 
-                frameIndex
+                trans.lhs->queue, *trans.lhs->resources.buffers[trans.lh_index].resource[frameIndex], 
+                trans.rhs->queue, 
+                trans.lhs->resources.buffers[trans.lh_index].usage,
+                trans.rhs->resources.buffers[trans.rh_index].usage
             );
 			if (trans.lhs->queue != trans.rhs->queue) {
 				//put a suffix on lhs
@@ -66,14 +67,22 @@ namespace EWE{
 		}
 		for (auto& acq : buffer_acquisitions) {
 			auto& rh_barriers = acq.rhs->prefix.barriers[frameIndex];
-			rh_barriers.bufferBarriers.push_back(Barrier::Acquire_Buffer(acq.rhs->queue, acq.rhs->resources.buffers[acq.rh_index], frameIndex));
+			rh_barriers.bufferBarriers.push_back(
+                Barrier::Acquire_Buffer(
+                    acq.rhs->queue, 
+                    *acq.rhs->resources.buffers[acq.rh_index].resource[frameIndex], 
+                    acq.rhs->resources.buffers[acq.rh_index].usage
+                )
+            );
 		}
 
 		for (auto& trans : image_transitions) {
 			auto const& barr = Barrier::Transition_Image(
-                trans.lhs->queue, trans.lhs->resources.images[trans.lh_index], 
-                trans.rhs->queue, trans.rhs->resources.images[trans.rh_index],
-                frameIndex
+                trans.lhs->queue, 
+                *trans.lhs->resources.images[trans.lh_index].resource[frameIndex], 
+                trans.rhs->queue,
+                trans.lhs->resources.images[trans.lh_index].usage, 
+                trans.rhs->resources.images[trans.rh_index].usage
             );
 			if (trans.lhs->queue != trans.rhs->queue) {
 				//put a suffix on lhs
@@ -81,7 +90,10 @@ namespace EWE{
 				trans.lhs->suffix.barriers[frameIndex].imageBarriers.push_back(barr);
 			}
 			auto& rh_res = trans.rhs->resources.images[trans.rh_index];
-			trans.rhs->prefix.image_updates.emplace_back(trans.rhs->resources.images[trans.rh_index].resource[frameIndex], trans.rhs->resources.images[trans.rh_index].usage.layout);
+			trans.rhs->prefix.image_updates.emplace_back(
+                trans.rhs->resources.images[trans.rh_index].resource[frameIndex], 
+                trans.rhs->resources.images[trans.rh_index].usage.layout
+            );
 
 			auto& rh_barriers = trans.rhs->prefix.barriers[frameIndex];
 			rh_barriers.imageBarriers.push_back(barr);
@@ -89,10 +101,18 @@ namespace EWE{
 		}
 		for (auto& acq : image_acquisitions) {
 			auto& rh_res = acq.rhs->resources.images[acq.rh_index];
-			acq.rhs->prefix.image_updates.emplace_back(acq.rhs->resources.images[acq.rh_index].resource[frameIndex], acq.rhs->resources.images[acq.rh_index].usage.layout);
+			acq.rhs->prefix.image_updates.emplace_back(
+                acq.rhs->resources.images[acq.rh_index].resource[frameIndex], 
+                acq.rhs->resources.images[acq.rh_index].usage.layout
+            );
 
 			auto& rh_barriers = acq.rhs->prefix.barriers[frameIndex];
-			rh_barriers.imageBarriers.push_back(Barrier::Acquire_Image(acq.rhs->queue, acq.rhs->resources.images[acq.rh_index], frameIndex));
+			rh_barriers.imageBarriers.push_back(
+                Barrier::Acquire_Image(
+                    acq.rhs->queue, 
+                    *acq.rhs->resources.images[acq.rh_index].resource[frameIndex], 
+                    acq.rhs->resources.images[acq.rh_index].usage)
+                );
 		}
 		
     }

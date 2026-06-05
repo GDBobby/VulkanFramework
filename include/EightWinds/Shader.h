@@ -3,7 +3,6 @@
 #include "EightWinds/GlobalPushConstant.h"
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
-#include "EightWinds/Backend/Descriptor/SetLayout.h"
 
 #include "EightWinds/Backend/ShaderStage.h"
 #include "EightWinds/Backend/ShaderVariable.h"
@@ -66,7 +65,6 @@ namespace EWE {
 		std::filesystem::path name{}; 
 
 		VkPipelineShaderStageCreateInfo shaderStageCreateInfo;
-		Backend::Descriptor::LayoutPack descriptorSets;
 
         PushConstant pushRange;
         ShaderMeta meta;
@@ -81,6 +79,8 @@ namespace EWE {
         Shader(Shader&& moveSrc) = delete;
         Shader& operator=(Shader const& copySrc) = delete;
         Shader& operator=(Shader&& moveSrc) = delete;
+
+        bool has_bindless_textures = false;
 
 		//bool ValidateVertexInputAttributes(std::vector<VkVertexInputAttributeDescription> const& cpu_side) const;
 		VkShaderModule GetVkShader() const {
