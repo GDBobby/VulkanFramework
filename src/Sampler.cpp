@@ -9,7 +9,7 @@ namespace EWE{
     }
 
     Sampler::~Sampler() {
-        logicalDevice.garbageDisposal.Toss(sampler, VK_OBJECT_TYPE_SAMPLER);
+        logicalDevice.garbageDisposal.TossVK(sampler);
     }
 
     Sampler::CondensedType Sampler::Condense(VkSamplerCreateInfo const& info){

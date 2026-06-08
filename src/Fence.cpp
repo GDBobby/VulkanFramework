@@ -8,7 +8,7 @@ namespace EWE{
         EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &vkFence);
     }
     Fence::~Fence() {
-        logicalDevice.garbageDisposal.Toss(vkFence, VK_OBJECT_TYPE_FENCE);
+        logicalDevice.garbageDisposal.TossVK(vkFence);
     }
     
     bool Fence::CheckReturn(uint64_t time) {

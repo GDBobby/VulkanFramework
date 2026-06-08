@@ -1,47 +1,81 @@
 #include "EightWinds/Backend/GarbageDisposal.h"
 
+#include "EightWinds/LogicalDevice.h"
+
 namespace EWE{
-    namespace Backend{
+namespace Backend{
 
-        //i could just put this in the deconstructor
-        void GarbageDisposal::GarbageItem::Destroy(VkDevice const vkDevice){
-            switch(objectType){
-                case VK_OBJECT_TYPE_SEMAPHORE: vkDestroySemaphore(vkDevice, reinterpret_cast<VkSemaphore>(object), nullptr);
-                case VK_OBJECT_TYPE_FENCE: vkDestroyFence(vkDevice, reinterpret_cast<VkFence>(object), nullptr);
-                case VK_OBJECT_TYPE_BUFFER: vkDestroyBuffer(vkDevice, reinterpret_cast<VkBuffer>(object), nullptr);
-                case VK_OBJECT_TYPE_SAMPLER: vkDestroySampler(vkDevice, reinterpret_cast<VkSampler>(object), nullptr);
-                default: EWE_UNREACHABLE;
+    GarbageItem::GarbageItem(GarbageItem&& moveSrc)
+    : tossedDuration{moveSrc.tossedDuration},
+        Destroy{moveSrc.Destroy}
+    {
+        moveSrc.Destroy = nullptr;
+    }
+
+    GarbageItem& GarbageItem::operator=(GarbageItem&& moveSrc){
+        tossedDuration = moveSrc.tossedDuration;
+        Destroy = moveSrc.Destroy;
+        moveSrc.Destroy = nullptr;
+        return *this;
+    }
+
+    GarbageDisposal::GarbageDisposal(LogicalDevice& logicalDevice)
+        : device{ logicalDevice }
+    {
+    }
+    GarbageDisposal::~GarbageDisposal(){
+        Clear();
+    }
+
+    void GarbageDisposal::Clear(){
+        //device wait idle?
+        items.clear();
+    }
+
+    void GarbageDisposal::Tick(){
+        for (auto iter = items.begin(); iter != items.end();) {
+            if(iter->tossedDuration++ > max_frames_in_flight){
+                iter = items.erase(iter);
+                continue;
             }
+            iter++;
         }
+    }
 
-        GarbageDisposal::GarbageDisposal(VkDevice device)
-            : vkDevice{ device }
-        {
-        }
-        GarbageDisposal::~GarbageDisposal(){
-            Clear();
-        }
+    void GarbageDisposal::Toss(std::function<void()> destroyer){
+        item_mut.lock();
+        GarbageItem& backRef = items.emplace_back();
+        backRef.Destroy = destroyer;
+        item_mut.unlock();
+    }
 
-        void GarbageDisposal::Clear(){
-            for(auto& item : items){
-                item.Destroy(vkDevice);
+    template<> void GarbageDisposal::TossVK<VkSemaphore>(VkSemaphore sem){
+        Toss(
+            [&logicalDevice = device, sem](){
+                vkDestroySemaphore(logicalDevice, sem, nullptr);
             }
-            items.clear();
-        }
-
-        void GarbageDisposal::Tick(){
-            for (auto iter = items.begin(); iter != items.end();) {
-                if(iter->tossedDuration++ > max_frames_in_flight){
-                    iter->Destroy(vkDevice);
-                    iter = items.erase(iter);
-                    continue;
-                }
-                iter++;
+        );
+    }
+    template<> void GarbageDisposal::TossVK<VkFence>(VkFence fence){
+        Toss(
+            [&logicalDevice = device, fence](){
+                vkDestroyFence(logicalDevice, fence, nullptr);
             }
-        }
-
-        void GarbageDisposal::Toss(void* object, VkObjectType objectType){
-            items.emplace_back(object, objectType);
-        }
-    }//namespace Backend
+        );
+    }
+    template<> void GarbageDisposal::TossVK<VkBuffer>(VkBuffer buffer){
+        Toss(
+            [&logicalDevice = device, buffer](){
+                vkDestroyBuffer(logicalDevice, buffer, nullptr);
+            }
+        );
+    }
+    template<> void GarbageDisposal::TossVK<VkSampler>(VkSampler sampler){
+        Toss(
+            [&logicalDevice = device, sampler](){
+                vkDestroySampler(logicalDevice, sampler, nullptr);
+            }
+        );
+    }
+}//namespace Backend
 } //namespace EWE

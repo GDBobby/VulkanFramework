@@ -13,7 +13,7 @@ namespace EWE{
     }
     BinarySemaphore::~BinarySemaphore() {
         if (vkSemaphore != VK_NULL_HANDLE) {
-            logicalDevice.garbageDisposal.Toss(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE);
+            logicalDevice.garbageDisposal.TossVK(vkSemaphore);
         }
     }
     
@@ -76,7 +76,7 @@ namespace EWE{
     }
     TimelineSemaphore::~TimelineSemaphore() {
         if (vkSemaphore != VK_NULL_HANDLE) {
-            logicalDevice.garbageDisposal.Toss(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE);
+            logicalDevice.garbageDisposal.TossVK(vkSemaphore);
         }
     }
     

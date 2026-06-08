@@ -117,7 +117,7 @@ namespace EWE{
         properties13{ propertyPack.properties13},
         properties14{ propertyPack.properties14},
 
-        garbageDisposal{device}
+        garbageDisposal{*this}
     {
 #if EWE_DEBUG_NAMING
         physicalDevice.name = properties.properties.deviceName;

@@ -31,41 +31,10 @@ namespace EWE{
 
 	public:
 
-		std::size_t Size() const {
-			return heap.Size();
-		}
-		T* Data() {
-			return heap.GetMemory();
-		}
-		T const* Data() const {
-			return heap.GetMemory();
-		}
-
-		void ClearAndResize(std::size_t elementCount) {
-			heap.DestroyAll();
-			heap.Resize(elementCount);
-			heap.ConstructAll();
-		}
-
-		void Clear(){
-			heap.DestroyAll();
-			heap.Clear();
-		}
-
-		template<typename... Args>
-			requires std::is_constructible_v<T, Args...>
-		void ClearAndResize(std::size_t elementCount, Args&&... args) {
-			heap.DestroyAll();
-			heap.Resize(elementCount);
-			heap.ConstructAll(std::forward<Args>(args)...);
-		}
-
-		template<std::size_t... Offsets, typename... Args>
-		void ClearAndResize(ArgumentPack_ConstructionHelper<Offsets...> helper, Args&&... args) {
-			heap.DestroyAll();
-			heap.Resize(helper.object_count);
-			heap.ConstructAll(helper, std::forward<Args>(args)...);
-		}
+		[[nodiscard]] RuntimeArray()
+			requires std::is_default_constructible_v<T>
+			: heap{0}
+		{}
 
 		[[nodiscard]] explicit RuntimeArray(std::size_t elementCount)
 			requires std::is_default_constructible_v<T>
@@ -125,6 +94,42 @@ namespace EWE{
         T const& operator[](std::size_t i) const noexcept {
 			EWE_ASSERT(i < Size());
 			return heap[i]; 
+		}
+
+		std::size_t Size() const {
+			return heap.Size();
+		}
+		T* Data() {
+			return heap.GetMemory();
+		}
+		T const* Data() const {
+			return heap.GetMemory();
+		}
+
+		void ClearAndResize(std::size_t elementCount) {
+			heap.DestroyAll();
+			heap.Resize(elementCount);
+			heap.ConstructAll();
+		}
+
+		void Clear(){
+			heap.DestroyAll();
+			heap.Clear();
+		}
+
+		template<typename... Args>
+			requires std::is_constructible_v<T, Args...>
+		void ClearAndResize(std::size_t elementCount, Args&&... args) {
+			heap.DestroyAll();
+			heap.Resize(elementCount);
+			heap.ConstructAll(std::forward<Args>(args)...);
+		}
+
+		template<std::size_t... Offsets, typename... Args>
+		void ClearAndResize(ArgumentPack_ConstructionHelper<Offsets...> helper, Args&&... args) {
+			heap.DestroyAll();
+			heap.Resize(helper.object_count);
+			heap.ConstructAll(helper, std::forward<Args>(args)...);
 		}
 		
 		T* begin() noexcept {return heap.begin();}
