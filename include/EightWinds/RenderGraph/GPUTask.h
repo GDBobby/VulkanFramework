@@ -13,9 +13,6 @@
 #include "EightWinds/Command/ParamPointerChain.h"
 
 namespace EWE{
-    namespace Command {
-        struct Record;
-    }
     //the id of this task is its address
     //GPUTask is intended to be used in a single thread.
     //if its desired to multi-thread within a single task, sync needs to be external
@@ -25,7 +22,6 @@ namespace EWE{
         //i think i define a command pool here, or at least a queue
         Queue& queue;
 
-        std::optional<Command::Executor> commandExecutor;
         std::optional<Command::ParamPool> paramPool;
 
         Command::PackageRecord* pkgRecord; //just for viewing in reconstruction
@@ -38,7 +34,6 @@ namespace EWE{
         Meta compiled_meta; //put this into subtask or rendergraph maybe?
 
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);
-        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::Record& cmdRecord);
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool& pp);
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Command::PackageRecord& record, bool compile);
         ~GPUTask();

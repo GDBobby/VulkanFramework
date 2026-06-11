@@ -54,7 +54,23 @@ namespace EWE{
         uint32_t firstVertex;
         uint32_t firstInstance;
     };
+    struct IndexBuffer{
+        VkBuffer buffer; //pointer
+        VkDeviceSize offset;
+        VkIndexType indexType;
+
+        bool operator==(IndexBuffer& other) const{
+            return buffer == other.buffer 
+            && offset == other.offset 
+            && indexType == other.indexType;
+        }
+    };
+
     template<> struct ParamPack<Inst::DrawIndexed>{
+        //is it a mistake to tightly bind these 2?
+        //i dont see a common use case where i want to do multiple draw calls per index buffer without instancing
+        IndexBuffer indexBuffer;
+
         uint32_t indexCount;
         uint32_t instanceCount;
         uint32_t firstIndex;

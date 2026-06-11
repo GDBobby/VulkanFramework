@@ -87,14 +87,14 @@ namespace EWE{
     }
 
     ImageView::ImageView(Image& _image, VkImageViewCreateInfo const& createInfo) 
-        : image{_image},
+    : image{_image},
         subresource{createInfo.subresourceRange}
     { 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
     }
     
     ImageView::ImageView(Image& _image) 
-        : image{_image}
+    : image{_image}
     {
         const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
         subresource = createInfo.subresourceRange;
@@ -102,7 +102,7 @@ namespace EWE{
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
     }
     ImageView::ImageView(Image& _image, bool readyForConstruction) noexcept
-        : image{_image}
+    : image{_image}
     {
         //the creation of the view on the GPU is postponed, most likely because the image has not yet been created on the GPU
     }

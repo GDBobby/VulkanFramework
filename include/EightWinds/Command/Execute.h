@@ -19,25 +19,6 @@ namespace EWE{
 //    uint16_t image_count;
 //};
 namespace Command{
-    struct Record;
-
-    struct Executor{
-        LogicalDevice& logicalDevice;
-        Record& record;
-
-        [[nodiscard]] explicit Executor(LogicalDevice& logicalDevice, Record& record) noexcept;
-        Executor(Executor const& copySrc) = delete;
-        Executor(Executor&& moveSrc) = delete;
-        Executor& operator=(Executor const& copySrc) = delete;
-        Executor& operator=(Executor&& moveSrc) = delete;
-
-        ParamPool paramPool;
-
-        void Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept;
-        void Debug() const noexcept;
-    };
-
-
-    void ExecuteParamPool(ParamPool const& pp, LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, uint8_t frameIndex);
+    void ExecuteParamPool(LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, ParamPool const& pp, uint8_t frameIndex);
 } //namespace Command 
 } //namespace EWE

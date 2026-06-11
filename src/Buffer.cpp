@@ -1,6 +1,7 @@
 #include "EightWinds/Buffer.h"
 
 #include "vma/include/vk_mem_alloc.h"
+#include <vulkan/vulkan_core.h>
 
 namespace EWE{
 
@@ -35,12 +36,14 @@ namespace EWE{
 
         EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
 
-        VkBufferDeviceAddressInfo bdaInfo{
-            .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-            .pNext = nullptr,
-            .buffer = buffer_info.buffer
-        };
-        deviceAddress = vkGetBufferDeviceAddress(logicalDevice.device, &bdaInfo);
+        if(usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT){
+            VkBufferDeviceAddressInfo bdaInfo{
+                .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+                .pNext = nullptr,
+                .buffer = buffer_info.buffer
+            };
+            deviceAddress = vkGetBufferDeviceAddress(logicalDevice.device, &bdaInfo);
+        }
         logicalDevice.buffers.Add(this);
     }
 

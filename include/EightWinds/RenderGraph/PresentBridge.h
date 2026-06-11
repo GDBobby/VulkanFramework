@@ -29,7 +29,6 @@ namespace EWE{
 
 		VkDependencyInfo dependencyInfo{};
 
-        void SetSubresource(VkImageSubresourceRange const& subresource);
         void UpdateSrcData(uint8_t frameIndex);
         void Execute(CommandBuffer& cmdBuf);
     };

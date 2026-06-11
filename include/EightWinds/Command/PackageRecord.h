@@ -16,28 +16,13 @@ namespace EWE{
     struct Queue;
 
 namespace Command{
-
-        /*
-            need a package of packages
-            it looks like record is the best fit for that
-
-            option 1
-                only allow record to contain packages, easiest
-            option 2
-                allow record to contain packages and instructions - least lossy
-            
-            if i only allow packages, users won't be able to create any random behavior
-                they'll be force to work within the bounds of what i support
-            CURRENTLY, that's probably fine
-
-            im making a packagerecord just so i dont have to deal with losing record until i finish
-        */
     struct PackageRecord{
         std::filesystem::path name{};
         Queue* queue = nullptr; //not optional, but can be changed
         std::vector<InstructionPackage*> packages;
 
         [[nodiscard]] PackageRecord() = default;
+        [[nodiscard]] explicit PackageRecord(std::filesystem::path const& name);
 
         PackageRecord(PackageRecord const&) = delete;
         PackageRecord& operator=(PackageRecord const&) = delete;

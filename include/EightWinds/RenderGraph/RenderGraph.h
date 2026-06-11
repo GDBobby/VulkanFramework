@@ -28,6 +28,7 @@ namespace EWE{
         std::filesystem::path name;
 
         [[nodiscard]] explicit RenderGraph(
+            std::filesystem::path const& name,
             LogicalDevice& logicalDevice, Swapchain& swapchain, 
             Queue& renderQueue, Queue& computeQueue,
             SubmissionTask& graphics_stc_task,
@@ -78,15 +79,15 @@ namespace EWE{
 
         void InitializeSemaphores(); //this prevents needing to branch every frame
         //this needs to be ran every frame
-        void UpdateSemaphores(uint8_t frameIndex, STC_Submitter* frame_stc_manager);
+        void UpdateSemaphores(uint8_t frameIndex, STC_Submitter& frame_stc_manager);
 
         RingBuffer<STC_Submitter, max_frames_in_flight + 1> stc_management;
         STC_Submitter* current_stc_manager;
 
-        template<typename R>
+        template<ResourceType R>
         void ResourceOwnershipTransfer(STC_Sub_Package<R> const& data);
 
-        template<typename T>
+        template<ResourceType T>
         void ChangeResource(GPUTask& task, uint32_t res_index, T* resource, uint8_t frameIndex) {
             if constexpr (std::is_same_v<T, Image>) {
                 task.resources.images[res_index].resource[frameIndex] = resource;

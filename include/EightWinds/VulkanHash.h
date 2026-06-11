@@ -8,7 +8,7 @@
 namespace EWE{
 	static constexpr std::size_t vulkan_hash_val = 0x9E3779B97F4A7C15;
 
-	inline void hash_combine(std::size_t& seed, std::size_t value) noexcept {
+	inline void HashCombine(std::size_t& seed, std::size_t value) noexcept {
 		seed ^= value + vulkan_hash_val + (seed << 6) + (seed >> 2);
 	}
 	

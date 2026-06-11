@@ -7,6 +7,11 @@ namespace Command{
     {
 
     }
+    ObjectPackage::ObjectPackage(std::filesystem::path const& _name)
+    : InstructionPackage{Command::InstructionPackage::Object, _name}
+    {
+
+    }
 
     ObjectPackage::DrawType ObjectPackage::GetDrawType() const{
         for(auto& inst : paramPool.instructions){

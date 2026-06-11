@@ -18,7 +18,6 @@
 #include "EightWinds/Command/InstructionPointer.h"
 #include "EightWinds/Command/InstructionType.h"
 #include "EightWinds/Command/ParamPacks.h"
-#include "EightWinds/Command/Record.h"
 #include "EightWinds/Command/ParamPool.h"
 #include "EightWinds/Command/InstructionPackage.h"
 

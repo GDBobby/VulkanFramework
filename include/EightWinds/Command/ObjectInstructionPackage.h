@@ -8,6 +8,7 @@ namespace EWE{
 namespace Command{
 	struct ObjectPackage : public InstructionPackage{
         [[nodiscard]] ObjectPackage();
+        [[nodiscard]] explicit ObjectPackage(std::filesystem::path const& name);
 		static constexpr auto allowed_instructions = {
 			Inst::Push,
 			Inst::Draw,

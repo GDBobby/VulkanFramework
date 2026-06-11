@@ -10,8 +10,10 @@ namespace EWE{
 	//per pass is going to cover per viewport and all that as well
 	//how each pass is configured
 	struct TaskRasterConfig{
-		uint32_t viewportCount = 1;//not going to be changed in 99.9% of games
-		uint32_t scissorCount = 1; //not going to be changed in 99.9% of games
+		//viewport/scissor not going to be changed in 99.9% of games
+		uint32_t viewportCount = 1;
+		uint32_t scissorCount = 1;
+
 		VkSampleCountFlagBits rastSamples;
 		bool enable_sampleShading;
 			//depends on ^

@@ -97,14 +97,14 @@ namespace EWE{
         the poitn is to just relinquish control, we don't want to wait for a long time
         * marl usage 
             marl::Event event{ marl::Event::Mode::Manual };
-            while (!sem->Check(sem->value)) {
+            while (!sem.Check(sem.value)) {
                 event.wait_for(std::chrono::microseconds(1)); 
             }
         * std::thread usage
-            while(!sem->Check(sem->value)){
+            while(!sem.Check(sem.value)){
                 std::this_thread::sleep_for(std::chrono::microseconds(1));
             }
         */
-        inline static std::function<void(TimelineSemaphore* sem)> RelinquishThreadControl = nullptr;
+        inline static std::function<void(TimelineSemaphore& sem)> RelinquishThreadControl = nullptr;
     };
 }

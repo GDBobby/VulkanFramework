@@ -19,7 +19,6 @@ namespace EWE{
             COUNT
         };
 
-
         LogicalDevice& logicalDevice;
         //i believe its safe to assume that Graphics and Present can always be the same queue
         //nvidia will allow multiple queues from 1 family, otherwise i wouldn't differentiate this from QueueFamily
@@ -39,6 +38,7 @@ namespace EWE{
         void Submit(uint32_t submitCount, VkSubmitInfo* submitInfos, VkFence fence = VK_NULL_HANDLE);
         void Submit2(VkSubmitInfo2 const& submitInfo, VkFence fence = VK_NULL_HANDLE);
         void Submit2(uint32_t submitCount, VkSubmitInfo2* submitInfos, VkFence fence = VK_NULL_HANDLE);
+        void Present(VkPresentInfoKHR const& presentInfo);
         
         uint32_t FamilyIndex() const{
             return family.index;

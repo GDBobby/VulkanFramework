@@ -1,15 +1,8 @@
 #include "EightWinds/Command/Execute.h"
 
 #include "EightWinds/CommandBuffer.h"
-
 #include "EightWinds/Pipeline/PipelineBase.h"
-
-#include "EightWinds/GlobalPushConstant.h"
-
 #include "EightWinds/Backend/RenderInfo.h"
-
-#include "EightWinds/Command/Record.h"
-
 #include "EightWinds/Data/Address.h"
 
 //#define EXECUTOR_DEBUGGING
@@ -18,32 +11,7 @@ namespace EWE{
 
 namespace Command{
 
-    ParamPack<Inst::BindPipeline> ExecuteParamPool_Internal(ParamPool const& pp, LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, uint8_t frameIndex, ParamPack<Inst::BindPipeline> const& boundPipeline);
-
-
-    Executor::Executor(LogicalDevice& _logicalDevice, Record& _record) noexcept
-    : logicalDevice{_logicalDevice},
-        record{_record}
-    {
-
-        //EWE_ASSERT(!record.hasBeenCompiled);
-        //record.Optimize(); <--- EVENTUALLY
-        
-        const uint64_t full_data_size = record.CalculateSize();
-        
-        PerFlight<std::size_t> param_pool_addresses{};
-        for (uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
-            paramPool.params[frame].Resize(full_data_size);
-            param_pool_addresses[frame] = reinterpret_cast<std::size_t>(paramPool.params[frame].memory);
-        }
-        paramPool.instructions.reserve(record.records.size());
-        for(auto& rec : record.records){
-            paramPool.instructions.push_back(rec.type);
-        }
-        record.FixDeferred(param_pool_addresses);
-        EWE_ASSERT(record.ValidateInstructions());
-        record.hasBeenCompiled = true;
-    }
+    ParamPack<Inst::BindPipeline> ExecuteParamPool_Internal(LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, ParamPool const& pp, uint8_t frameIndex, ParamPack<Inst::BindPipeline> const& boundPipeline);
 
 namespace Exec{
     struct ExecContext {
@@ -239,6 +207,9 @@ namespace Exec{
 #ifdef EXECUTOR_DEBUGGING
         ctx.Print();
 #endif
+        //is it a mistake to tightly bind these 2?
+        //i dont see a common use case where i want to do multiple draw calls per index buffer without instancing
+        vkCmdBindIndexBuffer(ctx.cmdBuf, data.indexBuffer.buffer, data.indexBuffer.offset, data.indexBuffer.indexType);
         vkCmdDrawIndexed(ctx.cmdBuf, data.indexCount, data.instanceCount, data.firstIndex, data.vertexOffset, data.firstInstance);
     }
 
@@ -411,12 +382,12 @@ namespace Exec{
 
     void Ext_Pool(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::Ext_Pool>();
-        ctx.boundPipeline = ExecuteParamPool_Internal(*data.pool, ctx.device, ctx.cmdBuf, ctx.frame, ctx.boundPipeline);
+        ctx.boundPipeline = ExecuteParamPool_Internal(ctx.device, ctx.cmdBuf, *data.pool, ctx.frame, ctx.boundPipeline);
     }
 
 } //namespace Exec
 
-    ParamPack<Inst::BindPipeline> ExecuteParamPool_Internal(ParamPool const& _pp, LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, uint8_t frameIndex, ParamPack<Inst::BindPipeline> const& boundPipeline){
+    ParamPack<Inst::BindPipeline> ExecuteParamPool_Internal(LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, ParamPool const& _pp, uint8_t frameIndex, ParamPack<Inst::BindPipeline> const& boundPipeline){
         Exec::ExecContext ctx{
             .device = logicalDevice, 
             .pp{_pp},  //its important that this is a view and not a copy or move
@@ -431,13 +402,8 @@ namespace Exec{
         }
         return ctx.boundPipeline;
     }
-    void Executor::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) const noexcept {
-        //i dont quite understand why logicaldevice can be passed as a non-const reference from within a const function, 
-        //but right now that behavior is depended upon. if that changes in the future, just remove const modifier from func
-        ExecuteParamPool(paramPool, logicalDevice, cmdBuf, frameIndex);
-    }
 
-    void ExecuteParamPool(ParamPool const& _pp, LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, uint8_t frameIndex){
+    void ExecuteParamPool(LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, ParamPool const& _pp, uint8_t frameIndex){
         Exec::ExecContext ctx{
             .device = logicalDevice, 
             .pp{_pp},  //its important that this is a view and not a copy or move

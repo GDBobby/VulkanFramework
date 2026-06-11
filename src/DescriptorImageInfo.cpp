@@ -38,6 +38,7 @@ namespace EWE{
     {
     }
 
+    /*
     DescriptorImageInfo::DescriptorImageInfo(DescriptorImageInfo&& moveSrc) noexcept
         : sampler{ moveSrc.sampler },
         view{ moveSrc.view },
@@ -47,6 +48,7 @@ namespace EWE{
     {
         moveSrc.index = null_texture;
     }
+    */
 
     DescriptorImageInfo::~DescriptorImageInfo() {
         //if it was moved, index will be invalid

@@ -40,7 +40,10 @@ namespace EWE{
         Queue& GetQueueFromType(Queue::Type qType);
 
     public:
-        [[nodiscard]] explicit STC_Manager(LogicalDevice& logicalDevice, Queue& renderQueue, Queue& transferQueue, Queue& computeQueue);
+        [[nodiscard]] explicit STC_Manager(
+            LogicalDevice& logicalDevice, 
+            Queue& renderQueue, Queue& transferQueue, Queue& computeQueue
+        );
         ~STC_Manager();
 
         STC_Manager(STC_Manager const& copySrc) = delete;
@@ -57,28 +60,36 @@ namespace EWE{
         void AsyncTransferToCompute(std::function<void(CommandBuffer& cmdBuf)> transfer, std::function<void(CommandBuffer& cmdBuf)> compute);
 
         SingleTimeCommand* GetBeginSTC();
-        TimelineSemaphore* EndAndSubmit(SingleTimeCommand* stc);
+        TimelineSemaphore* EndAndSubmit(SingleTimeCommand& stc);
 
-        template<typename Resource>
-        void SingleQueueTransfer(TransferContext<Resource>& transferContext, Queue::Type dstQueueType);
-        template<typename Resource>
-        void AsyncTransfer_Helper(TransferContext<Resource>& transferContext, Queue::Type dstQueueType);
-        template<typename Resource>
-        void AsyncTransfer(TransferContext<Resource>& transferContext, Queue& rh_queue);
-        template<typename Resource>
-        void AsyncTransfer(TransferContext<Resource>& transferContext, Queue::Type dstQueue);
+        template<ResourceType RT>
+        void Async_SingleQueueTransfer(TransferContext<RT>& transferContext, Queue::Type dstQueueType);
+        template<ResourceType RT>
+        void AsyncTransfer_Helper(TransferContext<RT>& transferContext, Queue::Type dstQueueType);
+        template<ResourceType RT>
+        void AsyncTransfer(TransferContext<RT>& transferContext, Queue& rh_queue);
+        template<ResourceType RT>
+        void AsyncTransfer(TransferContext<RT>& transferContext, Queue::Type dstQueue);
+
+
+        //this is done on the render queue exclusively
+        template<ResourceType RT>
+        void InlineTransfer(TransferContext<RT>& transferContext);
     };
 
-    template<> void STC_Manager::SingleQueueTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType);
+    template<> void STC_Manager::Async_SingleQueueTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType);
     template<> void STC_Manager::AsyncTransfer_Helper(TransferContext<Image>& transferContext, Queue::Type dstQueueType);
     //this will ONLY work in a separate thread
     template<> void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue& rh_queue);
     template<> void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueue);
 
-    template<> void STC_Manager::SingleQueueTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType);
+    template<> void STC_Manager::Async_SingleQueueTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType);
     template<> void STC_Manager::AsyncTransfer_Helper(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType);
     template<> void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue& rh_queue);
     template<> void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueue);
+
+    template<> void STC_Manager::InlineTransfer(TransferContext<Image>& transferContext);
+    template<> void STC_Manager::InlineTransfer(TransferContext<Buffer>& transferContext);
 
 
 

@@ -24,7 +24,13 @@ namespace EWE{
         imageBarrier.dstAccessMask = VK_ACCESS_2_NONE; //idk what to put here
         imageBarrier.dstStageMask = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
         imageBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
+        imageBarrier.subresourceRange = VkImageSubresourceRange{
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        };
 
 		dependencyInfo.pMemoryBarriers = nullptr;
 		dependencyInfo.pImageMemoryBarriers = &imageBarrier;
@@ -35,15 +41,17 @@ namespace EWE{
         auto& res = *final_swap_img_usage;
         auto& swapImage = *res.resource[frameIndex];
         imageBarrier.image = swapImage.image;
-        imageBarrier.srcQueueFamilyIndex = swapImage.owningQueue->family.index;
+        //EWE_ASSERT(swapImage.owningQueue != nullptr, "ensure it's set to renderQueue before it gets here");
+        if(swapImage.owningQueue == nullptr){
+            imageBarrier.srcQueueFamilyIndex = presentQueue.family.index;
+        }
+        else{
+            imageBarrier.srcQueueFamilyIndex = swapImage.owningQueue->family.index;
+        }
+        
         imageBarrier.srcAccessMask = res.usage.accessMask; //idk what to put here
         imageBarrier.srcStageMask = res.usage.stage;
         imageBarrier.oldLayout = res.usage.layout;
-        return;
-    }
-
-    void PresentBridge::SetSubresource(VkImageSubresourceRange const& subresource) {
-        imageBarrier.subresourceRange = subresource;
     }
 
     void PresentBridge::Execute(CommandBuffer& cmdBuf){

@@ -29,6 +29,7 @@ namespace EWE{
         std::vector<std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)>> packaged_tasks;
         std::vector<GPUTask*> tasks; //rendergraph needs to iterate thru this, also used for writing to file
 
+        //makes it so this task waits on the acquire semaphore
         bool uses_present_image = false;
         
         [[nodiscard]] explicit SubmissionTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);

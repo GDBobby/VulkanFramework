@@ -20,14 +20,25 @@ namespace Command{
 
     InstructionPackage::InstructionPackage()
     : type{InstructionPackage::Base},
-    paramPool{}
+        paramPool{}
     {
     }
     InstructionPackage::InstructionPackage(Type _type)
-        : type{_type},
+    : type{_type},
         paramPool{}
     {
-
+    }
+    InstructionPackage::InstructionPackage(std::filesystem::path const& _name)
+    : type{InstructionPackage::Base},
+        name{_name},
+        paramPool{}
+    {
+    }
+    InstructionPackage::InstructionPackage(Type _type, std::filesystem::path const& _name)
+    : type{_type},
+        name{_name},
+        paramPool{}
+    {
     }
 
 } //namespace Command

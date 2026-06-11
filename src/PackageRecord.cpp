@@ -3,6 +3,12 @@
 namespace EWE{
 namespace Command{
 
+    PackageRecord::PackageRecord(std::filesystem::path const& _name)
+    : name{_name}
+    {
+
+    }
+
     ParamPool PackageRecord::Compile() const{
         ParamPool ret{};
         {

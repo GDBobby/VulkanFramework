@@ -60,10 +60,11 @@ namespace EWE{
 	void RasterPackage::Compile(){
 
 		paramPool.Clear();
-
-		if(objectPackages.size() > 0){
-			paramPool.PushBack(Inst::BeginRender);
+		if(objectPackages.size() == 0){
+			return;
 		}
+
+		paramPool.PushBack(Inst::BeginRender);
 
 		std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> vertex_pipeline_groups;
 		std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> mesh_pipeline_groups;
@@ -119,10 +120,7 @@ namespace EWE{
 			}
 		}
 
-		if(objectPackages.size() > 0){
-			paramPool.PushBack(Inst::EndRender);
-		}
-
+		paramPool.PushBack(Inst::EndRender);
 	}
 
 	/*

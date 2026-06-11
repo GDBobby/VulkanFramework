@@ -3,13 +3,18 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Data/PerFlight.h"
 
+#include <concepts>
+
 
 namespace EWE{
     struct Buffer;
     struct Image;
+
+    template<typename RT>
+    concept ResourceType = std::same_as<RT, Buffer> || std::same_as<RT, Image>;
     
 
-    template<typename T>
+    template<ResourceType T>
     struct UsageData;
     //https://vulkan.lunarg.com/doc/view/1.4.328.1/windows/antora/spec/latest/chapters/synchronization.html#synchronization-access-types-supported
     //some accessmask are only allowed within some pipeline stages, use the above link ^ to reference
@@ -25,7 +30,7 @@ namespace EWE{
         VkImageLayout layout;
     };
 
-    template<typename T>
+    template<ResourceType T>
     struct Resource {
         PerFlight<T*> resource;
         UsageData<T> usage;
@@ -85,7 +90,7 @@ namespace EWE{
         template<class>
         static constexpr bool invalid_type_debugging_helper = false;
 
-        template<typename Res>
+        template<ResourceType Res>
         uint32_t AddResource(UsageData<Res> const& usage) {
             if constexpr (std::is_same_v<Res, Buffer>) {
                 buffers.emplace_back(usage);
@@ -95,14 +100,10 @@ namespace EWE{
                 images.emplace_back(usage);
                 return images.size() - 1;
             }
-            else {
-                EWE_ASSERT(false, "invalid resource type");
-                //static_assert(false && "invalid resource type");
-            }
             return 69420;
         }
 
-        template<typename Res>
+        template<ResourceType Res>
         uint32_t AddResource(Res& res, UsageData<Res> const& usage){
             if constexpr (std::is_same_v<Res, Buffer>){
                 buffers.emplace_back(res, usage);
@@ -112,12 +113,9 @@ namespace EWE{
                 images.emplace_back(res, usage);
                 return images.size() - 1;
             }
-            else{
-                static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
-            }
             return 69420;
         }
-        template<typename Res>
+        template<ResourceType Res>
         uint32_t AddResource(PerFlight<Res>& res, UsageData<Res> const& usage) {
             if constexpr (std::is_same_v<Res, Buffer>) {
                 buffers.emplace_back(res, usage);
@@ -127,13 +125,9 @@ namespace EWE{
                 images.emplace_back(res, usage);
                 return images.size() - 1;
             }
-            else {
-                //EWE_ASSERT(invalid_type_debugging_helper<Res> && "invalid resource type");
-                static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
-            }
-            return 69420;
+            return 69420; //error silencer
         }
-        template<typename Res>
+        template<ResourceType Res>
         uint32_t AddResource(PerFlight<Res*>& res, UsageData<Res> const& usage) {
             if constexpr (std::is_same_v<Res, Buffer>) {
                 buffers.emplace_back(res, usage);
@@ -143,16 +137,12 @@ namespace EWE{
                 images.emplace_back(res, usage);
                 return images.size() - 1;
             }
-            else {
-                //EWE_ASSERT(invalid_type_debugging_helper<Res> && "invalid resource type");
-                static_assert(invalid_type_debugging_helper<Res> && "invalid resource type");
-            }
             return 69420;
         }
     };
 
     //transition and acquisition are created from something else, not directly constructed by the programmer
-    template<typename Res>
+    template<ResourceType Res>
     struct ResourceTransition{
         Resource<Res>* lhs;
         Resource<Res>* rhs;
@@ -177,9 +167,6 @@ namespace EWE{
                 this->lhs = &_lhs.images[lh_index];
                 this->rhs = &_rhs.images[rh_index];
             }
-            else {
-  //              static_assert(false);
-            }
         }
 
         [[nodiscard]] ResourceTransition(ResourceTransition&& moveSrc) noexcept
@@ -193,7 +180,7 @@ namespace EWE{
     };
 
     //first time in use of frame, queue transfers aren't allowed here
-    template<typename Res>
+    template<ResourceType Res>
     struct ResourceAcquisition{
         Resource<Res>* rhs;
 
@@ -203,9 +190,6 @@ namespace EWE{
             }
             else if constexpr (std::is_same_v<Res, Image>) {
                 this->rhs = &_rhs.images[rh_index];
-            }
-            else {
-  //              static_assert(false);
             }
         }
     };

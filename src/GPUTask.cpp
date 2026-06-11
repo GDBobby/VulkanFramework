@@ -1,7 +1,6 @@
 #include "EightWinds/RenderGraph/GPUTask.h"
 
 #include "EightWinds/CommandBuffer.h"
-#include "EightWinds/Command/Record.h"
 
 #include "EightWinds/RenderGraph/Resources.h"
 
@@ -13,12 +12,6 @@ namespace EWE{
         queue{ _queue },
         pkgRecord{nullptr}
     {
-    }
-    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::Record& cmdRecord)
-    : GPUTask{_name, _logicalDevice, _queue}//,
-        //commandExecutor{std::in_place, logicalDevice, cmdRecord}
-    {
-        commandExecutor.emplace(logicalDevice, cmdRecord);
     }
 
     GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::ParamPool& pp)
@@ -38,26 +31,18 @@ namespace EWE{
     }
 
 
-    GPUTask::~GPUTask(){
-#if EWE_DEBUG_BOOL
-        Log::Error("need to destruct deferred pointers from CommandRecord, currently memory leak\n");
-#endif
-    }
+    GPUTask::~GPUTask(){}
+
     bool GPUTask::Execute(CommandBuffer& cmdBuf, uint8_t frameIndex) {
         EWE_ASSERT(cmdBuf.commandPool.queue == queue);
-        EWE_ASSERT(!(commandExecutor.has_value() && paramPool.has_value()), "only 1 can have a value");
-        if(commandExecutor.has_value()){
-            commandExecutor->Execute(cmdBuf, frameIndex);
-            return true;
-        }
-        else if(paramPool.has_value()){
-            Command::ExecuteParamPool(paramPool.value(), logicalDevice, cmdBuf, frameIndex);
+        if(paramPool.has_value()){
+            Command::ExecuteParamPool(logicalDevice, cmdBuf, paramPool.value(), frameIndex);
             return paramPool->instructions.size() > 0;
         }
         else if(pkgRecord != nullptr){
             bool did_something = false;
             for(auto& rec : pkgRecord->packages){
-                Command::ExecuteParamPool(rec->paramPool, logicalDevice, cmdBuf, frameIndex);
+                Command::ExecuteParamPool(logicalDevice, cmdBuf, rec->paramPool, frameIndex);
                 did_something |= rec->paramPool.instructions.size() > 0;
             }
             return did_something;

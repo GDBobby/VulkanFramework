@@ -20,6 +20,7 @@ namespace Command{
 		};
 
 		[[nodiscard]] InstructionPackage();
+		[[nodiscard]] explicit InstructionPackage(std::filesystem::path const& name);
 
 		static constexpr auto allowed_instructions = {
 
@@ -38,6 +39,7 @@ namespace Command{
 	
 	protected:
 		[[nodiscard]] InstructionPackage(Type type);	
+		[[nodiscard]] InstructionPackage(Type type, std::filesystem::path const& name);	
 	};
 } //namespace Command
 } //namepsace EWE

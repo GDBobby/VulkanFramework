@@ -1,9 +1,15 @@
 #include "EightWinds/Backend/DebugMessenger.h"
 
+#include "EightWinds/Reflect/Enum.h"
+
 #if EWE_DEBUG_BOOL
 #include "EightWinds/Instance.h"
 
 #include <cstring>
+
+#if defined(__linux) || defined(__ANDROID__) //android, but ill leave it here anyways
+#include <pthread.h>
+#endif
 
 namespace EWE {
 
@@ -15,21 +21,66 @@ namespace EWE {
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData
     ) {
+
+        //stealing from github.com/Ak-Elements/Onyx /modules/rhi/private/onyx/rhi/vulkan/debugutilsmessenger
+        std::string_view messageTypeString;
+        switch (messageType) {
+            case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
+                messageTypeString = "GENERAL: ";
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
+                messageTypeString = "VALIDATION: ";
+                break;
+            case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
+                messageTypeString = "PERFORMANCE: ";
+                break;
+            default:
+                messageTypeString = "UNKNOWN: ";
+        }
+
+
         switch (messageSeverity) {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                Log::Debug("validation verbose: %d : %s\n", messageType, pCallbackData->pMessage);
+                Log::Normal("%s%s", "VERBOSE-", messageTypeString.data(), pCallbackData->pMessage);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-                Log::Debug("validation info: %d : %s\n", messageType, pCallbackData->pMessage);
+                Log::Debug("%s%s", "INFO-", messageTypeString.data(), pCallbackData->pMessage);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
                 //std::string idName = pCallbackData->pMessageIdName;
-                Log::Warning("validation warning: %d : %s\n", messageType, pCallbackData->pMessage);
+                Log::Warning("%s%s", "WARNING-", messageTypeString.data(), pCallbackData->pMessage);
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
-                Log::Error("validation error: %d : %s\n", messageType, pCallbackData->pMessage);
+                std::string_view msg = pCallbackData->pMessage;
+                if(msg.contains("THREADING ERROR")){
+#if defined(__linux) || defined(__ANDROID__)
+                    pthread_t threads[2];
+                    if (
+                        sscanf(pCallbackData->pMessage,
+                            "%*[^:]:%*[^:]:%*[^t]thread %lu and thread %lu",
+                            &threads[0], &threads[1]
+                        ) == 2
+                    ) {
+                        char name0[16], name1[16];
+                        pthread_getname_np(threads[0], name0, sizeof(name0));
+                        pthread_getname_np(threads[1], name1, sizeof(name1));
 
+                        Log::Error("vulkan [THREADING ERROR] collision between %s[%zu] and %s[%zu]\n",
+                            name0, threads[0],
+                            name1, threads[1]);
+                    }
+                    else{
+                        Log::Error("couldnt parse thread names\n");
+                    }
+#else 
+#ifdef _WIN32
+#endif
+#endif
+                }
+                else{
+                    Log::Error("%s%s", "ERROR-", messageTypeString.data(), pCallbackData->pMessage);
+                }
 #if GPU_LOGGING
                 std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
                 logFile << "current frame index - " << vkObject->frameIndex << std::endl;
@@ -57,11 +108,16 @@ namespace EWE {
             }
             default:
                 Log::Error("validation default: %s \n", pCallbackData->pMessage);
-                EWE_UNREACHABLE;
                 break;
 
         }
         //throw std::exception("validition layer \n");
+        for(uint32_t i = 0; i < pCallbackData->objectCount; i++){
+            auto const& object = pCallbackData->pObjects[i];
+            Log::Debug("\t%u - Type[%s] : Handle[%zu] : Name[%s]", 
+                i, Reflect::Enum::ToString(object.objectType).data(), object.objectHandle, object.pObjectName ? object.pObjectName : ""
+            );
+        }
         return VK_FALSE;
     }
 

@@ -188,9 +188,9 @@ namespace EWE{
     bool Swapchain::AcquireNextImage(uint8_t frameIndex){
 
         //fix this
-        auto window_dimensions = window.screenDimensions;
+        auto const& window_dimensions = window.screenDimensions;
         if(window_dimensions.width == 0 || window_dimensions.height == 0){
-            //this means its minimized i think
+            //means minimized?
             return false;
         }
         if((window_dimensions.width != swapCreateInfo.imageExtent.width) || (window_dimensions.height != swapCreateInfo.imageExtent.height) || wantsToRecreate){

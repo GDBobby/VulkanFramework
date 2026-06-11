@@ -6,12 +6,14 @@ namespace EWE{
 
 
     RenderGraph::RenderGraph(
+        std::filesystem::path const& _name,
         LogicalDevice& _logicalDevice, Swapchain& _swapchain, 
         Queue& _renderQueue, Queue& _computeQueue,
         SubmissionTask& _graphics_stc_task,
         SubmissionTask& _compute_stc_task
     )
-        : logicalDevice{_logicalDevice},
+    : name{_name},
+        logicalDevice{_logicalDevice},
         swapchain{_swapchain},
         renderQueue{_renderQueue}, computeQueue{_computeQueue},
         graphics_stc_task{_graphics_stc_task},
@@ -68,7 +70,7 @@ namespace EWE{
         current_stc_manager = stc_management.GetNext();
         frame_stc_manager->CollectSTCs();
 
-        UpdateSemaphores(frameIndex, frame_stc_manager);
+        UpdateSemaphores(frameIndex, *frame_stc_manager);
 
         const bool submitting_compute_stc = frame_stc_manager->CheckSize(Queue::Compute);
         const bool submitting_graphics_stc = frame_stc_manager->CheckSize(Queue::Graphics);
@@ -121,22 +123,8 @@ namespace EWE{
         }
 
         presentInfo[frameIndex].pSwapchains = &swapchain.activeSwapchain;
-
-        /*
-        std::vector<std::size_t> temp_debugger{};
-        for(std::size_t i = 0; i < presentInfo[frameIndex].waitSemaphoreCount; i++){
-            temp_debugger.push_back(reinterpret_cast<std::size_t>(presentInfo[frameIndex].pWaitSemaphores[i]));
-            Log::Warning(std::format("0x{:x}\n", temp_debugger.back()).c_str());
-        }
-        */
-
-        VkResult temp_ret = vkQueuePresentKHR(swapchain.presentQueue, &presentInfo[frameIndex]);
-        if(temp_ret != VK_SUBOPTIMAL_KHR){
-            EWE_VK_RESULT(temp_ret);
-        }
-        if(presentResult != VK_SUBOPTIMAL_KHR){
-            EWE_VK_RESULT(presentResult);
-        }
+        swapchain.presentQueue.Present(presentInfo[frameIndex]);
+        //could iterate thru each result in presentInfo
     }
 
     void RenderGraph::UpdateSwapImage(uint8_t frameIndex){
@@ -176,7 +164,8 @@ namespace EWE{
                 //the back uses binary semaphores, so we don't need to cosnider the size for timeline semapohres
                 auto& sub_group = execution_order[i];
                 if(sub_group.size() > max_width){
-                    max_width = sub_group.size();
+                    //i lost the context for this, previously it was max_width = sub_group.size
+                    max_width = std::max(max_width, sub_group.size());
                 }
             }
             max_width = std::max(max_width, std::size_t(1));
@@ -282,11 +271,11 @@ namespace EWE{
                         */
 
                     if(ind_sub->uses_present_image){
-                        if(present_image_used_index > i){
+                        if(i <= present_image_used_index){
                             present_image_used_index = i;
-                        }
-                        if(present_image_used_index == i){
-                            ind_sub->submitInfo[frame].waitSemaphores.emplace_back( //this is a binary semaphore? waits on acquire
+                            ind_sub->submitInfo[frame].waitSemaphores.emplace_back( 
+                                //this is a binary semaphore - waits on acquire
+                                //on startup the underlying semaphore will be nullptr, it will be fixed, this is a pointer
                                 &present_wait_semaphore_data[frame]
                             );
                         }
@@ -300,9 +289,9 @@ namespace EWE{
         }
     }
 
-    void RenderGraph::UpdateSemaphores(uint8_t frameIndex, STC_Submitter* frame_stc_manager) {
-        const bool submitting_compute_stc = frame_stc_manager->CheckSize(Queue::Compute);
-        const bool submitting_graphics_stc = frame_stc_manager->CheckSize(Queue::Graphics);
+    void RenderGraph::UpdateSemaphores(uint8_t frameIndex, STC_Submitter& frame_stc_manager) {
+        const bool submitting_compute_stc = frame_stc_manager.CheckSize(Queue::Compute);
+        const bool submitting_graphics_stc = frame_stc_manager.CheckSize(Queue::Graphics);
 
         EWE_ASSERT(!submitting_compute_stc, "not ready for compute commands yet");
 
@@ -319,6 +308,15 @@ namespace EWE{
         else if(first_graphics_task_group == 0){
             for(auto& ind_sub : execution_order[0]){
                 ind_sub->submitInfo[frameIndex].waitSemaphores.clear();
+
+                //can I just plop this here?
+                if(ind_sub->uses_present_image){
+                    ind_sub->submitInfo[frameIndex].waitSemaphores.emplace_back( 
+                        //this is a binary semaphore - waits on acquire
+                        //on startup the underlying semaphore will be nullptr, it will be fixed, this is a pointer
+                        &present_wait_semaphore_data[frameIndex]
+                    );
+                }
             }
         }
 
@@ -377,6 +375,7 @@ namespace EWE{
                 }
             }
         }
+
         present_wait_semaphore_data[frameIndex].semaphore = swapchain.GetAcquireSemaphore(frameIndex);
         present_wait_raw_semaphore_data[frameIndex].back() = swapchain.GetCurrentPresentSemaphore();
         execution_order.back()[0]->submitInfo[frameIndex].signalSemaphores[0].semaphore = present_wait_raw_semaphore_data[frameIndex].back();
