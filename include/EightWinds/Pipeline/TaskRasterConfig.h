@@ -39,10 +39,11 @@ namespace EWE{
 		//im going to leave it as is for the moment, it can probably be simplified
 
 		void SetDefaults() noexcept;
-
+		static TaskRasterConfig GetDefault();
 
 		static void WriteToFile(TaskRasterConfig const& config, std::ofstream& outFile);
 		static void ReadFromFile(TaskRasterConfig& config, std::ifstream& inFile);
 	};
+
 
 }

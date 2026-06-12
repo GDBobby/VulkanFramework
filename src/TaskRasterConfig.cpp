@@ -44,4 +44,11 @@ namespace EWE{
 		attachment_info.depth.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 		attachment_info.depth.clearValue.color = {0.f, 0.f, 0.f, 0.f};
 	}
+
+
+	TaskRasterConfig TaskRasterConfig::GetDefault() {
+		TaskRasterConfig ret{};
+		ret.SetDefaults();
+		return ret;
+	}
 }
