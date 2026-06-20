@@ -65,7 +65,6 @@ namespace EWE{
     }
 
     void RenderGraph::Execute(uint8_t frameIndex) {
-
         auto frame_stc_manager = current_stc_manager;
         current_stc_manager = stc_management.GetNext();
         frame_stc_manager->CollectSTCs();

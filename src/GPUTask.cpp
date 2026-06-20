@@ -6,28 +6,24 @@
 
 namespace EWE{
 
-    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue)
+    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::ParamPool const& pp)
     : name{ _name },
         logicalDevice{ _logicalDevice },
         queue{ _queue },
         pkgRecord{nullptr}
     {
-    }
-
-    GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue, Command::ParamPool& pp)
-    : GPUTask{_name, _logicalDevice, _queue}
-    {
         paramPool.emplace(pp);
-
     }
 
     GPUTask::GPUTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Command::PackageRecord& record, bool compile)
-    : GPUTask{_name, _logicalDevice, *record.queue}
+    : name{ _name },
+        logicalDevice{ _logicalDevice },
+        queue{ record.queue },
+        pkgRecord{&record}
     {
         if(compile){
             paramPool.emplace(record.Compile());
         }
-        pkgRecord = &record;
     }
 
 

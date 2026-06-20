@@ -3,8 +3,9 @@
 namespace EWE{
 namespace Command{
 
-    PackageRecord::PackageRecord(std::filesystem::path const& _name)
-    : name{_name}
+    PackageRecord::PackageRecord(std::filesystem::path const& _name, Queue& _queue)
+    : name{_name},
+        queue{_queue}
     {
 
     }

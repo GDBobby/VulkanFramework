@@ -29,10 +29,10 @@ namespace EWE{
         //idk count, i want like 2 per fiber but i wont know fiber count at compile time
         
         std::array<std::mutex, Queue::COUNT> stc_mutexes;
-        std::array<RingBuffer<CommandPool, 16>, Queue::COUNT> stc_command_pools;
+        std::array<RingBuffer<CommandPool, 8>, Queue::COUNT> stc_command_pools;
 
         std::mutex semAcqMut{};
-        RingBuffer<TimelineSemaphore, 32> semaphores;
+        RingBuffer<TimelineSemaphore, 8> semaphores;
 
         SingleTimeCommand* GetSTC(Queue::Type requested_queue);
 

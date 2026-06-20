@@ -28,15 +28,35 @@ namespace EWE{
 
     
     static constexpr uint8_t max_frames_in_flight = 2;
+    template <typename T>
+    requires(std::integral<T> || std::floating_point<T>)
+    static constexpr T DEFAULT_HEIGHT = T(1080);
+    template <typename T>
+    requires(std::integral<T> || std::floating_point<T>)
+    static constexpr T DEFAULT_WIDTH = T(1920);
+
 
     #define for_each_frame for(uint8_t frame = 0; frame < max_frames_in_flight; frame++)
 
-    using TextureIndex = int;
     using PipelineID = uint64_t;
 
-    static constexpr TextureIndex null_texture = -1;
+    static constexpr int null_texture = -1;
     static constexpr VkDeviceAddress null_buffer = 0;
 
+    struct DeviceAddress {
+        VkDeviceAddress value;
+
+        // Optional: implicit conversions so it behaves like an integer in your code
+        DeviceAddress() : value(null_buffer) {}
+        DeviceAddress(VkDeviceAddress val) : value(val) {}
+        operator VkDeviceAddress() const { return value; }
+    };
+    struct TextureIndex {
+        int value;
+        TextureIndex() : value(null_texture) {}
+        TextureIndex(int val) : value(val) {}
+        operator int() const { return value; }
+    };
 
 
     constexpr uint32_t RoundDownVkVersion(uint32_t in_version) noexcept {

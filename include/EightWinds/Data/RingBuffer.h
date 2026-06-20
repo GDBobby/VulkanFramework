@@ -7,6 +7,11 @@
 #include <bitset>
 #include <cstdint>
 #include <concepts>
+#include <thread>
+
+#if EWE_DEBUG_BOOL
+#include <stacktrace>
+#endif
 
 //somewhat specialized
 namespace EWE{
@@ -16,6 +21,9 @@ namespace EWE{
 		
 		StackBlock<T, Size> data;
 		std::bitset<Size> usage;
+#if EWE_DEBUG_BOOL
+		std::array<std::stacktrace, Size> usage_location;
+#endif
 		
 		std::size_t starting_index = 0;
 		
@@ -33,11 +41,13 @@ namespace EWE{
 			std::size_t current_index = starting_index;
 			while(usage[current_index]){
 				current_index = (current_index + 1) % Size;
-				if(current_index == starting_index){
-					throw std::runtime_error("Ring Buffer out of space, all in use");
-				}
+				//just relinquishes thread control to the OS for the smallest amoutn of time possible
+				std::this_thread::sleep_for(std::chrono::microseconds(1));
 			}
 			starting_index = (current_index + 1) % Size;
+#if EWE_DEBUG_BOOL
+			usage_location[current_index] = std::stacktrace::current();
+#endif
 			usage[current_index] = true;
 			return &data[current_index];
 		}
@@ -45,6 +55,9 @@ namespace EWE{
 			for(std::size_t i = 0; i < Size; i++){
 				if(obj == &data[i]){
 					EWE_ASSERT(usage[i]);
+#if EWE_DEBUG_BOOL
+					usage_location[i] = std::stacktrace{};
+#endif
 					usage[i] = false;
 					return;
 				}

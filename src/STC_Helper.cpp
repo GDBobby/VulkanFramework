@@ -64,6 +64,7 @@ namespace EWE{
 					.pNext = nullptr,
 					.flags = 0
 				};
+				Log::Warning("this fence is created and waited on in place, NOT GOOD\n"); //replace with a semaphore
 				EWE::Fence stc_fence{logicalDevice, fenceCreateInfo};
 				queue.Submit2(1, &submitInfo, stc_fence);
 				cmdBuf.state = EWE::CommandBuffer::State::Pending;

@@ -58,6 +58,13 @@ namespace EWE{
     };
 
 
+    enum class AcquireType {
+        None,
+        Present,
+        //Compute, ?? other acquire types??
+    };
+
+
     constexpr bool GetAccessMaskWrite(VkAccessFlagBits2 accessMask) {
         switch (accessMask) {
             case VK_ACCESS_2_SHADER_WRITE_BIT:

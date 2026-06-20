@@ -61,4 +61,16 @@ namespace EWE{
 
         RuntimeArray<ShaderVariable*> members{0};
     };
+
+
+    struct ShaderBufferReference {
+        enum class Type {
+          Object,
+          Array,
+          RuntimeArray
+        };
+        Type type;
+
+        ShaderVariable::Type baseType = ShaderVariable::Type::Unknown;
+    };
 }

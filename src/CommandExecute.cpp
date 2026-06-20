@@ -31,8 +31,8 @@ namespace Exec{
         template <Inst::Type IType>
         requires(Inst::GetParamSize(IType) > 0)
         auto& CastAndIncrement(){
-            auto& ret = *reinterpret_cast<ParamPack<IType>*>(address.address);
-            address.address += Inst::GetParamSize(IType);
+            auto& ret = address.CastToRef<ParamPack<IType>>();
+            address.address += sizeof(ParamPack<IType>);
             return ret;
         }
 
@@ -46,10 +46,6 @@ namespace Exec{
     };
 
     using CommandFunction = void(ExecContext& ctx);
-
-
-
-    
 
     void BindPipeline(ExecContext& ctx);
     void BindDescriptor(ExecContext& ctx);
@@ -88,6 +84,10 @@ namespace Exec{
     void Default(ExecContext& ctx);
 
     void Ext_Pool(ExecContext& ctx);
+
+    void Breakpoint(ExecContext& ctx);
+
+    void Exec(ExecContext& ctx);
 } //namespace Exec
 
 static constexpr auto dispatchTable = std::array{
@@ -124,7 +124,9 @@ static constexpr auto dispatchTable = std::array{
     &Exec::Case,
     &Exec::Default,
 
-    &Exec::Ext_Pool
+    &Exec::Ext_Pool,
+
+    &Exec::Breakpoint
 };
 
 namespace Exec{
@@ -139,18 +141,12 @@ namespace Exec{
     //define command functions here
     void BeginRender(ExecContext& ctx) {
         auto& data = ctx.CastAndIncrement<Inst::BeginRender>();
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
 #if EWE_DEBUG_BOOL
         ctx.cmdBuf.debug_currentlyRendering = true;
 #endif
         vkCmdBeginRendering(ctx.cmdBuf, &data);
     }
     void EndRender(ExecContext& ctx) {
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
 
 #if EWE_DEBUG_BOOL
         ctx.cmdBuf.debug_currentlyRendering = false;
@@ -163,9 +159,6 @@ namespace Exec{
         EWE_ASSERT(data.layout != VK_NULL_HANDLE);
         ctx.boundPipeline = data;
 
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdBindPipeline(ctx.cmdBuf, data.bindPoint, data.pipe);
     }
 
@@ -173,9 +166,6 @@ namespace Exec{
     void BindDescriptor(ExecContext& ctx){
         //i dont know where to store the texture descriptor set yet
         VkDescriptorSet* desc = &ctx.device.bindlessDescriptor.set;
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdBindDescriptorSets(
             ctx.cmdBuf, ctx.boundPipeline.bindPoint, 
             ctx.boundPipeline.layout, 
@@ -187,26 +177,17 @@ namespace Exec{
 
     void Push(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::Push>();
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdPushConstants(ctx.cmdBuf, ctx.boundPipeline.layout, VK_SHADER_STAGE_ALL, 0, data.size, data.data);
     }
 
 
     void Draw(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::Draw>();
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdDraw(ctx.cmdBuf, data.vertexCount, data.instanceCount, data.firstVertex, data.firstInstance);
     }
 
     void DrawIndexed(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::DrawIndexed>();
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         //is it a mistake to tightly bind these 2?
         //i dont see a common use case where i want to do multiple draw calls per index buffer without instancing
         vkCmdBindIndexBuffer(ctx.cmdBuf, data.indexBuffer.buffer, data.indexBuffer.offset, data.indexBuffer.indexType);
@@ -215,17 +196,11 @@ namespace Exec{
 
     void Dispatch(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::Dispatch>();
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         //maybe add an if statement here, check if all groups are above 0?
         vkCmdDispatch(ctx.cmdBuf, data.x, data.y, data.z);
     }
     
     void DrawMeshTasks(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         //auto* data = reinterpret_cast<ParamPack::DrawMeshTasks const*>(&ctx.paramPool[ctx.pp.instructions[ctx.iterator].paramOffset]);
         auto& data = ctx.CastAndIncrement<Inst::DrawMeshTasks>();
 
@@ -233,84 +208,51 @@ namespace Exec{
     }
     
     void DrawIndirect(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         auto& data = ctx.CastAndIncrement<Inst::DrawIndirect>();
         vkCmdDrawIndirect(ctx.cmdBuf, data.buffer, data.offset, data.drawCount, data.stride);
     }
     void DrawIndexedIndirect(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         auto& data = ctx.CastAndIncrement<Inst::DrawIndexedIndirect>();
         vkCmdDrawIndexedIndirect(ctx.cmdBuf, data.buffer, data.offset, data.drawCount, data.stride);
     }
     void DispatchIndirect(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         auto& data = ctx.CastAndIncrement<Inst::DispatchIndirect>();
         vkCmdDispatchIndirect(ctx.cmdBuf, data.buffer, data.offset);
     }
     void DrawMeshTasksIndirect(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         auto& data = ctx.CastAndIncrement<Inst::DrawMeshTasksIndirect>();
         ctx.device.cmdDrawMeshTasksIndirect(ctx.cmdBuf, data.buffer, data.offset, data.drawCount, data.stride);
     }
     void DrawIndirectCount(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         auto& data = ctx.CastAndIncrement<Inst::DrawIndirectCount>();
         vkCmdDrawIndirectCount(ctx.cmdBuf, data.buffer, data.offset, data.countBuffer, data.countBufferOffset, data.drawCount, data.stride);
     }
     void DrawIndexedIndirectCount(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         auto& data = ctx.CastAndIncrement<Inst::DrawIndexedIndirectCount>();
         vkCmdDrawIndexedIndirectCount(ctx.cmdBuf, data.buffer, data.offset, data.countBuffer, data.countBufferOffset, data.drawCount, data.stride);
     }
     void DrawMeshTasksIndirectCount(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         auto& data = ctx.CastAndIncrement<Inst::DrawMeshTasksIndirectCount>();
         ctx.device.cmdDrawMeshTasksIndirectCount(ctx.cmdBuf, data.buffer, data.offset, data.countBuffer, data.countBufferOffset, data.drawCount, data.stride);
     }
     
     void Viewport(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::DS_Viewport>();
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdSetViewport(ctx.cmdBuf, 0, 1, &data.viewport);
     }
     void Scissor(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::DS_Scissor>();
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdSetScissor(ctx.cmdBuf, 0, 1, &data.scissor);
     }
 
     void ViewportCount(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::DS_ViewportCount>();
         EWE_ASSERT(data.currentViewportCount<ParamPack<Inst::DS_ViewportCount>::ArbitraryViewportCountLimit);
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdSetViewport(ctx.cmdBuf, 0, data.currentViewportCount, data.viewports);
     }
     void ScissorCount(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::DS_ScissorCount>();
         EWE_ASSERT(data.currentScissorCount < ParamPack<Inst::DS_ScissorCount>::ArbitraryScissorCountLimit);
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         vkCmdSetScissor(ctx.cmdBuf, 0, data.currentScissorCount, data.scissors);
     }
 
@@ -323,17 +265,11 @@ namespace Exec{
             .pLabelName = data.name,
             .color = {data.red, data.green, data.blue, 1.f}
         };
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
         ctx.device.BeginLabel(ctx.cmdBuf, &labelUtil);
 #endif
     }
 
     void EndLabel(ExecContext& ctx){
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
 #if EWE_DEBUG_NAMING
         ctx.device.EndLabel(ctx.cmdBuf);
 #endif
@@ -342,25 +278,15 @@ namespace Exec{
 
     void IfStatement(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::If>();
-
-#ifdef EXECUTOR_DEBUGGING
-        ctx.Print();
-#endif
+        ctx.iterator++; //need to step past the current if
         if(data){
             while(ctx.iterator < ctx.pp.instructions.size()){
                 if(ctx.pp.instructions[ctx.iterator] == Inst::Type::EndIf){
-#ifdef EXECUTOR_DEBUGGING
-                    ctx.Print();
-#endif
                     return;
                 }
                 ctx.Iterate();
             }
             EWE_UNREACHABLE;
-        }
-        else {
-            //passes over the if, so that the endif will be stepped over on return
-            ctx.iterator++;
         }
     }
 
@@ -383,6 +309,10 @@ namespace Exec{
     void Ext_Pool(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::Ext_Pool>();
         ctx.boundPipeline = ExecuteParamPool_Internal(ctx.device, ctx.cmdBuf, *data.pool, ctx.frame, ctx.boundPipeline);
+    }
+    void Breakpoint(ExecContext& ctx) {
+        Log::Warning("inst::breakpoint\n");
+        EWE_Debug_Breakpoint();
     }
 
 } //namespace Exec

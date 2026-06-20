@@ -41,14 +41,14 @@ namespace EWE {
 
         switch (messageSeverity) {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-                Log::Normal("%s%s", "VERBOSE-", messageTypeString.data(), pCallbackData->pMessage);
+                Log::Normal("VERBOSE-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-                Log::Debug("%s%s", "INFO-", messageTypeString.data(), pCallbackData->pMessage);
+                Log::Debug("INFO-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
                 break;
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: {
                 //std::string idName = pCallbackData->pMessageIdName;
-                Log::Warning("%s%s", "WARNING-", messageTypeString.data(), pCallbackData->pMessage);
+                Log::Warning("WARNING-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
                 break;
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
@@ -79,7 +79,7 @@ namespace EWE {
 #endif
                 }
                 else{
-                    Log::Error("%s%s", "ERROR-", messageTypeString.data(), pCallbackData->pMessage);
+                    Log::Error("ERROR-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
                 }
 #if GPU_LOGGING
                 std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
@@ -107,14 +107,14 @@ namespace EWE {
                 break;
             }
             default:
-                Log::Error("validation default: %s \n", pCallbackData->pMessage);
+                Log::Error("validation default: %s\n", pCallbackData->pMessage);
                 break;
 
         }
         //throw std::exception("validition layer \n");
         for(uint32_t i = 0; i < pCallbackData->objectCount; i++){
             auto const& object = pCallbackData->pObjects[i];
-            Log::Debug("\t%u - Type[%s] : Handle[%zu] : Name[%s]", 
+            Log::Debug("\t%u - Type[%s] : Handle[%zu] : Name[%s]\n",
                 i, Reflect::Enum::ToString(object.objectType).data(), object.objectHandle, object.pObjectName ? object.pObjectName : ""
             );
         }

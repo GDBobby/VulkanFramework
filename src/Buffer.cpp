@@ -1,7 +1,6 @@
 #include "EightWinds/Buffer.h"
 
 #include "vma/include/vk_mem_alloc.h"
-#include <vulkan/vulkan_core.h>
 
 namespace EWE{
 
@@ -48,7 +47,7 @@ namespace EWE{
     }
 
     void Buffer::Init(
-        VkDeviceSize instanceSize, uint32_t instanceCount,
+        VkDeviceSize _instanceSize, uint32_t instanceCount,
         VmaAllocationCreateInfo const& vmaAllocCreateInfo,
         VkBufferUsageFlags _usageFlags
     ) {
@@ -56,9 +55,10 @@ namespace EWE{
             //deinit on the gpu
             DestroyTheVkBuffer();
         }
-        this->usageFlags = _usageFlags;
-        alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits);
-        bufferSize = alignmentSize * instanceCount;
+        usageFlags = _usageFlags;
+        //alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits);
+        instanceSize = _instanceSize;
+        bufferSize = instanceCount * instanceSize;// * alignmentSize;
         existsOnTheGPU = true;
 
         CreateTheVkBuffer(vmaAllocCreateInfo);
@@ -74,7 +74,8 @@ namespace EWE{
     Buffer::Buffer(LogicalDevice& _logicalDevice)
         : logicalDevice{ _logicalDevice },
         usageFlags{0},
-        alignmentSize{0},
+        //alignmentSize{0},
+        instanceSize{0},
         bufferSize{0},
         existsOnTheGPU{false}
 #if EWE_DEBUG_NAMING
@@ -86,11 +87,12 @@ namespace EWE{
         vmaAlloc = VK_NULL_HANDLE;
     }
 
-    Buffer::Buffer(LogicalDevice& _logicalDevice, VkDeviceSize instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags _usageFlags)
+    Buffer::Buffer(LogicalDevice& _logicalDevice, VkDeviceSize _instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags _usageFlags)
         : logicalDevice{ _logicalDevice },
         usageFlags{ _usageFlags },
-        alignmentSize{ CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits) },
-        bufferSize{ alignmentSize * instanceCount },
+        //alignmentSize{ CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits) },
+        instanceSize{_instanceSize},
+        bufferSize{ instanceCount * instanceSize}, //* alignmentSize },
         existsOnTheGPU{ true }
 #if EWE_DEBUG_NAMING
         ,
@@ -123,35 +125,35 @@ namespace EWE{
         EWE_VK(vmaFlushAllocation, logicalDevice.vmaAllocator, vmaAlloc, trueOffset, minOffsetAlignment);
     }
     void Buffer::FlushIndex(uint32_t index) { 
-        Flush(alignmentSize, index * alignmentSize); 
+        Flush(instanceSize, index * instanceSize);
     }
 
-    VkDeviceSize Buffer::CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits) {
-        VkDeviceSize minOffsetAlignment = 1;
-        
-        if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_INDEX_BUFFER_BIT) 
-        || BitwiseContains(usageFlags, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT))
-        {
-            minOffsetAlignment = 1;
-        }
-        else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)) {
-            minOffsetAlignment = limits.minUniformBufferOffsetAlignment;
-        }
-        else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)) {
-            minOffsetAlignment = limits.minStorageBufferOffsetAlignment;
-        }
-        else if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)){
-            //does texel care if its uniform or storage?
-            //do i push it into the above?
-            minOffsetAlignment = limits.minTexelBufferOffsetAlignment;
-        }
-        
+    // VkDeviceSize Buffer::CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits) {
+    //     VkDeviceSize minOffsetAlignment = 1;
+    //
+    //     if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_INDEX_BUFFER_BIT)
+    //     || BitwiseContains(usageFlags, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT))
+    //     {
+    //         minOffsetAlignment = 1;
+    //     }
+    //     else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)) {
+    //         minOffsetAlignment = limits.minUniformBufferOffsetAlignment;
+    //     }
+    //     else if (BitwiseContains(usageFlags, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)) {
+    //         minOffsetAlignment = limits.minStorageBufferOffsetAlignment;
+    //     }
+    //     else if(BitwiseContains(usageFlags, VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)) {
+    //         //does texel care if its uniform or storage?
+    //         //do i push it into the above?
+    //         minOffsetAlignment = limits.minTexelBufferOffsetAlignment;
+    //     }
+    //
+    //     if (minOffsetAlignment > 0) {
+    //         return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
+    //     }
+    //     return instanceSize;
+    // }
 
-        if (minOffsetAlignment > 0) {
-            return (instanceSize + minOffsetAlignment - 1) & ~(minOffsetAlignment - 1);
-        }
-        return instanceSize;
-    }
     VkDescriptorBufferInfo Buffer::DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) const {
         VkDescriptorBufferInfo ret = buffer_info;
         ret.offset = offset;
@@ -160,7 +162,6 @@ namespace EWE{
     }
 
     void* Buffer::GetMapped(){
-        EWE_ASSERT(mapped != nullptr);
         return mapped;
     }
 

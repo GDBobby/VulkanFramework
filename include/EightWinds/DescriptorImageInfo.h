@@ -31,7 +31,6 @@ namespace EWE{
 
         DescriptorImageInfo(DescriptorImageInfo const& copySrc) = delete;
         DescriptorImageInfo(DescriptorImageInfo&& moveSrc) = delete;//noexcept;
-
         DescriptorImageInfo& operator=(DescriptorImageInfo const& copySrc) = delete;
         DescriptorImageInfo& operator=(DescriptorImageInfo&& moveSrc) = delete;
 

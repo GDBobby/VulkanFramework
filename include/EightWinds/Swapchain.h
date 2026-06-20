@@ -36,7 +36,16 @@ thats fine in smaller apps, but if i do pre-compute or post-compute, or whatever
 */
 
 namespace EWE{
+    /*
+        synchronization scope - present should all be done within 1 thread
 
+        vkAcquireNextImageKHR
+        vkAcquireNextImage2KHR
+        vkQueuePresentKHR
+        vkGetSwapchainImagesKHR
+        vkCreateSwapchainKHR
+        vkDestroySwapchainKHR
+    */
     struct Swapchain{
         LogicalDevice& logicalDevice;
         Window& window;

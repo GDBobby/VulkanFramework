@@ -57,7 +57,7 @@ namespace EWE{
 		InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_vk_render_info{ nullptr };
 
 		[[nodiscard]] explicit RasterPackage(
-			std::string_view name, 
+			std::filesystem::path const& name,
 			LogicalDevice& logicalDevice, Queue& graphicsQueue, 
 			TaskRasterConfig const& config
 		);

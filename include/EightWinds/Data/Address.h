@@ -28,6 +28,15 @@ namespace EWE{
             //this avoids selecting either one from the union
             return memcmp(this, &other, sizeof(Address)) == 0;
         }
+
+        template<typename T>
+        T* CastToPtr() {
+            return reinterpret_cast<T*>(pointer);
+        }
+        template<typename T>
+        T& CastToRef() {
+            return *CastToPtr<T>();
+        }
     };
 } //namespace EWE
 

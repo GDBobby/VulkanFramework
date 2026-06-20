@@ -17,13 +17,7 @@ namespace EWE{
 
         [[nodiscard]] explicit PresentBridge(LogicalDevice& logicalDevice, Queue& presentQueue) noexcept;
 
-        PresentBridge(PresentBridge const& copySrc) = delete;
-        PresentBridge(PresentBridge&& moveSrc) noexcept = delete;
-
-        PresentBridge& operator=(PresentBridge const& copySrc) = delete;
-        PresentBridge& operator=(PresentBridge&& copySrc) = delete;
-
-        Resource<Image>* final_swap_img_usage;
+        Resource<Image>* final_swap_img_usage;;
 
         VkImageMemoryBarrier2 imageBarrier{};
 
@@ -31,5 +25,10 @@ namespace EWE{
 
         void UpdateSrcData(uint8_t frameIndex);
         void Execute(CommandBuffer& cmdBuf);
+
+        PresentBridge(PresentBridge const& copySrc) = delete;
+        PresentBridge(PresentBridge&& moveSrc) noexcept = delete;
+        PresentBridge& operator=(PresentBridge const& copySrc) = delete;
+        PresentBridge& operator=(PresentBridge&& copySrc) = delete;
     };
 }

@@ -55,6 +55,9 @@ namespace Inst{ //Inst is short for Instruction :)
 
         Ext_Pool,
 
+#if EWE_DEBUG_BOOL
+        Breakpoint,
+#endif
         //im only going to implement vp scissor for the moment
         DS_LineWidth,
         DS_DepthBias,
@@ -82,6 +85,8 @@ namespace Inst{ //Inst is short for Instruction :)
         EndIf,
         LoopEnd,
         SwitchEnd,
+
+
 
     };
 } //namespace Inst

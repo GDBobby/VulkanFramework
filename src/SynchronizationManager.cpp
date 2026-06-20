@@ -8,41 +8,69 @@
 
 
 namespace EWE{
-    void SynchronizationManager::AddTransition_Buffer(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index) {
+
+    template<> void SynchronizationManager::AddTransition<Buffer>(TaskResourceIndex const& lh, TaskResourceIndex const& rh) {
         buffer_transitions.emplace_back(
-            TransitionObjects<Buffer>{
-                .lhs = &lhs,
-                .lh_index = lh_index,
-                .rhs = &rhs,
-                .rh_index = rh_index
+            TransitionObjects{
+                .lh{lh},
+                .rh{rh}
             }
         );
     }
 
-    void SynchronizationManager::AddTransition_Image(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index) {
+    template<> void SynchronizationManager::AddTransition<Image>(TaskResourceIndex const& lh, TaskResourceIndex const& rh) {
         image_transitions.emplace_back(
-            TransitionObjects<Image>{
-                .lhs = &lhs,
-                .lh_index = lh_index,
-                .rhs = &rhs,
-                .rh_index = rh_index
+            TransitionObjects{
+                .lh{lh},
+                .rh{rh}
             }
         );
     }
-    void SynchronizationManager::AddAcquisition_Buffer(GPUTask& rhs, uint32_t rh_index) {
+    template<> void SynchronizationManager::AddAcquisition<Buffer>(TaskResourceIndex const& rh, AcquireType acqType) {
+        buffer_acquisitions.emplace_back(AcquireObject{.task = rh.task, .index = rh.index, .acqType = acqType });
+    }
+    template<> void SynchronizationManager::AddAcquisition<Image>(TaskResourceIndex const& rh, AcquireType acqType) {
+        image_acquisitions.emplace_back(AcquireObject{.task = rh.task, .index = rh.index, .acqType = acqType });
+    }
+
+
+    template<> void SynchronizationManager::AddTransition<Buffer>(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index) {
+        buffer_transitions.emplace_back(
+            TransitionObjects{
+                .lh{
+                    .task = &lhs,
+                    .index = lh_index
+                },
+                .rh{
+                    .task = &rhs,
+                    .index = rh_index
+                }
+            }
+        );
+    }
+
+    template<> void SynchronizationManager::AddTransition<Image>(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index) {
+        image_transitions.emplace_back(
+            TransitionObjects{
+                .lh{
+                    .task = &lhs,
+                    .index = lh_index
+                },
+                .rh{
+                    .task = &rhs,
+                    .index = rh_index
+                }
+            }
+        );
+    }
+    template<> void SynchronizationManager::AddAcquisition<Buffer>(GPUTask& rhs, uint32_t index, AcquireType acqType) {
         buffer_acquisitions.emplace_back(
-            AcquireObjects<Buffer>{
-                .rhs = &rhs,
-                .rh_index = rh_index
-            }
+            AcquireObject{.task = &rhs, .index = index, .acqType = AcquireType::None }
         );
     }
-    void SynchronizationManager::AddAcquisition_Image(GPUTask& rhs, uint32_t rh_index) {
+    template<> void SynchronizationManager::AddAcquisition<Image>(GPUTask& rhs, uint32_t index, AcquireType acqType) {
         image_acquisitions.emplace_back(
-            AcquireObjects<Image>{
-                .rhs = &rhs,
-                .rh_index = rh_index
-            }
+            AcquireObject{.task = &rhs, .index = index, .acqType = acqType }
         );
     }
 
@@ -51,68 +79,70 @@ namespace EWE{
 		//all barriers need to have been cleared before populating, 
 		// potentially put validaiton in here that all touched tasks have 0 existing barriers
 		for (auto& trans : buffer_transitions) {
-			auto const& barr = Barrier::Transition_Buffer(
-                trans.lhs->queue, *trans.lhs->resources.buffers[trans.lh_index].resource[frameIndex], 
-                trans.rhs->queue, 
-                trans.lhs->resources.buffers[trans.lh_index].usage,
-                trans.rhs->resources.buffers[trans.rh_index].usage
+			auto const& barr = Barrier::Transition<Buffer>(
+                trans.lh.task->queue, *trans.lh.task->resources.buffers[trans.lh.index].resource[frameIndex], 
+                trans.rh.task->queue, 
+                trans.lh.task->resources.buffers[trans.lh.index].usage,
+                trans.rh.task->resources.buffers[trans.rh.index].usage
             );
-			if (trans.lhs->queue != trans.rhs->queue) {
+			if (trans.lh.task->queue != trans.rh.task->queue) {
 				//put a suffix on lhs
-				auto& lh_barriers = trans.lhs->suffix.barriers[frameIndex];
+				auto& lh_barriers = trans.lh.task->suffix.barriers[frameIndex];
 				lh_barriers.bufferBarriers.push_back(barr);
 			}
-			auto& rh_barriers = trans.rhs->prefix.barriers[frameIndex];
+			auto& rh_barriers = trans.rh.task->prefix.barriers[frameIndex];
 			rh_barriers.bufferBarriers.push_back(barr);
 		}
 		for (auto& acq : buffer_acquisitions) {
-			auto& rh_barriers = acq.rhs->prefix.barriers[frameIndex];
+			auto& rh_barriers = acq.task->prefix.barriers[frameIndex];
 			rh_barriers.bufferBarriers.push_back(
-                Barrier::Acquire_Buffer(
-                    acq.rhs->queue, 
-                    *acq.rhs->resources.buffers[acq.rh_index].resource[frameIndex], 
-                    acq.rhs->resources.buffers[acq.rh_index].usage
+                Barrier::Acquire<Buffer>(
+                    acq.task->queue, 
+                    *acq.task->resources.buffers[acq.index].resource[frameIndex], 
+                    acq.task->resources.buffers[acq.index].usage
                 )
             );
 		}
 
 		for (auto& trans : image_transitions) {
-			auto const& barr = Barrier::Transition_Image(
-                trans.lhs->queue, 
-                *trans.lhs->resources.images[trans.lh_index].resource[frameIndex], 
-                trans.rhs->queue,
-                trans.lhs->resources.images[trans.lh_index].usage, 
-                trans.rhs->resources.images[trans.rh_index].usage
+			auto const& barr = Barrier::Transition<Image>(
+                trans.lh.task->queue, 
+                *trans.lh.task->resources.images[trans.lh.index].resource[frameIndex], 
+                trans.rh.task->queue,
+                trans.lh.task->resources.images[trans.lh.index].usage, 
+                trans.rh.task->resources.images[trans.rh.index].usage
             );
-			if (trans.lhs->queue != trans.rhs->queue) {
+			if (trans.lh.task->queue != trans.rh.task->queue) {
 				//put a suffix on lhs
-				auto& lh_barriers = trans.lhs->suffix.barriers[frameIndex];
-				trans.lhs->suffix.barriers[frameIndex].imageBarriers.push_back(barr);
+				auto& lh_barriers = trans.lh.task->suffix.barriers[frameIndex];
+				trans.lh.task->suffix.barriers[frameIndex].imageBarriers.push_back(barr);
 			}
-			auto& rh_res = trans.rhs->resources.images[trans.rh_index];
-			trans.rhs->prefix.image_updates.emplace_back(
-                trans.rhs->resources.images[trans.rh_index].resource[frameIndex], 
-                trans.rhs->resources.images[trans.rh_index].usage.layout
+			auto& rh_res = trans.rh.task->resources.images[trans.rh.index];
+			trans.rh.task->prefix.image_updates.emplace_back(
+                trans.rh.task->resources.images[trans.rh.index].resource[frameIndex], 
+                trans.rh.task->resources.images[trans.rh.index].usage.layout
             );
 
-			auto& rh_barriers = trans.rhs->prefix.barriers[frameIndex];
+			auto& rh_barriers = trans.rh.task->prefix.barriers[frameIndex];
 			rh_barriers.imageBarriers.push_back(barr);
 
 		}
 		for (auto& acq : image_acquisitions) {
-			auto& rh_res = acq.rhs->resources.images[acq.rh_index];
-			acq.rhs->prefix.image_updates.emplace_back(
-                acq.rhs->resources.images[acq.rh_index].resource[frameIndex], 
-                acq.rhs->resources.images[acq.rh_index].usage.layout
+			auto& rh_res = acq.task->resources.images[acq.index];
+			acq.task->prefix.image_updates.emplace_back(
+                acq.task->resources.images[acq.index].resource[frameIndex], 
+                acq.task->resources.images[acq.index].usage.layout
             );
 
-			auto& rh_barriers = acq.rhs->prefix.barriers[frameIndex];
+			auto& rh_barriers = acq.task->prefix.barriers[frameIndex];
 			rh_barriers.imageBarriers.push_back(
-                Barrier::Acquire_Image(
-                    acq.rhs->queue, 
-                    *acq.rhs->resources.images[acq.rh_index].resource[frameIndex], 
-                    acq.rhs->resources.images[acq.rh_index].usage)
-                );
+                Barrier::Acquire<Image>(
+                    acq.task->queue, 
+                    *acq.task->resources.images[acq.index].resource[frameIndex], 
+                    acq.task->resources.images[acq.index].usage,
+                    acq.acqType
+                )
+            );
 		}
 		
     }

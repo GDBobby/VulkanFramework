@@ -99,6 +99,12 @@ namespace EWE {
 		void CompileModule(const std::size_t dataSize, const void* data);
 		void ReadReflection(const std::size_t dataSize, const void* data);
 
+	    struct BufferReference {
+	    	std::string name;
+	    	uint32_t size;
+	    };
+		std::vector<BufferReference> bufferReferences;
+
         Hive<ShaderVariable> variables;
         //the int is spirv_cross id
         std::unordered_map<int, ShaderVariable*> existing_variables; 

@@ -21,7 +21,6 @@ namespace EWE{
 	public:
         T* memory;
 
-		//DO NOT CHANGE EXTERNALLY
 		std::size_t size; //DO NOT CHANGE EXTERNALLY
 
 	public:

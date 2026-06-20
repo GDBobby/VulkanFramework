@@ -23,9 +23,7 @@ namespace EWE{
         ImageView& operator=(ImageView&& moveSrc) = delete;
         
 
-#if EWE_DEBUG_NAMING
-        std::string name;
-#endif
+        std::filesystem::path name;
         void SetName(std::string_view name);
 
         void Create();

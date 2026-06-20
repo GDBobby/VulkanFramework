@@ -74,6 +74,7 @@ namespace EWE{
     struct MemoryHelper_Construction : public MemoryHelper<Memory, T> {
         
         template<typename... Args>
+        requires std::constructible_from<T, Args...>
         void ConstructAt(std::size_t index, Args&&... args){				
             std::construct_at(
                 this->GetMemory() + index,
@@ -82,10 +83,14 @@ namespace EWE{
         }
 		
 		template<typename... Args>
+        requires std::constructible_from<T, Args...>
 		void ConstructAll(Args&&... args) {
             auto& self = this->CastSelf();
 			for (std::size_t i = 0; i < self.size; i++) {
-				ConstructAt(i, std::forward<Args>(args)...);
+			    std::construct_at(
+                    this->GetMemory() + i,
+                    args...
+                );
 			}
 		}
 		

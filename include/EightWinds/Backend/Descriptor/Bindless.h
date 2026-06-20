@@ -2,11 +2,17 @@
 
 #include "EightWinds/VulkanHeader.h"
 
+#include "EightWinds/Data/KeyValueContainer.h"
+
 #include <bitset>
 #include <array>
+#include <mutex>
+
 
 namespace EWE{
     struct LogicalDevice;
+    struct DescriptorImageInfo;
+
     enum class DescriptorType : uint8_t {
         Sampler,
         Combined,
@@ -45,33 +51,24 @@ namespace EWE{
 
             LogicalDevice& logicalDevice;
             std::array<std::bitset<max_images_per_type>, static_cast<size_t>(DescriptorType::COUNT)> occupancy;
+            std::mutex binding_mutex;
+            KeyValueContainer<DescriptorImageInfo*, TextureIndex> tracker;
+
+            std::string GetImageNameForIndex(TextureIndex index) const;
 
             //i can overfill this with information a bit since it's only every going to be created once
             VkDescriptorPool pool;
             VkDescriptorSetLayout layout;
-
             VkDescriptorSet set;
 
-            /*
-            i think ideally, i'd have information like
-            struct BindingData{
-                VkDescriptorSetLayoutBinding,
-                VkDescriptorBindingFlags,
-                pool size,
-
-                whatever other data is tied to binding count in here
-            }
-                std::vector<Bindingdata> bindingData;
-
-                //but idk if its worth the trouble (not a lot of trouble but still)
-            */
             std::array<VkDescriptorSetLayoutBinding, static_cast<size_t>(DescriptorType::COUNT)> bindings;
 
             [[nodiscard]] explicit BindlessDescriptor(LogicalDevice& logicalDevice);
             ~BindlessDescriptor();
-            
-            TextureIndex BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType descriptorType);
-            void Unbind(TextureIndex index, DescriptorType type);
+
+
+            TextureIndex BindImage(DescriptorImageInfo& dii);
+            void Unbind(DescriptorImageInfo& dii);
         private:
             //id prefer to put these in the implementation only, but I need to set other members. by reference maybe?
             void CreateLayout();

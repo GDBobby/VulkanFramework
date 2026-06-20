@@ -76,8 +76,6 @@ namespace EWE{
             .ppEnabledExtensionNames = all_extensions.data()
         };
 
-
-
 #if EWE_DEBUG_BOOL
         if (!DebugMessenger::CheckValidationLayerSupport()) {
             Log::Error("validation layers not available \n");

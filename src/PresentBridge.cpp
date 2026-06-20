@@ -7,7 +7,8 @@ namespace EWE{
     PresentBridge::PresentBridge(LogicalDevice& _logicalDevice, Queue& _presentQueue) noexcept
     : logicalDevice{_logicalDevice},
         presentQueue{_presentQueue},
-        name{"present bridge"}
+        name{"present bridge"},
+        final_swap_img_usage{nullptr}
     {
 		dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
 		dependencyInfo.pNext = nullptr;
@@ -39,17 +40,17 @@ namespace EWE{
     
     void PresentBridge::UpdateSrcData(uint8_t frameIndex) {
         auto& res = *final_swap_img_usage;
-        auto& swapImage = *res.resource[frameIndex];
+        Image& swapImage = *res.resource[frameIndex];
         imageBarrier.image = swapImage.image;
-        //EWE_ASSERT(swapImage.owningQueue != nullptr, "ensure it's set to renderQueue before it gets here");
         if(swapImage.owningQueue == nullptr){
             imageBarrier.srcQueueFamilyIndex = presentQueue.family.index;
         }
         else{
+            //EWE_ASSERT(swapImage.owningQueue != nullptr);
             imageBarrier.srcQueueFamilyIndex = swapImage.owningQueue->family.index;
         }
         
-        imageBarrier.srcAccessMask = res.usage.accessMask; //idk what to put here
+        imageBarrier.srcAccessMask = res.usage.accessMask;
         imageBarrier.srcStageMask = res.usage.stage;
         imageBarrier.oldLayout = res.usage.layout;
     }

@@ -18,11 +18,10 @@ namespace EWE{
 namespace Command{
     struct PackageRecord{
         std::filesystem::path name{};
-        Queue* queue = nullptr; //not optional, but can be changed
+        Queue& queue;
         std::vector<InstructionPackage*> packages;
 
-        [[nodiscard]] PackageRecord() = default;
-        [[nodiscard]] explicit PackageRecord(std::filesystem::path const& name);
+        [[nodiscard]] explicit PackageRecord(std::filesystem::path const& name, Queue& queue);
 
         PackageRecord(PackageRecord const&) = delete;
         PackageRecord& operator=(PackageRecord const&) = delete;

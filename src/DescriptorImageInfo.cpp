@@ -14,7 +14,7 @@ namespace EWE{
             .imageLayout = explicitLayout
         },
         type{ _type },
-        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
+        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(*this) }
     {
     }
     DescriptorImageInfo::DescriptorImageInfo(Sampler& _sampler, ImageView& _view, DescriptorType _type, VkImageLayout explicitLayout)
@@ -22,11 +22,11 @@ namespace EWE{
         view{ _view },
         imageInfo{
             .sampler = *sampler,
-            .imageView = _view,
+            .imageView = view,
             .imageLayout = explicitLayout
         },
         type{ _type },
-        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(imageInfo, type) }
+        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(*this) }
     {
     }
     DescriptorImageInfo::DescriptorImageInfo(ImageView& _view, DescriptorType _type)
@@ -53,7 +53,7 @@ namespace EWE{
     DescriptorImageInfo::~DescriptorImageInfo() {
         //if it was moved, index will be invalid
         if (index != null_texture) {
-            view.image.logicalDevice.bindlessDescriptor.Unbind(index, type);
+            view.image.logicalDevice.bindlessDescriptor.Unbind(*this);
         }
     }
 }

@@ -34,7 +34,7 @@ namespace EWE{
         SingleTimeCommand& operator=(SingleTimeCommand&& moveSrc);
     };
 
-    template<typename Resource>
+    template<ResourceType Resource>
     struct STC_Sub_Package;
 
     template<>
@@ -52,7 +52,7 @@ namespace EWE{
     };
 
 
-	template<typename Resource>
+	template<ResourceType Resource>
 	struct TransferContext{
 		//i want the context to describe the entire process, and to return data required for callbacks
 	};

@@ -51,10 +51,6 @@ namespace EWE{
         : logicalDevice{_logicalDevice},
         value{initialValue}
     {
-        //VK_SEMAPHORE_TYPE_BINARY = 0,
-        //VK_SEMAPHORE_TYPE_TIMELINE = 1,
-
-        //i need to find a way to rectify features internally
 #if EWE_DEBUG_BOOL
         EWE_ASSERT(logicalDevice.features12.timelineSemaphore);
 #endif

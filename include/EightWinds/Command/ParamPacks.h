@@ -20,22 +20,22 @@ namespace EWE{
         static constexpr std::size_t data_size = 128 / sizeof(std::byte);
         std::byte data[data_size];
 
-        VkDeviceAddress& GetDeviceAddress(uint8_t index){
+        DeviceAddress& GetDeviceAddress(uint8_t index){
 #if EWE_DEBUG_BOOL
-            VkDeviceAddress* temp_array = reinterpret_cast<VkDeviceAddress*>(data);
+            DeviceAddress* temp_array = reinterpret_cast<DeviceAddress*>(data);
             auto& ret = temp_array[index];
             return ret;
 #else
-            return reinterpret_cast<VkDeviceAddress*>(data)[index];
+            return reinterpret_cast<DeviceAddress*>(data)[index];
 #endif
         }
         TextureIndex& GetTextureIndex(uint8_t index){
-            auto* starting_addr = reinterpret_cast<VkDeviceAddress*>(data) + buffer_count;
+            auto* starting_addr = reinterpret_cast<DeviceAddress*>(data) + buffer_count;
             return reinterpret_cast<TextureIndex*>(starting_addr)[index];
         }
 
         std::size_t Size() const{
-            return buffer_count * sizeof(VkDeviceAddress)
+            return buffer_count * sizeof(DeviceAddress)
                 + texture_count * sizeof(TextureIndex);
         }
     };
@@ -78,7 +78,7 @@ namespace EWE{
         uint32_t firstInstance;
     };
     template<> struct ParamPack<Inst::BeginLabel>{
-        const char* name;
+        const char* name; //do I want the lifetime of this to be separate??
         float red;
         float green;
         float blue;

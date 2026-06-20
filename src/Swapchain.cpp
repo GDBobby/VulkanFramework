@@ -168,7 +168,7 @@ namespace EWE{
         for (uint8_t i = 0; i < swapImageCount; i++){
             present_semaphores.push_back(BinarySemaphore{logicalDevice});
 #if EWE_DEBUG_NAMING
-            std::string debugName = std::string("swapchain present semaphore [") + std::to_string(i) + ']';
+            const std::string debugName = std::string("swapchain present semaphore [") + std::to_string(i) + ']';
             present_semaphores[i].SetName(debugName.c_str());
 #endif
         }
@@ -210,25 +210,12 @@ namespace EWE{
 
         uint32_t image_index;
 
-        /*
-            synchronization scope - currently this is all within one thread, which would be the graphics thread. maybe the rendergraph changes that
-
-            vkAcquireNextImageKHR
-            vkAcquireNextImage2KHR
-            vkQueuePresentKHR
-            vkGetSwapchainImagesKHR
-            vkCreateSwapchainKHR
-            vkDestroySwapchainKHR
-        */
-       
-        //Log::Debug("lock queue mutex here\n");
         VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, acquire_semaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &image_index);
-        //Log::Debug("unlock queue mutex\n");
         
         switch(acquireResult){
             case VK_SUCCESS: break; //dont do anything
             case VK_SUBOPTIMAL_KHR: break; //dont do anythign? need to look into this
-            case VK_ERROR_OUT_OF_DATE_KHR: RecreateSwapchain(); return false;
+            case VK_ERROR_OUT_OF_DATE_KHR: Log::Debug("recreating swapchain\n"); RecreateSwapchain(); return false;
             default: EWE_VK_RESULT(acquireResult);break;
         }
 

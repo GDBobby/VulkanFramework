@@ -8,6 +8,15 @@
 
 #include "EightWinds/Preprocessor.h"
 
+#ifdef _WIN32
+    #include <windows.h>
+    #define GET_THREAD_ID() ((unsigned long)GetCurrentThreadId())
+#else
+    #include <sys/syscall.h>
+    #include <unistd.h>
+    #define GET_THREAD_ID() ((unsigned long)syscall(SYS_gettid))
+#endif
+
 namespace EWE{
     
 
@@ -32,7 +41,7 @@ namespace EWE{
 
         char buffer[1024];
         vsnprintf(buffer, sizeof(buffer), format.data(), args);
-        printf("%s%s%s: %s", Colors::colors[static_cast<int>(ll)].data(), Reflect::Enum::ToString(ll).data(), Colors::colors[0].data(), buffer);
+        printf("%s%s%s[%lu]: %s", Colors::colors[static_cast<int>(ll)].data(), Reflect::Enum::ToString(ll).data(), Colors::colors[0].data(), GET_THREAD_ID(), buffer);
         fflush(stdout);
     }
 

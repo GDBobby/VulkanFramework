@@ -5,7 +5,6 @@
 #include "EightWinds/Command/STC_Helper.h"
 
 #include <cstddef>
-#include <vulkan/vulkan_core.h>
 
 /*
 VUID-VkRenderingAttachmentInfo-pNext-11752

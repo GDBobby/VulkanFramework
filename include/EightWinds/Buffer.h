@@ -9,7 +9,6 @@
 
 
 namespace EWE{
-
     template<typename T, typename U>
     constexpr bool BitwiseContains(T const lhs, U const rhs) noexcept{
         return (lhs & rhs) == rhs;
@@ -46,7 +45,8 @@ namespace EWE{
         VkDescriptorBufferInfo buffer_info;
         VkBufferUsageFlags usageFlags;
 
-        VkDeviceSize alignmentSize;
+        //VkDeviceSize alignmentSize;
+        VkDeviceSize instanceSize;
         VkDeviceSize bufferSize;
         //write the 
         VkDeviceSize minOffsetAlignment = 1;
@@ -59,7 +59,7 @@ namespace EWE{
         void* mapped = nullptr;
         void* GetMapped();
 
-        VkDeviceAddress deviceAddress = 0;
+        DeviceAddress deviceAddress = 0;
 
         void* Map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
         void Unmap() noexcept;
@@ -70,7 +70,7 @@ namespace EWE{
         VkDescriptorBufferInfo DescriptorInfo(VkDeviceSize size, VkDeviceSize offset) const;
         VkDescriptorBufferInfo* DescriptorInfo(VkDeviceSize size, VkDeviceSize offset);
 
-        [[nodiscard]] static VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits); 
+        //[[nodiscard]] static VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits);
 
     private:
         void CreateTheVkBuffer(VmaAllocationCreateInfo const& vmaAllocCreateInfo);

@@ -27,7 +27,7 @@ namespace EWE{
     {
 #if EWE_DEBUG_NAMING
         for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
-            std::string debug_name = std::string(name) + "submission task [" + std::to_string(frame) + ']';
+            std::string debug_name = std::string("subtask[") + name.string() + "][" + std::to_string(frame) + ']';
             cmdBuffers[frame].SetDebugName(debug_name);
 
             submitInfo[frame].AddCommandBuffer(cmdBuffers[frame]);
@@ -40,43 +40,36 @@ namespace EWE{
         bool ret = false;
         //if(full_workload){
 
-            //beginInfo
-            VkCommandBufferBeginInfo cmdBeginInfo{
-                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .pInheritanceInfo = nullptr  
-            };
-            cmdBuffers[frameIndex].Reset();
-            cmdBuffers[frameIndex].Begin(cmdBeginInfo);
+        //beginInfo
+        VkCommandBufferBeginInfo cmdBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .pInheritanceInfo = nullptr  
+        };
+        cmdBuffers[frameIndex].Reset();
+        cmdBuffers[frameIndex].Begin(cmdBeginInfo);
 
 #if EWE_DEBUG_NAMING
-            VkDebugUtilsLabelEXT labelUtil{
-                .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-                .pNext = nullptr,
-                .pLabelName = name.c_str(),
-                .color = {0.f, 0.f, 0.f, 1.f}
-            };
-            logicalDevice.BeginLabel(cmdBuffers[frameIndex], &labelUtil);
+        VkDebugUtilsLabelEXT labelUtil{
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+            .pNext = nullptr,
+            .pLabelName = name.c_str(),
+            .color = {0.f, 0.f, 0.f, 1.f}
+        };
+        logicalDevice.BeginLabel(cmdBuffers[frameIndex], &labelUtil);
 #endif
 
-            for(auto& task_package : packaged_tasks){
-                ret |= task_package(cmdBuffers[frameIndex], frameIndex);
-            }
+        for(auto& task_package : packaged_tasks){
+            ret |= task_package(cmdBuffers[frameIndex], frameIndex);
+        }
 #if EWE_DEBUG_NAMING
-            logicalDevice.EndLabel(cmdBuffers[frameIndex]);
+        logicalDevice.EndLabel(cmdBuffers[frameIndex]);
 #endif
 
-            cmdBuffers[frameIndex].End();
+        cmdBuffers[frameIndex].End();
 
-            cmdBuffers[frameIndex].state = CommandBuffer::State::Pending;
-        //}
-        //else if(external_workload){
-        //    ret = external_workload(submitInfo[frameIndex], frameIndex);
-        //}
-        //else{
-         //   EWE_ASSERT(false && "no active workload"); 
-        //}
+        cmdBuffers[frameIndex].state = CommandBuffer::State::Pending;
 
         return ret;
     }

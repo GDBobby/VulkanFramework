@@ -91,6 +91,7 @@ namespace EWE{
         subresource{createInfo.subresourceRange}
     { 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
+        SetName(_image.name.string());
     }
     
     ImageView::ImageView(Image& _image) 
@@ -100,6 +101,7 @@ namespace EWE{
         subresource = createInfo.subresourceRange;
 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
+        SetName(_image.name.string());
     }
     ImageView::ImageView(Image& _image, bool readyForConstruction) noexcept
     : image{_image}
@@ -115,18 +117,20 @@ namespace EWE{
         const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
         subresource = createInfo.subresourceRange;
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
+        SetName(image.name.string());
     }
 
     void ImageView::Create(VkImageViewCreateInfo const& createInfo){
         subresource = createInfo.subresourceRange;
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
+        SetName(image.name.string());
     }
 
 
     void ImageView::SetName(std::string_view _name) {
 #if EWE_DEBUG_NAMING
         name = _name;
-        image.logicalDevice.SetObjectName(image, VK_OBJECT_TYPE_IMAGE_VIEW, name);
+        image.logicalDevice.SetObjectName(view, VK_OBJECT_TYPE_IMAGE_VIEW, _name);
 #endif
     }
 }

@@ -9,7 +9,7 @@ namespace EWE{
 void TransferContext<Image>::Acquire(CommandBuffer& cmdBuf, Queue& acqQueue, UsageData<Image> const& initial_usage){
 		RuntimeArray<VkImageMemoryBarrier2> initial_transition_barriers{images.Size()};
 		for(std::size_t i = 0; i < images.Size(); i++){
-			initial_transition_barriers[i] = Barrier::Acquire_Image(acqQueue, *images[i], initial_usage);
+			initial_transition_barriers[i] = Barrier::Acquire(acqQueue, *images[i], initial_usage);
 		}
 		VkDependencyInfo dependency_info{
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -29,7 +29,7 @@ void TransferContext<Image>::Acquire(CommandBuffer& cmdBuf, Queue& acqQueue, Usa
 	RuntimeArray<VkImageMemoryBarrier2> TransferContext<Image>::ChangeOwnership(CommandBuffer& cmdBuf, Queue& acqQueue, Queue& dstQueue, UsageData<Image> const& initial_usage){
 		RuntimeArray<VkImageMemoryBarrier2> ownerBarriers{images.Size()};
 		for(std::size_t i = 0; i < images.Size(); i++){
-			ownerBarriers[i] = Barrier::Transition_Image(acqQueue, *images[i], dstQueue, initial_usage, final_usage);
+			ownerBarriers[i] = Barrier::Transition(acqQueue, *images[i], dstQueue, initial_usage, final_usage);
 		}
 		VkDependencyInfo dependency_info{
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
@@ -47,7 +47,7 @@ void TransferContext<Image>::Acquire(CommandBuffer& cmdBuf, Queue& acqQueue, Usa
 	void TransferContext<Buffer>::Acquire(CommandBuffer& cmdBuf, Queue& acqQueue, UsageData<Buffer> const& initial_usage){
 		RuntimeArray<VkBufferMemoryBarrier2> initial_transition_barriers{buffers.Size()};
 		for(std::size_t i = 0; i < buffers.Size(); i++){
-			initial_transition_barriers[i] = Barrier::Acquire_Buffer(acqQueue, *buffers[i], initial_usage);
+			initial_transition_barriers[i] = Barrier::Acquire(acqQueue, *buffers[i], initial_usage);
 		}
 		VkDependencyInfo dependency_info{
 			.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

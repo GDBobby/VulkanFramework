@@ -22,8 +22,8 @@ namespace EWE{
         //i think i define a command pool here, or at least a queue
         Queue& queue;
 
+        //optional because the pkgRecord pp can be used directly
         std::optional<Command::ParamPool> paramPool;
-
         Command::PackageRecord* pkgRecord; //just for viewing in reconstruction
 
         struct Meta{
@@ -33,8 +33,7 @@ namespace EWE{
         Meta meta;
         Meta compiled_meta; //put this into subtask or rendergraph maybe?
 
-        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);
-        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool& pp);
+        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool const& pp);
         [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Command::PackageRecord& record, bool compile);
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;

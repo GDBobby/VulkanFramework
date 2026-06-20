@@ -9,14 +9,29 @@
 namespace EWE {
 namespace Barrier {
 	
-	VkImageMemoryBarrier2 Acquire_Image(Queue& dstQueue, Image& img, UsageData<Image> const& usage){
+	template<> VkImageMemoryBarrier2 Acquire<Image>(Queue& dstQueue, Image& img, UsageData<Image> const& usage, AcquireType acqType){
 		//making them both equal is the same as VK_QUEUE_FAMILY_IGNORED
 		const uint32_t srcQueueFamilyIndex = img.owningQueue ? img.owningQueue->FamilyIndex() : dstQueue.FamilyIndex(); 
+
+		VkPipelineStageFlags2 src_stage_flags;
+		VkAccessFlagBits2 src_access_mask;
+		if (acqType == AcquireType::None) {
+			src_stage_flags = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+			src_access_mask = VK_ACCESS_2_NONE;
+		}
+		else if (acqType == AcquireType::Present) {
+			src_stage_flags = usage.stage;
+			src_access_mask = VK_ACCESS_2_NONE;
+		}
+		else {
+			EWE_UNREACHABLE;
+		}
+
 		return VkImageMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 			.pNext = nullptr,
-			.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT,
-			.srcAccessMask = VK_ACCESS_2_NONE,
+			.srcStageMask = src_stage_flags,
+			.srcAccessMask = src_access_mask,
 			.dstStageMask = usage.stage,
 			.dstAccessMask = usage.accessMask, 
 			.oldLayout = img.data.layout,
@@ -33,7 +48,7 @@ namespace Barrier {
 			}
 		};
 	}
-	VkBufferMemoryBarrier2 Acquire_Buffer(Queue& dstQueue, Buffer& buf, UsageData<Buffer> const& usage){
+	template<> VkBufferMemoryBarrier2 Acquire<Buffer>(Queue& dstQueue, Buffer& buf, UsageData<Buffer> const& usage, AcquireType acqType){
 		const uint32_t srcQueueFamilyIndex = buf.owningQueue ? buf.owningQueue->FamilyIndex() : dstQueue.FamilyIndex();
 		return VkBufferMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
@@ -50,7 +65,7 @@ namespace Barrier {
 		};
 	}
 	
-	VkImageMemoryBarrier2 Transition_Image(Queue& srcQueue, Image& img, Queue& dstQueue, UsageData<Image> const& lh_usage, UsageData<Image> const& rh_usage) {
+	template<> VkImageMemoryBarrier2 Transition<Image>(Queue& srcQueue, Image& img, Queue& dstQueue, UsageData<Image> const& lh_usage, UsageData<Image> const& rh_usage) {
 		return VkImageMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 			.pNext = nullptr,
@@ -72,7 +87,7 @@ namespace Barrier {
 			}
 		};
 	}
-	VkBufferMemoryBarrier2 Transition_Buffer(Queue& srcQueue, Buffer& buf, Queue& dstQueue, UsageData<Buffer> const& lh_usage, UsageData<Buffer> const& rh_usage){
+	template<> VkBufferMemoryBarrier2 Transition<Buffer>(Queue& srcQueue, Buffer& buf, Queue& dstQueue, UsageData<Buffer> const& lh_usage, UsageData<Buffer> const& rh_usage){
 		return VkBufferMemoryBarrier2{
 			.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
 			.pNext = nullptr,

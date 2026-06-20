@@ -1,6 +1,7 @@
 #include "EightWinds/Backend/Descriptor/Bindless.h"
 
 #include "EightWinds/LogicalDevice.h"
+#include "EightWinds/DescriptorImageInfo.h"
 
 namespace EWE{
     namespace Backend {
@@ -116,11 +117,12 @@ namespace EWE{
         }
 
         
-        TextureIndex BindlessDescriptor::BindImage(VkDescriptorImageInfo const& imageInfo, DescriptorType type){
+        TextureIndex BindlessDescriptor::BindImage(DescriptorImageInfo& dii){
             
-            const uint32_t occupancy_index = static_cast<uint32_t>(type);
+            const uint32_t occupancy_index = static_cast<uint32_t>(dii.type);
             auto& bits = occupancy[occupancy_index];
 
+            std::unique_lock<std::mutex> binding_lock{binding_mutex};
             for(uint32_t i = 0; i < max_images_per_type; i++){
                 if(!bits.test(i)){
                     bits.set(i);
@@ -131,11 +133,22 @@ namespace EWE{
                         .dstBinding = occupancy_index,
                         .dstArrayElement = i,
                         .descriptorCount = 1,
-                        .descriptorType = VkExpandDescriptorType(type),
-                        .pImageInfo = &imageInfo
+                        .descriptorType = VkExpandDescriptorType(dii.type),
+                        .pImageInfo = &dii.imageInfo
                     };
 
                     vkUpdateDescriptorSets(logicalDevice, 1, &write, 0, nullptr);
+#if EWE_DEBUG_BOOL
+                    if (tracker.find(&dii) != tracker.end()) {
+                        Log::Error("tracker already contains dii\n");
+                    }
+                    for (auto& kvp : tracker) {
+                        if (kvp.key->view.view == dii.view.view) {
+                            Log::Warning("view equal\n");
+                        }
+                    }
+                    tracker.push_back(&dii, i);
+#endif
                     return i;
                 }
             }
@@ -143,12 +156,18 @@ namespace EWE{
             return UINT32_MAX; //error silencer
         }
 
-        void BindlessDescriptor::Unbind(TextureIndex index, DescriptorType type){
-            
-            const uint32_t occupancy_index = static_cast<uint32_t>(type);
+        void BindlessDescriptor::Unbind(DescriptorImageInfo& dii){
+
+            std::unique_lock<std::mutex> binding_lock{binding_mutex};
+
+            const uint32_t occupancy_index = static_cast<uint32_t>(dii.type);
             auto& bits = occupancy[occupancy_index];
-            EWE_ASSERT(bits.test(index));
-            bits.reset(index);
+            EWE_ASSERT(bits.test(dii.index));
+            bits.reset(dii.index);
+
+            tracker.Remove(&dii);
+
+            return;
 
             /*
             * i dont think this is necessary. POTENTIALLY, use null descriptor feature (idk where it is)
@@ -174,5 +193,15 @@ namespace EWE{
             vkUpdateDescriptorSets(logicalDevice, 1, &write, 0, nullptr);
             */
         }
+
+        std::string BindlessDescriptor::GetImageNameForIndex(TextureIndex index) const {
+            for (auto& tr : tracker) {
+                if (tr.value == index) {
+                    return tr.key->view.image.name.string();
+                }
+            }
+            return "invalid index";
+        }
+
     }//namespace Backend
 } //namespace EWE

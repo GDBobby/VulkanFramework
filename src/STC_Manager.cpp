@@ -61,12 +61,12 @@ namespace EWE {
 
     STC_Manager::STC_Manager(LogicalDevice& logicalDevice, Queue& _renderQueue, Queue& _transferQueue, Queue& _computeQueue)
     : renderQueue{_renderQueue}, transferQueue{_transferQueue}, computeQueue{_computeQueue},
-	renderCommandPools{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT },
+		renderCommandPools{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT },
         stc_mutexes{},
         stc_command_pools{
-            RingBuffer<CommandPool, 16>{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-            RingBuffer<CommandPool, 16>{logicalDevice, computeQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-            RingBuffer<CommandPool, 16>{logicalDevice, transferQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+            RingBuffer<CommandPool, 8>{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+            RingBuffer<CommandPool, 8>{logicalDevice, computeQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+            RingBuffer<CommandPool, 8>{logicalDevice, transferQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
         },
 		semaphores{logicalDevice}
     {
@@ -165,7 +165,10 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 
+		semAcqMut.lock();
 		semaphores.Return(sem);
+		semAcqMut.unlock();
+
 		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
 	}
 
@@ -208,7 +211,9 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 
+		semAcqMut.lock();
 		semaphores.Return(sem);
+		semAcqMut.unlock();
 		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
 	}
 
@@ -264,7 +269,9 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 		
+		semAcqMut.lock();
 		semaphores.Return(sem);
+		semAcqMut.unlock();
 		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
 	}
 	template<>
@@ -303,7 +310,9 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 		
+		semAcqMut.lock();
 		semaphores.Return(sem);
+		semAcqMut.unlock();
 		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
 	}
         
@@ -372,7 +381,9 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 
+		semAcqMut.lock();
 		semaphores.Return(sem);
+		semAcqMut.unlock();
 		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
 	}
     template<>
@@ -399,7 +410,9 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 		
+		semAcqMut.lock();
 		semaphores.Return(sem);
+		semAcqMut.unlock();
 		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
 	}
 

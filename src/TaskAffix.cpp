@@ -56,8 +56,8 @@ namespace EWE{
 	}
 
 	bool TaskAffix::Empty() const noexcept {
-		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-			if (!barriers[i].Empty()) {
+		for_each_frame {
+			if (!barriers[frame].Empty()) {
 				return false;
 			}
 		}
@@ -70,8 +70,8 @@ namespace EWE{
 		barriers[frameIndex].imageBarriers.clear();
 	}
 	void TaskAffix::Clear() {
-		for (uint8_t i = 0; i < max_frames_in_flight; i++) {
-			Clear(i);
+		for_each_frame {
+			Clear(frame);
 		}
 	}
 }

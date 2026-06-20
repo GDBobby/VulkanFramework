@@ -56,23 +56,23 @@ namespace EWE {
 		>;
 
 
-		KeyValuePair(KeyParamType _key, ValueParamType _value) : key{ _key }, value{ _value } {}
+		[[nodiscard]] KeyValuePair(KeyParamType _key, ValueParamType _value) : key{ _key }, value{ _value } {}
 
 		template<typename = std::enable_if_t<std::is_default_constructible_v<Value>>>
-		explicit KeyValuePair(KeyParamType _key) : key{ _key }, value{ } {}
+		[[nodiscard]] explicit KeyValuePair(KeyParamType _key) : key{ _key }, value{ } {}
 
 		template<typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_default_constructible_v<K> && std::is_default_constructible_v<V>>>
-		KeyValuePair() : key{}, value{} {}
+		[[nodiscard]] KeyValuePair() : key{}, value{} {}
 
 		~KeyValuePair() = default;
 
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_copy_constructible_v<K> && std::is_copy_constructible_v<V>>>
-		KeyValuePair(const KeyValuePair& copySource)
+		[[nodiscard]] KeyValuePair(const KeyValuePair& copySource)
 			: key{ copySource.key }, value{ copySource.value } {
 		}
 
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_move_constructible_v<K> && std::is_move_constructible_v<V>>>
-		KeyValuePair(KeyValuePair&& moveSource) noexcept
+		[[nodiscard]] KeyValuePair(KeyValuePair&& moveSource) noexcept
 			: key{ std::move(moveSource.key) }, value{ std::move(moveSource.value) } {
 		}
 
@@ -92,7 +92,6 @@ namespace EWE {
 			
 			return *this;
 		}
-
 	};
 
 	template<typename Key, typename Value>
@@ -109,9 +108,9 @@ namespace EWE {
 		[[nodiscard]] constexpr KeyValueContainer(std::initializer_list<KVPair> init) : inner_data{ init } {  }
 
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_copy_constructible_v<K>&& std::is_copy_constructible_v<V>>>
-		KeyValueContainer(KeyValueContainer& copySource) : inner_data{copySource.inner_data.begin(), copySource.inner_data.end() } {}
+		[[nodiscard]] KeyValueContainer(KeyValueContainer& copySource) : inner_data{copySource.inner_data.begin(), copySource.inner_data.end() } {}
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_move_constructible_v<K>&& std::is_move_constructible_v<V>>>
-		KeyValueContainer(KeyValueContainer&& moveSource) : inner_data{ std::move(moveSource.inner_data) } {}
+		[[nodiscard]] KeyValueContainer(KeyValueContainer&& moveSource) : inner_data{ std::move(moveSource.inner_data) } {}
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_copy_assignable_v<K>&& std::is_copy_assignable_v<V>>>
 		KeyValueContainer& operator=(KeyValueContainer& other) = delete;
 		template <typename K = Key, typename V = Value, typename = std::enable_if_t<std::is_move_assignable_v<K>&& std::is_move_assignable_v<V>>>
