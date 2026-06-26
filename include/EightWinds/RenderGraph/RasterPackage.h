@@ -6,8 +6,6 @@
 
 #include "EightWinds/ObjectRasterConfig.h"
 
-#include "EightWinds/GlobalPushConstant.h"
-
 #include "EightWinds/Data/KeyValueContainer.h"
 
 #include "EightWinds/Pipeline/TaskRasterConfig.h"

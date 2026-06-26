@@ -1,6 +1,5 @@
 #pragma once
 
-#include "EightWinds/GlobalPushConstant.h"
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/LogicalDevice.h"
 
@@ -102,11 +101,12 @@ namespace EWE {
 	    struct BufferReference {
 	    	std::string name;
 	    	uint32_t size;
+            uint32_t alignment;
 	    };
 		std::vector<BufferReference> bufferReferences;
 
-        Hive<ShaderVariable> variables;
+        //Hive<ShaderVariable> variables;
         //the int is spirv_cross id
-        std::unordered_map<int, ShaderVariable*> existing_variables; 
+        //std::unordered_map<int, ShaderVariable*> existing_variables; 
 	};
 }

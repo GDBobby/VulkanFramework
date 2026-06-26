@@ -25,6 +25,9 @@ namespace EWE{
             //EWE_ASSERT(adjusted);
             return *data[frameIndex];
         }
+        constexpr T const& GetCRef(uint8_t frameIndex) const {
+            return *data[frameIndex];
+        }
     };
 
     struct InstructionPointerAdjuster {
@@ -34,6 +37,10 @@ namespace EWE{
         template<typename T>
         InstructionPointer<T>* CastTo() noexcept{
             return reinterpret_cast<InstructionPointer<T>*>(this);
+        }
+        template<typename T>
+        InstructionPointer<T> const* CastTo() const noexcept{
+            return reinterpret_cast<InstructionPointer<T> const*>(this);
         }
     };
 }

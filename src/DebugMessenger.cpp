@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-#if defined(__linux) || defined(__ANDROID__) //android, but ill leave it here anyways
+#ifdef __linux
 #include <pthread.h>
 #endif
 
@@ -53,25 +53,26 @@ namespace EWE {
             }
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
                 std::string_view msg = pCallbackData->pMessage;
-                if(msg.contains("THREADING ERROR")){
-#if defined(__linux) || defined(__ANDROID__)
-                    pthread_t threads[2];
-                    if (
-                        sscanf(pCallbackData->pMessage,
-                            "%*[^:]:%*[^:]:%*[^t]thread %lu and thread %lu",
-                            &threads[0], &threads[1]
-                        ) == 2
-                    ) {
-                        char name0[16], name1[16];
-                        pthread_getname_np(threads[0], name0, sizeof(name0));
-                        pthread_getname_np(threads[1], name1, sizeof(name1));
+                if (msg.find("THREADING ERROR") != std::string_view::npos) {
+            #if defined(__linux__) || defined(__ANDROID__)
+                    unsigned long long tid0 = 0, tid1 = 0;
+                    bool parsed = false;
 
-                        Log::Error("vulkan [THREADING ERROR] collision between %s[%zu] and %s[%zu]\n",
-                            name0, threads[0],
-                            name1, threads[1]);
+                    size_t first = msg.find("thread ");
+                    if (first != std::string_view::npos) {
+                        size_t second = msg.find("thread ", first + 7);
+                        if (second != std::string_view::npos) {
+                            int n1 = std::sscanf(msg.data() + first + 7, "%lli", &tid0);
+                            int n2 = std::sscanf(msg.data() + second + 7, "%lli", &tid1);
+                            parsed = (n1 == 1 && n2 == 1);
+                        }
                     }
-                    else{
-                        Log::Error("couldnt parse thread names\n");
+
+                    if (parsed) {
+                        Log::Error("vulkan [THREADING ERROR] collision between thread %llu and thread %llu\n", tid0, tid1);
+                    } 
+                    else {
+                        Log::Error("couldn't parse thread ids from: %.*s\n", (int)msg.size(), msg.data());
                     }
 #else 
 #ifdef _WIN32

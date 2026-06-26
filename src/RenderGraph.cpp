@@ -99,14 +99,7 @@ namespace EWE{
                 queue = ind_sub->queue;
                 ind_sub->Execute(frameIndex);
 
-                //if(ind_sub->signal){
-                    subInfos.push_back(ind_sub->submitInfo[frameIndex].Expand());
-                    //std::copy(signaledSemaphores.end(), ind_sub->submitInfo[frameIndex].signalSemaphores.begin(), ind_sub->submitInfo[frameIndex].signalSemaphores.end());
-                    //std::copy(previous.waitSemaphores.begin(), previous.waitSemaphores.end(), std::back_inserter(waitSemaphores));
-                //}
-                //else{
-                //    subInfos.push_back(ind_sub->submitInfo[frameIndex].ExpandWithoutSignal());
-                //}
+                subInfos.push_back(ind_sub->submitInfo[frameIndex].Expand());
             }
             EWE_ASSERT(queue != nullptr);
             for (auto& subIn : subInfos) {
@@ -186,7 +179,8 @@ namespace EWE{
         std::size_t present_image_used_index = execution_order.size();
 
         for_each_frame{
-
+            compute_stc_task.submitInfo[frame].signalSemaphores.clear();
+            graphics_stc_task.submitInfo[frame].signalSemaphores.clear();
             //stcs
             if(execution_order.size() == 0){
                 //this is valid
@@ -220,6 +214,7 @@ namespace EWE{
 
                 for(std::size_t j = 0; j < sub_group.size(); j++){
                     auto& ind_sub = sub_group[j];
+                    ind_sub->submitInfo[frame].waitSemaphores.clear();
                     ind_sub->submitInfo[frame].signalSemaphores.clear();
 
                     //it'll be one signal per queue that's goign to wait on this
@@ -258,16 +253,6 @@ namespace EWE{
                             ind_sub->submitInfo[frame].waitSemaphores.emplace_back(&prev_ind_sub->submitInfo[frame].signalSemaphores[0]);
                         }
                     }
-                    /* i think ill need to update this every frame
-                    else{
-                        if(ind_sub->queue == stc_management.renderQueue){
-                            ind_sub->submitInfo[frame].waitSemaphores.emplace_back(&stc_management)
-                        }
-                        else if(ind_sub->queue == stc_management.computeQueue){
-
-                        }
-                    }
-                        */
 
                     if(ind_sub->uses_present_image){
                         if(i <= present_image_used_index){

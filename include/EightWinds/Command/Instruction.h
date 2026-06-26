@@ -5,7 +5,6 @@
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/Command/ParamPacks.h"
-#include "EightWinds/GlobalPushConstant.h"
 
 #include "EightWinds/Reflect/Enum.h"
 

@@ -37,6 +37,10 @@ namespace EWE{
         T& CastToRef() {
             return *CastToPtr<T>();
         }
+        template<typename T>
+        T const& CastToRef() const{
+            return *reinterpret_cast<T const*>(pointer);
+        }
     };
 } //namespace EWE
 

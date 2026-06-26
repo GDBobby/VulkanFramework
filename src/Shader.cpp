@@ -167,11 +167,13 @@ namespace EWE {
 				auto const& buf_mem_name = compiler.get_member_name(buf_type.self, 0);
 				auto const& buf_name = compiler.get_name(buf_type.parent_type);
 				auto const& struct_name = compiler.get_member_name(member_type.self, 0);
-				auto const& struct_size= compiler.get_declared_struct_size(member_type);
+				auto const& struct_size = compiler.get_declared_struct_size(member_type);
+
 				shader.bufferReferences.push_back(
 					Shader::BufferReference(
 						parent_child_name_v1,
-						struct_size
+						struct_size,
+						compiler.get_decoration(member_type_id, spv::DecorationArrayStride)
 					)
 				);
 			}
@@ -199,7 +201,8 @@ namespace EWE {
 				shader.bufferReferences.push_back(
 					Shader::BufferReference(
 						parent_name_v1,
-						struct_size
+						struct_size,
+						struct_size //this could potentially lead to an undetected bug. idk
 					)
 				);
 			}

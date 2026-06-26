@@ -1,6 +1,11 @@
 #include "EightWinds/LogicalDevice.h"
 
+#if EWE_DEBUG_BOOL
+#include "EightWinds/Buffer.h"
+#endif
+
 #include <array>
+#include <memory>
 
 namespace EWE{
 
@@ -171,7 +176,7 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
         if (renderExcept.result == VK_ERROR_DEVICE_LOST) {
-            Log::Error("device was lost\n");
+            Log::Warning("device was lost : IMMINENT CRASH\n");
             PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfo = nullptr;
             GetDeviceFaultInfo = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(device, "vkGetDeviceFaultInfoEXT"));
             if (GetDeviceFaultInfo == nullptr) {
@@ -208,15 +213,15 @@ namespace EWE{
             }
             GetDeviceFaultInfo(device, &faultCounts, &faultInfo);
 
-            Log::Error("fault info ~~~\n");
+            Log::Warning("fault info ~~~\n");
             if (faultInfo.description != nullptr && faultInfo.description[0] != '\0') {
-                Log::Error("\tdescription - %s\n", faultInfo.description);
+                Log::Warning("\tdescription - %s\n", faultInfo.description);
             }
             else {
-                Log::Error("\tblank description\n");
+                Log::Warning("\tblank description\n");
             }
 
-            Log::Error("address info - %u\n", faultCounts.addressInfoCount);
+            Log::Warning("address info - %u\n", faultCounts.addressInfoCount);
             for (uint32_t i = 0; i < faultCounts.addressInfoCount; i++) {
                 auto& addrInfo = faultInfo.pAddressInfos[i];
                 std::string addrType;
@@ -230,25 +235,46 @@ namespace EWE{
                     case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT: addrType = "pointer fault"; break;
                     default: addrType = "unknown address type?"; break;
                 }
-                Log::Error("\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n", i, addrType.c_str(), addrInfo.reportedAddress, addrInfo.addressPrecision);
+                Log::Warning("\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n", i, addrType.c_str(), addrInfo.reportedAddress, addrInfo.addressPrecision);
             }
 
-            Log::Error("\nvendor description - %u\n", faultCounts.vendorInfoCount);
+            Log::Warning("\nvendor description - %u\n", faultCounts.vendorInfoCount);
             for (uint32_t i = 0; i < faultCounts.vendorInfoCount; i++) {
                 auto& vendorInfo = faultInfo.pVendorInfos[i];
                 if (vendorInfo.description[0] != '\0') {
-                    Log::Error("[%u]\t %s\n", i, vendorInfo.description);
+                    Log::Warning("[%u]\t %s\n", i, vendorInfo.description);
                 }
-                Log::Error("\t\tcode[%zu] - data[%zu]\n", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultData);
+                Log::Warning("\t\tcode[%zu] - data[%zu]\n", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultData);
             }
 
-            Log::Error("vendor binary data address and size - [%zu][%zu]\n", reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData), faultCounts.vendorBinarySize);
+            Log::Warning("vendor binary data address and size - [%zu][%zu]\n", reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData), faultCounts.vendorBinarySize);
             //once finished with it, probably move this
             free(faultInfo.pAddressInfos);
             free(faultInfo.pVendorInfos);
             free(faultInfo.pVendorBinaryData);
         }
 #endif
+    }
+#endif
+
+
+#if EWE_DEBUG_BOOL
+    Buffer const& LogicalDevice::RevertDA(DeviceAddress dev_addr) const{
+        for(auto const& res : buffers.resources){
+            Buffer const& buf = res.CastToRef<Buffer>();
+            if(buf.deviceAddress == dev_addr){
+                return buf;
+            }
+        }
+        EWE_UNREACHABLE;
+    }
+    DescriptorImageInfo const& LogicalDevice::RevertTI(TextureIndex index) const{
+        for(auto const& kvp : bindlessDescriptor.tracker){
+            if(kvp.value == index){
+                return *kvp.key;
+            }
+        }
+        EWE_UNREACHABLE;
     }
 #endif
 

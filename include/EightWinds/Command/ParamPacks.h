@@ -3,7 +3,6 @@
 #include "EightWinds/VulkanHeader.h"
 
 #include "EightWinds/Command/InstructionType.h"
-#include "EightWinds/GlobalPushConstant.h"
 
 namespace EWE{
 
@@ -18,7 +17,7 @@ namespace EWE{
         //assert(ele_count * ele_size == size);
 
         static constexpr std::size_t data_size = 128 / sizeof(std::byte);
-        std::byte data[data_size];
+        alignas(DeviceAddress) std::byte data[data_size]; //this was 6 byte aligned, alignas(DeviceAddress) makes it 8 byte aligned
 
         DeviceAddress& GetDeviceAddress(uint8_t index){
 #if EWE_DEBUG_BOOL
@@ -30,6 +29,7 @@ namespace EWE{
 #endif
         }
         TextureIndex& GetTextureIndex(uint8_t index){
+            EWE_ASSERT(buffer_count <= 8);
             auto* starting_addr = reinterpret_cast<DeviceAddress*>(data) + buffer_count;
             return reinterpret_cast<TextureIndex*>(starting_addr)[index];
         }
@@ -91,7 +91,7 @@ namespace EWE{
     template<> struct ParamPack<Inst::DrawMeshTasks>{
         uint16_t x;
         uint16_t y;
-        uint16_t z;  
+        uint16_t z;
     };
     template<> struct ParamPack<Inst::DrawIndirect>{
         VkBuffer buffer;
@@ -165,5 +165,15 @@ namespace EWE{
     template<> struct ParamPack<Inst::Ext_Pool>{
         Command::ParamPool* pool;
     };
+
+#if EWE_DEBUG_BOOL
+namespace Command{namespace Exec{
+        struct ExecContext;
+}}
+
+    template<> struct ParamPack<Inst::DebugFunction>{
+        std::function<void(Command::Exec::ExecContext&)> callback = nullptr;
+    };
+#endif
 	
 } //namespace EWE

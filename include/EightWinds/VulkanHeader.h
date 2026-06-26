@@ -48,7 +48,7 @@ namespace EWE{
 
         // Optional: implicit conversions so it behaves like an integer in your code
         DeviceAddress() : value(null_buffer) {}
-        DeviceAddress(VkDeviceAddress val) : value(val) {}
+        /*implicit*/ DeviceAddress(VkDeviceAddress val) : value(val) {}
         operator VkDeviceAddress() const { return value; }
     };
     struct TextureIndex {

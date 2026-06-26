@@ -14,6 +14,7 @@ namespace Command{
     ParamPack<Inst::BindPipeline> ExecuteParamPool_Internal(LogicalDevice& logicalDevice, CommandBuffer& cmdBuf, ParamPool const& pp, uint8_t frameIndex, ParamPack<Inst::BindPipeline> const& boundPipeline);
 
 namespace Exec{
+#if !EWE_DEBUG_BOOL
     struct ExecContext {
         LogicalDevice& device;
         ParamPool const& pp; //its important that this is a view and not a copy or move, either of which would invalidate pointers
@@ -37,13 +38,8 @@ namespace Exec{
         }
 
         void Iterate();
-    
-#ifdef EXECUTOR_DEBUGGING
-        void Print(){
-            Log::Debug("\t[%d]:[%zu]:[%zu]:[%zu]\n", iterator, paramPool.data(), instructions[iterator].paramOffset, &paramPool[instructions[iterator].paramOffset]);
-        }
-#endif
     };
+#endif
 
     using CommandFunction = void(ExecContext& ctx);
 
@@ -84,8 +80,10 @@ namespace Exec{
     void Default(ExecContext& ctx);
 
     void Ext_Pool(ExecContext& ctx);
-
+#if EWE_DEBUG_BOOL
     void Breakpoint(ExecContext& ctx);
+    void DebugFunction(ExecContext& ctx);
+#endif
 
     void Exec(ExecContext& ctx);
 } //namespace Exec
@@ -125,8 +123,10 @@ static constexpr auto dispatchTable = std::array{
     &Exec::Default,
 
     &Exec::Ext_Pool,
-
-    &Exec::Breakpoint
+#if EWE_DEBUG_BOOL
+    &Exec::Breakpoint,
+    &Exec::DebugFunction
+#endif
 };
 
 namespace Exec{
@@ -203,13 +203,14 @@ namespace Exec{
     void DrawMeshTasks(ExecContext& ctx){
         //auto* data = reinterpret_cast<ParamPack::DrawMeshTasks const*>(&ctx.paramPool[ctx.pp.instructions[ctx.iterator].paramOffset]);
         auto& data = ctx.CastAndIncrement<Inst::DrawMeshTasks>();
-
         ctx.device.cmdDrawMeshTasks(ctx.cmdBuf, data.x, data.y, data.z);
     }
     
     void DrawIndirect(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::DrawIndirect>();
-        vkCmdDrawIndirect(ctx.cmdBuf, data.buffer, data.offset, data.drawCount, data.stride);
+        if(data.drawCount > 0){ //Inst::If is preferred
+            vkCmdDrawIndirect(ctx.cmdBuf, data.buffer, data.offset, data.drawCount, data.stride);
+        }
     }
     void DrawIndexedIndirect(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::DrawIndexedIndirect>();
@@ -279,15 +280,18 @@ namespace Exec{
     void IfStatement(ExecContext& ctx){
         auto& data = ctx.CastAndIncrement<Inst::If>();
         ctx.iterator++; //need to step past the current if
-        if(data){
-            while(ctx.iterator < ctx.pp.instructions.size()){
-                if(ctx.pp.instructions[ctx.iterator] == Inst::Type::EndIf){
-                    return;
-                }
+        while(ctx.iterator < ctx.pp.instructions.size()){
+            if(ctx.pp.instructions[ctx.iterator] == Inst::Type::EndIf){
+                return;
+            }
+            if(data){
                 ctx.Iterate();
             }
-            EWE_UNREACHABLE;
+            else{
+                ctx.iterator++;
+            }
         }
+        EWE_UNREACHABLE;
     }
 
     
@@ -310,10 +314,19 @@ namespace Exec{
         auto& data = ctx.CastAndIncrement<Inst::Ext_Pool>();
         ctx.boundPipeline = ExecuteParamPool_Internal(ctx.device, ctx.cmdBuf, *data.pool, ctx.frame, ctx.boundPipeline);
     }
+#if EWE_DEBUG_BOOL
     void Breakpoint(ExecContext& ctx) {
         Log::Warning("inst::breakpoint\n");
         EWE_Debug_Breakpoint();
     }
+    void DebugFunction(ExecContext& ctx){
+        Log::Warning("debug func\n");
+        auto& data = ctx.CastAndIncrement<Inst::DebugFunction>();
+        if(data.callback){
+            data.callback(ctx);
+        }
+    }
+#endif
 
 } //namespace Exec
 

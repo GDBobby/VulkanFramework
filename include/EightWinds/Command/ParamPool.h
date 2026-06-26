@@ -28,6 +28,17 @@ namespace Command{
         //the inst pointers are 1:1 with instructions. if no params, then nullptr
         std::vector<InstructionPointerAdjuster> param_data;
 
+        Inst::Type GetInstructionTypeOfParam(std::size_t param_index);
+
+        template<Inst::Type iType>
+        requires(Inst::GetParamSize(iType) > 0)
+        auto* CastParam(std::size_t param_index){
+#if EWE_DEBUG_BOOL
+            EWE_ASSERT(GetInstructionTypeOfParam(param_index) == iType);
+#endif
+            return param_data[param_index].CastTo<ParamPack<iType>>();
+        }
+
         [[nodiscard]] ParamPool();
         [[nodiscard]] ParamPool(ParamPool const& copySrc); //this will be supported shortly i just dont want to code it rn
         ParamPool(ParamPool&& moveSrc) noexcept;

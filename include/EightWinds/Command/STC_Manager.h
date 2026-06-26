@@ -11,7 +11,9 @@
 #include "EightWinds/Data/RingBuffer.h"
 
 #include <mutex>
+#include <condition_variable>
 #include <array>
+#include <functional>
 
 namespace EWE{
     struct CommandBuffer;
@@ -24,15 +26,28 @@ namespace EWE{
         Queue& transferQueue;
         Queue& computeQueue;
 
+        static std::function<bool()> use_custom_yield;
+        static std::function<TimelineSemaphore&(RingBuffer<TimelineSemaphore, 8>&, std::mutex&)> custom_yield_func;
+
     private:
         RingBuffer<CommandPool, max_frames_in_flight * 2> renderCommandPools;
         //idk count, i want like 2 per fiber but i wont know fiber count at compile time
         
-        std::array<std::mutex, Queue::COUNT> stc_mutexes;
+        std::array<std::mutex, Queue::COUNT> stc_mut;
+        std::array<std::condition_variable, Queue::COUNT> cmdPool_cv;
         std::array<RingBuffer<CommandPool, 8>, Queue::COUNT> stc_command_pools;
+        CommandPool& AcquireCommandPool(Queue::Type qType);
+        void ReturnCommandPool(CommandPool& sem, Queue::Type qType);
 
+        
+
+        std::condition_variable sem_cv;
         std::mutex semAcqMut{};
         RingBuffer<TimelineSemaphore, 8> semaphores;
+        TimelineSemaphore& AcquireSemaphore();
+        void ReturnSemaphore(TimelineSemaphore& sem);
+
+
 
         SingleTimeCommand* GetSTC(Queue::Type requested_queue);
 
@@ -51,8 +66,7 @@ namespace EWE{
         STC_Manager& operator=(STC_Manager const& copySrc) = delete;
         STC_Manager& operator=(STC_Manager&& moveSrc) = delete;
 
-        TimelineSemaphore* GetSemaphore();
-        void ReturnSemaphore(TimelineSemaphore* semaphore);
+        TimelineSemaphore& GetSemaphore();
 
         bool CheckFencesForUsage();
         void CheckFencesForCallbacks();
@@ -60,7 +74,7 @@ namespace EWE{
         void AsyncTransferToCompute(std::function<void(CommandBuffer& cmdBuf)> transfer, std::function<void(CommandBuffer& cmdBuf)> compute);
 
         SingleTimeCommand* GetBeginSTC();
-        TimelineSemaphore* EndAndSubmit(SingleTimeCommand& stc);
+        void EndAndSubmit(SingleTimeCommand& stc);
 
         template<ResourceType RT>
         void Async_SingleQueueTransfer(TransferContext<RT>& transferContext, Queue::Type dstQueueType);

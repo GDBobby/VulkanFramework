@@ -100,6 +100,20 @@ namespace Command{
         }
     }
 
+
+    Inst::Type ParamPool::GetInstructionTypeOfParam(std::size_t param_index){
+        EWE_ASSERT(param_index < param_data.size());
+        std::size_t current_param_index = 0;
+        for(auto const& inst : instructions){
+            const bool has_param_pack = Inst::GetParamSize(inst) != 0;
+            if(has_param_pack && current_param_index == param_index){
+                return inst;
+            }
+            current_param_index += has_param_pack;
+        }
+        EWE_UNREACHABLE;
+    }
+
     std::size_t ParamPool::GetPackIndex(std::size_t inst_index) const{
         std::size_t current_pack_index = 0;
         for(std::size_t i = 0; i < inst_index; i++){

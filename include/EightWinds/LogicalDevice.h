@@ -47,6 +47,14 @@ namespace EWE{
         LogicalDevice& operator=(LogicalDevice&& moveSrc) = delete;
 
         Backend::BindlessDescriptor bindlessDescriptor;
+        ResourceTracker<Image> images;
+        ResourceTracker<Buffer> buffers;
+        ResourceTracker<Shader> shaders;
+
+#if EWE_DEBUG_BOOL
+        Buffer const& RevertDA(DeviceAddress dev_addr) const;
+        DescriptorImageInfo const& RevertTI(TextureIndex index) const;
+#endif
 
         //i think i can force vulkan 1.4. or at least, i can force earlier API versions to deal with the empty later structs
         const VkPhysicalDeviceFeatures2 features;
@@ -78,9 +86,6 @@ namespace EWE{
         void HandleVulkanException(EWEException& renderExcept);
 #endif
 
-        ResourceTracker<Image> images;
-        ResourceTracker<Buffer> buffers;
-        ResourceTracker<Shader> shaders;
 
     private:
         //just so i can force construction order. also creates queues

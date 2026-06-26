@@ -9,7 +9,13 @@
 
 #include "EightWinds/Reflect/Enum.h"
 
+
+
 namespace EWE {
+
+
+	std::function<bool()> STC_Manager::use_custom_yield = nullptr;
+	std::function<TimelineSemaphore&(RingBuffer<TimelineSemaphore, 8>&, std::mutex&)> STC_Manager::custom_yield_func;
 
 
 	Queue::Type STC_Manager::GetQueueType(Queue const& queue) const{
@@ -34,6 +40,49 @@ namespace EWE {
 		EWE_UNREACHABLE;
 	}
 
+	CommandPool& STC_Manager::AcquireCommandPool(Queue::Type qType){
+		std::unique_lock<std::mutex> lock(stc_mut[qType]);
+		cmdPool_cv[qType].wait(lock, [&] { return !stc_command_pools[qType].Full(); });
+		return *stc_command_pools[qType].GetNext();
+	}
+	void STC_Manager::ReturnCommandPool(CommandPool& cmdPool, Queue::Type qType){
+		{
+			std::lock_guard<std::mutex> lock(stc_mut[qType]);
+			stc_command_pools[qType].Return(&cmdPool);
+		}
+		cmdPool_cv[qType].notify_one();
+	}
+
+	TimelineSemaphore& STC_Manager::AcquireSemaphore(){
+		//Log::Debug("acquiring STCA sem\n");
+		NameCurrentThread("acquiring STCA sem");
+
+		if(use_custom_yield != nullptr){
+			if(use_custom_yield()){
+				TimelineSemaphore& ret = custom_yield_func(semaphores, semAcqMut);
+				NameCurrentThread("acquired STCA sem");
+				return ret;
+			}
+		}
+
+		std::unique_lock<std::mutex> lock(semAcqMut);
+		sem_cv.wait(lock, [&] { return !semaphores.Full(); });
+		TimelineSemaphore& ret = *semaphores.GetNext();
+		NameCurrentThread("acquired STCA sem");
+		return ret;
+	}
+
+	void STC_Manager::ReturnSemaphore(TimelineSemaphore& sem){
+		//Log::Debug("returning STCA sem\n");
+		NameCurrentThread("returning STCA sem");
+		{
+			std::lock_guard<std::mutex> lock(semAcqMut);
+			semaphores.Return(&sem);
+		}
+		sem_cv.notify_one();
+		NameCurrentThread("returned STCA sem");
+	}
+
 	SingleTimeCommand* STC_Manager::GetSTC(Queue::Type requested_queue) {
 		/*
 		Queue::Type actualQueueType = requested_queue;
@@ -56,13 +105,12 @@ namespace EWE {
 			default: break;
 		}
 		*/
-		return new SingleTimeCommand(stc_command_pools[requested_queue].GetNext(), semaphores.GetNext());
+		return new SingleTimeCommand(AcquireCommandPool(requested_queue), AcquireSemaphore());
 	}
 
     STC_Manager::STC_Manager(LogicalDevice& logicalDevice, Queue& _renderQueue, Queue& _transferQueue, Queue& _computeQueue)
     : renderQueue{_renderQueue}, transferQueue{_transferQueue}, computeQueue{_computeQueue},
 		renderCommandPools{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT },
-        stc_mutexes{},
         stc_command_pools{
             RingBuffer<CommandPool, 8>{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
             RingBuffer<CommandPool, 8>{logicalDevice, computeQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
@@ -89,7 +137,7 @@ namespace EWE {
 
 		return stc;
 	}
-	TimelineSemaphore* STC_Manager::EndAndSubmit(SingleTimeCommand& stc){
+	void STC_Manager::EndAndSubmit(SingleTimeCommand& stc){
 		stc.cmdBuf.End();
 		VkCommandBufferSubmitInfo cmdInfo{
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
@@ -98,13 +146,8 @@ namespace EWE {
 			.deviceMask = 0
 		};
 
-		//do i need to lock the mutex? probably
-		semAcqMut.lock();
-		TimelineSemaphore* ret = semaphores.GetNext();
-		semAcqMut.unlock();
-		ret->SetName("STC first");
 
-		VkSemaphoreSubmitInfo semInfo = ret->GetSignalSubmitInfo(VK_PIPELINE_STAGE_2_TRANSFER_BIT);
+		VkSemaphoreSubmitInfo semInfo = stc.semaphore.GetSignalSubmitInfo(VK_PIPELINE_STAGE_2_TRANSFER_BIT);
 		VkSubmitInfo2 submitInfo{
 			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
 			.pNext = nullptr,
@@ -114,8 +157,11 @@ namespace EWE {
 			.signalSemaphoreInfoCount = 1,
 			.pSignalSemaphoreInfos = &semInfo
 		};
-		stc.cmdPool->queue.Submit2(1, &submitInfo, VK_NULL_HANDLE);
-		return ret;
+		stc.cmdPool.queue.Submit2(1, &submitInfo, VK_NULL_HANDLE);
+
+		//TimelineSemaphore* ret = AcquireSemaphore();
+		//ret->SetName("STC first");
+		//return ret;
 	}
     
 	template<>
@@ -155,21 +201,18 @@ namespace EWE {
 			stc_helper.barriers[i] = owner_barriers[i];
 		}
 		
-		TimelineSemaphore* sem = EndAndSubmit(*stc);
+		EndAndSubmit(*stc);
 
 		EWE_ASSERT(current_renderGraph != nullptr);
 		current_renderGraph->ResourceOwnershipTransfer(stc_helper);
 
-		TimelineSemaphore::RelinquishThreadControl(*sem);
+		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 
-		semAcqMut.lock();
-		semaphores.Return(sem);
-		semAcqMut.unlock();
-
-		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
+		ReturnSemaphore(stc->semaphore);
+		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
 	}
 
 	template<>
@@ -196,12 +239,12 @@ namespace EWE {
 			transferContext.ChangeOwnership(stc->cmdBuf, queue, queue, initial_usage);
 		}
 		if (transferContext.generatingMipMaps) {
-			EWE_ASSERT(stc->cmdPool->queue.family.SupportsGraphics());
+			EWE_ASSERT(stc->cmdPool.queue.family.SupportsGraphics());
 		}
 		
-		TimelineSemaphore* sem = EndAndSubmit(*stc);
+		EndAndSubmit(*stc);
 
-		TimelineSemaphore::RelinquishThreadControl(*sem);
+		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
 		for(auto& img : transferContext.images){
 			img->readyForUsage = true;
@@ -211,10 +254,8 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 
-		semAcqMut.lock();
-		semaphores.Return(sem);
-		semAcqMut.unlock();
-		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
+		ReturnSemaphore(stc->semaphore);
+		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
 	}
 
     //fiber focused
@@ -258,9 +299,8 @@ namespace EWE {
 		transferContext.Acquire(stc->cmdBuf, queue, initial_usage);
 		transferContext.Stage(stc->cmdBuf);
 
-		TimelineSemaphore* sem = EndAndSubmit(*stc);
-
-		TimelineSemaphore::RelinquishThreadControl(*sem);
+		EndAndSubmit(*stc);
+		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
 		for(auto& buf : transferContext.buffers) {
 			buf->existsOnTheGPU = true;
@@ -269,10 +309,8 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 		
-		semAcqMut.lock();
-		semaphores.Return(sem);
-		semAcqMut.unlock();
-		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
+		ReturnSemaphore(stc->semaphore);
+		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
 	}
 	template<>
 	void STC_Manager::AsyncTransfer_Helper(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType){
@@ -300,20 +338,18 @@ namespace EWE {
 			stc_helper.bufs[i] = transferContext.buffers[i];
 		}
 
-		TimelineSemaphore* sem = EndAndSubmit(*stc);
+		EndAndSubmit(*stc);
 
 		EWE_ASSERT(current_renderGraph != nullptr);
 		current_renderGraph->ResourceOwnershipTransfer(stc_helper);
 
-		TimelineSemaphore::RelinquishThreadControl(*sem);
+		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 		
-		semAcqMut.lock();
-		semaphores.Return(sem);
-		semAcqMut.unlock();
-		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
+		ReturnSemaphore(stc->semaphore);
+		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
 	}
         
 
@@ -366,12 +402,12 @@ namespace EWE {
 			transferContext.ChangeOwnership(stc->cmdBuf, renderQueue, renderQueue, initial_usage);
 		}
 		if (transferContext.generatingMipMaps) {
-			EWE_ASSERT(stc->cmdPool->queue.family.SupportsGraphics());
+			EWE_ASSERT(stc->cmdPool.queue.family.SupportsGraphics());
 		}
 		
-		TimelineSemaphore* sem = EndAndSubmit(*stc);
+		EndAndSubmit(*stc);
 
-		TimelineSemaphore::RelinquishThreadControl(*sem);
+		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
 		for(auto& img : transferContext.images){
 			img->readyForUsage = true;
@@ -381,10 +417,8 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 
-		semAcqMut.lock();
-		semaphores.Return(sem);
-		semAcqMut.unlock();
-		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
+		ReturnSemaphore(stc->semaphore);
+		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
 	}
     template<>
     void STC_Manager::InlineTransfer(TransferContext<Buffer>& transferContext){
@@ -399,9 +433,9 @@ namespace EWE {
 		transferContext.Acquire(stc->cmdBuf, renderQueue, initial_usage);
 		transferContext.Stage(stc->cmdBuf);
 
-		TimelineSemaphore* sem = EndAndSubmit(*stc);
+		EndAndSubmit(*stc);
 
-		TimelineSemaphore::RelinquishThreadControl(*sem);
+		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
 		for(auto& buf : transferContext.buffers) {
 			buf->existsOnTheGPU = true;
@@ -410,10 +444,8 @@ namespace EWE {
 		stc->cmdBuf.state = CommandBuffer::State::Invalid;
 		transferContext.stagingBuffer.Free();
 		
-		semAcqMut.lock();
-		semaphores.Return(sem);
-		semAcqMut.unlock();
-		stc_command_pools[Queue::Transfer].Return(stc->cmdPool);
+		ReturnSemaphore(stc->semaphore);
+		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
 	}
 
 

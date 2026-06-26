@@ -20,12 +20,12 @@ namespace EWE{
 
 
     struct SingleTimeCommand {
-        CommandPool* cmdPool;
+        CommandPool& cmdPool;
         CommandBuffer cmdBuf;
-        TimelineSemaphore* semaphore;
-        [[nodiscard]] explicit SingleTimeCommand(CommandPool* _cmdPool, TimelineSemaphore* _semaphore) 
+        TimelineSemaphore& semaphore;
+        [[nodiscard]] explicit SingleTimeCommand(CommandPool& _cmdPool, TimelineSemaphore& _semaphore) 
         : cmdPool { _cmdPool }, 
-            cmdBuf{ cmdPool->AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },
+            cmdBuf{ cmdPool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },
             semaphore{_semaphore}
         {} //construct the commandbuffer here
         SingleTimeCommand(SingleTimeCommand const& copySrc) = delete;

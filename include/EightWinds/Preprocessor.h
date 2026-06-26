@@ -21,7 +21,7 @@
 #define EWE_CALL_STACK_DEBUG EWE_CALL_STACK_FORCE
 #else
 //check if stacktrace is enabled first, clang doesnt support it
-#define EWE_CALL_STACK_DEBUG (EWE_DEBUG_BOOL && HAVE_STD_STACKTRACE)
+#define EWE_CALL_STACK_DEBUG EWE_DEBUG_BOOL//(EWE_DEBUG_BOOL && HAVE_STD_STACKTRACE)
 #endif
 
 static inline void EWE_Debug_Breakpoint() {
@@ -46,7 +46,6 @@ static inline void EWE_Debug_Breakpoint() {
 
     #endif
 }
-
 
 inline void EWE_ASSERT_BACK_2(bool statement, std::string_view print = "") {
 #if EWE_DEBUG_BOOL

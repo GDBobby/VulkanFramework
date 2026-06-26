@@ -2,6 +2,10 @@
 
 #include "EightWinds/Reflect/Enum.h"
 
+#include <thread>
+#if EWE_CALL_STACK_DEBUG
+#include <iostream> //specifically so i dont have to manually print stacktrace
+#endif
 
 #ifdef _WIN32
 #defien WIN32_LEAN_AND_MEAN

@@ -204,13 +204,13 @@ namespace EWE{
 
         //wait for 2 seconds, then timeout, which will assert or throw
         //its nanoseconds, which have 9 zeros i guess
-        static constexpr uint64_t fence_timeout_v = static_cast<uint64_t>(2.0e9);
+        static constexpr uint64_t fence_timeout_v = static_cast<uint64_t>(10.0e9);
         EWE_VK(vkWaitForFences, logicalDevice.device, 1, &inFlightFences[frameIndex].vkFence, VK_TRUE, fence_timeout_v);
         EWE_VK(vkResetFences, logicalDevice.device, 1, &inFlightFences[frameIndex].vkFence);
 
-        uint32_t image_index;
+        uint32_t acquire_image_index;
 
-        VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, acquire_semaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &image_index);
+        VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, acquire_semaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &acquire_image_index);
         
         switch(acquireResult){
             case VK_SUCCESS: break; //dont do anything
@@ -223,7 +223,7 @@ namespace EWE{
         //Log::Debug("acquired image index : %u\n", image_index);
 #endif
 
-        imageIndex = image_index; //object index equal to local index
+        imageIndex = acquire_image_index; //object index equal to local index
         return true;
     }
 

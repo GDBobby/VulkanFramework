@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EightWinds/Preprocessor.h"
 #include <cstdint>
 
 namespace EWE{
@@ -57,6 +58,7 @@ namespace Inst{ //Inst is short for Instruction :)
 
 #if EWE_DEBUG_BOOL
         Breakpoint,
+        DebugFunction,
 #endif
         //im only going to implement vp scissor for the moment
         DS_LineWidth,

@@ -1,13 +1,17 @@
 #pragma once
 
+
+#include "EightWinds/Preprocessor.h"
+#include "vulkan/vulkan.h"
+
+#if EWE_CALL_STACK_DEBUG
+#include <stacktrace>
+#endif
 #if EWE_USING_EXCEPTIONS
 #include <cstdint>
 #include <string_view>
 #include <stdexcept>
 #endif
-
-#include "EightWinds/Preprocessor.h"
-#include "vulkan/vulkan.h"
 
 namespace EWE{
 

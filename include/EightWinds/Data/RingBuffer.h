@@ -41,8 +41,10 @@ namespace EWE{
 			std::size_t current_index = starting_index;
 			while(usage[current_index]){
 				current_index = (current_index + 1) % Size;
-				//just relinquishes thread control to the OS for the smallest amoutn of time possible
-				std::this_thread::sleep_for(std::chrono::microseconds(1));
+				EWE_ASSERT(current_index != starting_index);
+				if(current_index == starting_index){
+					//std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+				}
 			}
 			starting_index = (current_index + 1) % Size;
 #if EWE_DEBUG_BOOL
@@ -52,17 +54,16 @@ namespace EWE{
 			return &data[current_index];
 		}
 		void Return(T* obj){
-			for(std::size_t i = 0; i < Size; i++){
-				if(obj == &data[i]){
-					EWE_ASSERT(usage[i]);
+			std::size_t i = obj - &data[0];
+			EWE_ASSERT(i < Size && usage[i]);
+			usage[i] = false;
 #if EWE_DEBUG_BOOL
-					usage_location[i] = std::stacktrace{};
+			usage_location[i] = std::stacktrace{};
 #endif
-					usage[i] = false;
-					return;
-				}
-			}
-			EWE_UNREACHABLE;
+		}
+
+		bool Full() const{
+			return usage.count() == Size;
 		}
 
 		auto begin() {return data.begin();}
