@@ -80,23 +80,9 @@ namespace EWE {
 #endif
                 }
                 else{
-                    Log::Error("ERROR-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
+                    Log::Warning("ERROR-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
+                    throw EWEException{pCallbackData->pMessage};
                 }
-#if GPU_LOGGING
-                std::ofstream logFile{ GPU_LOG_FILE, std::ios::app };
-                logFile << "current frame index - " << vkObject->frameIndex << std::endl;
-#if COMMAND_BUFFER_TRACING
-                for (uint8_t i = 0; i < vkObject->renderCommands.size(); i++) {
-                    while (vkObject->renderCommands[i].usageTracking.size() > 0) {
-                        for (auto& usage : vkObject->renderCommands[i].usageTracking.front()) {
-                            logFile << "cb" << i << " : " << usage.funcName;
-                        }
-                        vkObject->renderCommands[i].usageTracking.pop();
-                    }
-                }
-#endif
-                logFile.close();
-#endif
 #if EWE_DEBUG_BOOL
                 //print global state here?
                 //potentially a callback?

@@ -34,7 +34,11 @@ namespace EWE{
                 }
             };
             std::array<VkDescriptorBindingFlags, static_cast<size_t>(DescriptorType::COUNT)> bindingFlags;
-            bindingFlags.fill(VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
+            bindingFlags.fill(
+                VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT 
+                | VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT
+                | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT
+            );
             bindingFlags.back() |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
 
             VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{
@@ -46,6 +50,7 @@ namespace EWE{
             VkDescriptorSetLayoutCreateInfo layoutInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                 .pNext = &flagsInfo,
+                .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
                 .bindingCount = static_cast<uint32_t>(bindings.size()),
                 .pBindings = bindings.data()
             };
@@ -76,6 +81,7 @@ namespace EWE{
             VkDescriptorPoolCreateInfo poolInfo{
                 .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                 .pNext = nullptr,
+                .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
                 .maxSets = 1,
                 .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
                 .pPoolSizes = poolSizes.data()

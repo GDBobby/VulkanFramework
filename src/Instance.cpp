@@ -90,6 +90,9 @@ namespace EWE{
 #endif
         VkInstance instance;
         EWE_VK(vkCreateInstance, &instanceCreateInfo, nullptr, &instance);
+
+        volkLoadInstance(instance);
+
         return instance;
     }
 

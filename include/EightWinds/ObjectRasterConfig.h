@@ -3,6 +3,8 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/VulkanHash.h"
 
+#include "EightWinds/Data/RuntimeArray.h"
+
 namespace EWE{
 
 	
@@ -34,9 +36,13 @@ namespace EWE{
 		VkPrimitiveTopology topology;
 		bool primitiveRestart;
 
-		VkPipelineColorBlendAttachmentState blendAttachment;
+		RuntimeArray<VkPipelineColorBlendAttachmentState> blendAttachments;
 		
 		float blendConstants[4]; //i need to mess with this
+
+		[[nodiscard]] ObjectRasterConfig() = default;
+		[[nodiscard]] ObjectRasterConfig(ObjectRasterConfig const& copySrc);
+		ObjectRasterConfig& operator=(ObjectRasterConfig const& copySrc);
 
 		bool operator==(ObjectRasterConfig const& other) const noexcept;
 
@@ -70,8 +76,10 @@ struct std::hash<EWE::ObjectRasterConfig> {
 					.Combine(std::hash<EWE::DepthBias>{}(c.depthBias))
 					.Combine(std::hash<int>{}(c.topology))
 					.Combine(std::hash<bool>{}(c.primitiveRestart))
-					.Combine(std::hash<VkPipelineColorBlendAttachmentState>{}(c.blendAttachment))
 		;
+		for(auto& ba : c.blendAttachments){
+			hashCombiner.Combine(std::hash<VkPipelineColorBlendAttachmentState>{}(ba));
+		}
 
 		for (float f : c.blendConstants) {
 			hashCombiner.Combine(std::hash<float>{}(f));

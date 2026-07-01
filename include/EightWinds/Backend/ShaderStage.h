@@ -6,9 +6,6 @@ namespace EWE{
     struct ShaderStage { //becomes ShaderStage
         enum Bits {
             Vertex = 0,
-            TessControl,
-            TessEval,
-            Geometry,
             Task,
             Mesh,
             Fragment,
@@ -26,9 +23,6 @@ namespace EWE{
         constexpr ShaderStage(VkShaderStageFlagBits vkStage) {
             switch (vkStage) {
                 case VK_SHADER_STAGE_VERTEX_BIT: value = Bits::Vertex; break;
-                case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT: value = Bits::TessControl; break;
-                case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT: value = Bits::TessEval; break;
-                case VK_SHADER_STAGE_GEOMETRY_BIT: value = Bits::Geometry; break;
                 case VK_SHADER_STAGE_TASK_BIT_EXT: value = Bits::Task; break;
                 case VK_SHADER_STAGE_MESH_BIT_EXT: value = Bits::Mesh; break;
                 case VK_SHADER_STAGE_FRAGMENT_BIT: value = Bits::Fragment; break;
@@ -40,9 +34,6 @@ namespace EWE{
         constexpr operator VkShaderStageFlagBits() const {
             switch (value) {
                 case Bits::Vertex:		return VK_SHADER_STAGE_VERTEX_BIT;
-                case Bits::TessControl:	return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-                case Bits::TessEval:	return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-                case Bits::Geometry:    return VK_SHADER_STAGE_GEOMETRY_BIT;
                 case Bits::Task:		return VK_SHADER_STAGE_TASK_BIT_EXT;
                 case Bits::Mesh:		return VK_SHADER_STAGE_MESH_BIT_EXT;
                 case Bits::Fragment:    return VK_SHADER_STAGE_FRAGMENT_BIT;

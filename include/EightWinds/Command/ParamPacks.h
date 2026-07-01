@@ -33,6 +33,14 @@ namespace EWE{
             auto* starting_addr = reinterpret_cast<DeviceAddress*>(data) + buffer_count;
             return reinterpret_cast<TextureIndex*>(starting_addr)[index];
         }
+        DeviceAddress const& GetDeviceAddress(uint8_t index) const {
+            return reinterpret_cast<DeviceAddress const*>(data)[index];
+        }
+        TextureIndex const& GetTextureIndex(uint8_t index) const {
+            EWE_ASSERT(buffer_count <= 8);
+            auto const* starting_addr = reinterpret_cast<DeviceAddress const*>(data) + buffer_count;
+            return reinterpret_cast<TextureIndex const*>(starting_addr)[index];
+        }
 
         std::size_t Size() const{
             return buffer_count * sizeof(DeviceAddress)

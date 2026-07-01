@@ -29,6 +29,13 @@ namespace EWE{
             VmaAllocationCreateInfo const& vmaAllocCreateInfo, 
             VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
         );
+        [[nodiscard]] explicit Buffer(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice, 
+            VkDeviceSize instanceSize, uint32_t instanceCount, 
+            VmaAllocationCreateInfo const& vmaAllocCreateInfo, 
+            VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+        );
         ~Buffer();
 
         void Init(

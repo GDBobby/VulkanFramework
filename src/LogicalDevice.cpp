@@ -84,6 +84,8 @@ namespace EWE{
         deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
         EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
+
+        volkLoadDevice(device);
         
         queues.Resize(queueCreateInfos.size());
         for (std::size_t i = 0; i < queueCreateInfos.size(); i++) {
@@ -134,6 +136,8 @@ namespace EWE{
         cmdDrawMeshTasksIndirect = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectEXT"));
         cmdDrawMeshTasksIndirectCount = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectCountEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectCountEXT"));
 
+        VmaVulkanFunctions vma_vulkan_func;
+
         VmaAllocatorCreateInfo allocatorCreateInfo{
             .flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT | VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
             .physicalDevice = physicalDevice.device,
@@ -145,8 +149,11 @@ namespace EWE{
 
         Log::Normal("vma vk version : %zu\n", VMA_VULKAN_VERSION);
 
-        VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator);
-        EWE_VK_RESULT(result);
+        //do I need to explicitly do this? doesnt really mattter
+        allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func; 
+        EWE_VK_RESULT(vmaImportVulkanFunctionsFromVolk(&allocatorCreateInfo, &vma_vulkan_func));
+        allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func;
+        EWE_VK_RESULT(vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator));
     }
 
     LogicalDevice::~LogicalDevice() {
@@ -259,22 +266,33 @@ namespace EWE{
 
 
 #if EWE_DEBUG_BOOL
-    Buffer const& LogicalDevice::RevertDA(DeviceAddress dev_addr) const{
+
+    Buffer const* LogicalDevice::RevertVkBuffer(VkBuffer buffer) const{
+        for(auto const& res : buffers.resources){
+            Buffer const& buf = res.CastToRef<Buffer>();
+            if(buf.buffer_info.buffer == buffer){
+                return &buf;
+            }
+        }
+        return nullptr;
+    }
+
+    Buffer const* LogicalDevice::RevertDA(DeviceAddress dev_addr) const{
         for(auto const& res : buffers.resources){
             Buffer const& buf = res.CastToRef<Buffer>();
             if(buf.deviceAddress == dev_addr){
-                return buf;
+                return &buf;
             }
         }
-        EWE_UNREACHABLE;
+        return nullptr;
     }
-    DescriptorImageInfo const& LogicalDevice::RevertTI(TextureIndex index) const{
+    DescriptorImageInfo const* LogicalDevice::RevertTI(TextureIndex index) const{
         for(auto const& kvp : bindlessDescriptor.tracker){
             if(kvp.value == index){
-                return *kvp.key;
+                return kvp.key;
             }
         }
-        EWE_UNREACHABLE;
+        return nullptr;
     }
 #endif
 

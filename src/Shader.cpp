@@ -4,8 +4,8 @@
 #include "EightWinds/Reflect/Enum.h"
 #include "EightWinds/Reflect/Reflect.h"
 
-#include "spirv.hpp"
-#include "spirv_common.hpp"
+#include "spirvcross/spirv.hpp"
+#include "spirvcross/spirv_common.hpp"
 #include "spirvcross/spirv_reflect.hpp"
 
 #include <fstream>

@@ -177,8 +177,9 @@ namespace EWE {
 			.logicOp = VK_LOGIC_OP_MAX_ENUM,
 
 			.attachmentCount = static_cast<uint32_t>(taskConfig.attachment_info.colors.Size()),
-			.pAttachments = &objectConfig.blendAttachment
+			.pAttachments = objectConfig.blendAttachments.Data()
 		};
+		EWE_ASSERT(taskConfig.attachment_info.colors.Size() == objectConfig.blendAttachments.Size());
         memcpy(blendCreateInfo.blendConstants, objectConfig.blendConstants, sizeof(float) * 4);
         pipelineCreateInfo.pColorBlendState = &blendCreateInfo;
 

@@ -110,7 +110,7 @@ namespace EWE{
     }
 
     ImageView::~ImageView(){
-        vkDestroyImageView(image.logicalDevice.device, view, nullptr);
+        image.logicalDevice.garbageDisposal.TossVK(view);
     }
     
     void ImageView::Create(){

@@ -3,7 +3,6 @@
 #include "EightWinds/LogicalDevice.h"
 
 #include <functional>
-#include <vulkan/vulkan_core.h>
 
 namespace EWE{
 

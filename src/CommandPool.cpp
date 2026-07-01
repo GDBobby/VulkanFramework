@@ -3,7 +3,6 @@
 #include "EightWinds/CommandBuffer.h"
 
 #include <array>
-#include <vulkan/vulkan_core.h>
 
 namespace EWE{
 

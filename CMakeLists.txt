@@ -94,34 +94,33 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/external/include
 	${CMAKE_CURRENT_SOURCE_DIR}/external
 )
-
 target_link_directories(${PROJECT_NAME} PUBLIC
-	${Vulkan_LIB_DIR}
 	$<$<CONFIG:Debug>:${AFTERMATH_LIB_DIR}>
+	spirv-cross-core
+	spirv-cross-reflect
+	glfw
+	volk
 )
 
 message(STATUS "vulkan sdk path : ${VULKAN_SDK_PATH}")
 
 target_precompile_headers(${PROJECT_NAME} PUBLIC 
-    <utility>
     <vector>
     <meta>
     <array>
     <cstdint>
-    <ranges>
-    <vulkan/vulkan.h>
+    <volk.h>
     <filesystem>
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+	spirv-cross-core
+	spirv-cross-reflect
+    volk
 )
 
 message(STATUS "linking libs")
 
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
-	spirv-cross-core
-	spirv-cross-reflect
-	glfw
-	${Vulkan_LIBRARY}
-)
 if(GLOBAL_USING_AFTERMATH)
     target_include_directories(${PROJECT_NAME} PUBLIC
         "${NVIDIA_AFTERMATH_PATH}/include"

@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <limits>
-#include <vulkan/vulkan_core.h>
 
 
 namespace EWE{

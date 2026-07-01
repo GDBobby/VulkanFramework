@@ -52,8 +52,9 @@ namespace EWE{
         ResourceTracker<Shader> shaders;
 
 #if EWE_DEBUG_BOOL
-        Buffer const& RevertDA(DeviceAddress dev_addr) const;
-        DescriptorImageInfo const& RevertTI(TextureIndex index) const;
+        Buffer const* RevertVkBuffer(VkBuffer buffer) const;
+        Buffer const* RevertDA(DeviceAddress dev_addr) const;
+        DescriptorImageInfo const* RevertTI(TextureIndex index) const;
 #endif
 
         //i think i can force vulkan 1.4. or at least, i can force earlier API versions to deal with the empty later structs

@@ -46,7 +46,7 @@ namespace Backend{
 
         void Toss(std::function<void()> destroyer);
         template<typename T>
-        void TossVK(T func);
+        void TossVK(T obj);
     };
 
     template<> void GarbageDisposal::TossVK(VkSemaphore sem);

@@ -8,7 +8,7 @@ namespace EWE{
     }
     Image::~Image(){
         //can we assume it was created?
-        vmaDestroyImage(logicalDevice.vmaAllocator, image, memory);
+        logicalDevice.garbageDisposal.Toss([&, img = image, mem = memory]{vmaDestroyImage(logicalDevice.vmaAllocator, img, mem);});
 
         logicalDevice.images.Remove(this);
     }

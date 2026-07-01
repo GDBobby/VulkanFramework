@@ -6,7 +6,6 @@
 #include <algorithm>
 
 #include <vector>
-#include <vulkan/vulkan_core.h>
 
 namespace EWE {
 

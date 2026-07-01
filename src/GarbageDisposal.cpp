@@ -77,5 +77,12 @@ namespace Backend{
             }
         );
     }
+    template<> void GarbageDisposal::TossVK<VkImageView>(VkImageView view){
+        Toss(
+            [&logicalDevice = device, view](){
+                vkDestroyImageView(logicalDevice, view, nullptr);
+            }
+        );
+    }
 }//namespace Backend
 } //namespace EWE

@@ -7,12 +7,11 @@ namespace EWE{
     Buffer::~Buffer(){
         if (mapped != nullptr) {
             //ideally buffers would be explicitly unmapped before deconstruction
+            Log::Debug("buffer wasn't unmapped before deconstruction\n");
             Unmap();
         }
-        if(vmaAlloc != VK_NULL_HANDLE){
-            vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer_info.buffer, vmaAlloc);
-        }
         logicalDevice.buffers.Remove(this);
+        logicalDevice.garbageDisposal.Toss([&, alloc = vmaAlloc, buffer = buffer_info.buffer]{vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, alloc);});
     }
 
     void Buffer::DestroyTheVkBuffer() {
@@ -100,6 +99,17 @@ namespace EWE{
 #endif
     {
         CreateTheVkBuffer(vmaAllocCreateInfo);
+    }
+    Buffer::Buffer(
+        std::filesystem::path const& _name,
+        LogicalDevice& _logicalDevice, 
+        VkDeviceSize _instanceSize, uint32_t _instanceCount, 
+        VmaAllocationCreateInfo const& _vmaAllocCreateInfo, 
+        VkBufferUsageFlags _usageFlags
+    )
+    : Buffer{_logicalDevice, _instanceSize, _instanceCount, _vmaAllocCreateInfo, _usageFlags}
+    {
+        SetName(_name.string());
     }
 
     void* Buffer::Map(VkDeviceSize size, VkDeviceSize offset) {

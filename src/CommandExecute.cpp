@@ -281,10 +281,13 @@ namespace Exec{
         auto& data = ctx.CastAndIncrement<Inst::If>();
         ctx.iterator++; //need to step past the current if
         while(ctx.iterator < ctx.pp.instructions.size()){
-            if(ctx.pp.instructions[ctx.iterator] == Inst::Type::EndIf){
+            auto const& inst = ctx.pp.instructions[ctx.iterator];
+            if(inst == Inst::Type::EndIf){
+                //do I need to iterate on this as well? probably
+                ctx.iterator++;
                 return;
             }
-            if(data){
+            if(data.enabled){
                 ctx.Iterate();
             }
             else{

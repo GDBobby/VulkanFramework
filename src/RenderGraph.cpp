@@ -1,6 +1,5 @@
 #include "EightWinds/RenderGraph/RenderGraph.h"
 #include "EightWinds/VulkanHeader.h"
-#include <vulkan/vulkan_core.h>
 
 namespace EWE{
 

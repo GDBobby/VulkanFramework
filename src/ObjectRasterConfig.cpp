@@ -2,6 +2,40 @@
 
 namespace EWE{
 
+	ObjectRasterConfig::ObjectRasterConfig(ObjectRasterConfig const& copySrc)
+	: depthClamp{copySrc.depthClamp},
+		rasterizerDiscard{copySrc.rasterizerDiscard},
+		polygonMode{copySrc.polygonMode},
+		cullMode{copySrc.cullMode},
+		frontFace{copySrc.frontFace},
+		depthBias{copySrc.depthBias},
+		topology{copySrc.topology},
+		primitiveRestart{copySrc.primitiveRestart},
+		blendAttachments{copySrc.blendAttachments.Size()}
+	{
+
+		for(std::size_t i = 0; i < blendAttachments.Size(); i++){
+			blendAttachments[i] = copySrc.blendAttachments[i];
+		}
+		memcpy(blendConstants, copySrc.blendConstants, sizeof(float) * 4);
+	}
+
+	ObjectRasterConfig& ObjectRasterConfig::operator=(ObjectRasterConfig const& copySrc){
+		depthClamp = copySrc.depthClamp;
+		rasterizerDiscard = copySrc.rasterizerDiscard;
+		polygonMode = copySrc.polygonMode;
+		cullMode = copySrc.cullMode;
+		frontFace = copySrc.frontFace;
+		depthBias = copySrc.depthBias;
+		topology = copySrc.topology;
+		primitiveRestart = copySrc.primitiveRestart;
+		blendAttachments.ClearAndResize(copySrc.blendAttachments.Size());
+		for(std::size_t i = 0; i < blendAttachments.Size(); i++){
+			blendAttachments[i] = copySrc.blendAttachments[i];
+		}
+		memcpy(blendConstants, copySrc.blendConstants, sizeof(float) * 4);
+		return *this;
+	}
 
 	void ObjectRasterConfig::SetDefaults() noexcept {
 		depthClamp = false;
@@ -17,14 +51,15 @@ namespace EWE{
 		polygonMode = VK_POLYGON_MODE_FILL;
 		primitiveRestart = VK_FALSE;
 
-		blendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		blendAttachment.blendEnable = VK_FALSE;
-		blendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-		blendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-		blendAttachment.colorBlendOp = VK_BLEND_OP_ADD;              // Optional
-		blendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
-		blendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
-		blendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;              // Optional
+		blendAttachments.ClearAndResize(1);
+		blendAttachments[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+		blendAttachments[0].blendEnable = VK_FALSE;
+		blendAttachments[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;   // Optional
+		blendAttachments[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;  // Optional
+		blendAttachments[0].colorBlendOp = VK_BLEND_OP_ADD;              // Optional
+		blendAttachments[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;   // Optional
+		blendAttachments[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;  // Optional
+		blendAttachments[0].alphaBlendOp = VK_BLEND_OP_ADD;              // Optional
 
 		blendConstants[0] = 0.f;
 		blendConstants[1] = 0.f;
@@ -33,6 +68,26 @@ namespace EWE{
 	}
 
 	bool ObjectRasterConfig::operator==(ObjectRasterConfig const& other) const noexcept {
+
+		if(blendAttachments.Size() != other.blendAttachments.Size()){
+			return false;
+		}
+
+		for(std::size_t i = 0; i < blendAttachments.Size(); i++){
+			const bool matching = 
+			blendAttachments[i].blendEnable 		== other.blendAttachments[i].blendEnable &&
+			blendAttachments[i].srcColorBlendFactor == other.blendAttachments[i].srcColorBlendFactor &&
+			blendAttachments[i].dstColorBlendFactor == other.blendAttachments[i].dstColorBlendFactor &&
+			blendAttachments[i].colorBlendOp 		== other.blendAttachments[i].colorBlendOp &&
+			blendAttachments[i].srcAlphaBlendFactor == other.blendAttachments[i].srcAlphaBlendFactor &&
+			blendAttachments[i].dstAlphaBlendFactor == other.blendAttachments[i].dstAlphaBlendFactor &&
+			blendAttachments[i].alphaBlendOp 		== other.blendAttachments[i].alphaBlendOp &&
+			blendAttachments[i].colorWriteMask 		== other.blendAttachments[i].colorWriteMask;
+			if(!matching){
+				return false;
+			}
+		}
+
 		return
 			depthClamp == other.depthClamp &&
 			rasterizerDiscard == other.rasterizerDiscard &&
@@ -42,15 +97,6 @@ namespace EWE{
 			depthBias == other.depthBias &&
 			topology == other.topology &&
 			primitiveRestart == other.primitiveRestart &&
-
-			blendAttachment.blendEnable == other.blendAttachment.blendEnable &&
-			blendAttachment.srcColorBlendFactor == other.blendAttachment.srcColorBlendFactor &&
-			blendAttachment.dstColorBlendFactor == other.blendAttachment.dstColorBlendFactor &&
-			blendAttachment.colorBlendOp == other.blendAttachment.colorBlendOp &&
-			blendAttachment.srcAlphaBlendFactor == other.blendAttachment.srcAlphaBlendFactor &&
-			blendAttachment.dstAlphaBlendFactor == other.blendAttachment.dstAlphaBlendFactor &&
-			blendAttachment.alphaBlendOp == other.blendAttachment.alphaBlendOp &&
-			blendAttachment.colorWriteMask == other.blendAttachment.colorWriteMask &&
 
 			blendConstants[0] == other.blendConstants[0] &&
 			blendConstants[1] == other.blendConstants[1] &&
