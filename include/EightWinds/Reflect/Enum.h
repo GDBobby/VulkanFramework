@@ -111,7 +111,7 @@ namespace Enum{
 
     //this requires that each enum value is a bit flag
     template<IsEnum E>
-    void Imgui_ForEach_Check(E& value){
+    void Imgui_ForEach_Check(std::underlying_type_t<E>& value){
         using U_T = std::underlying_type_t<E>;
         U_T u_t = static_cast<U_T>(value);
 

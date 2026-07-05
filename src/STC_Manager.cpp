@@ -516,6 +516,7 @@ namespace EWE {
                 EWE_UNREACHABLE;
             }
         }
+		image_ownership.clear();
         for(std::size_t i = 0; i < buffer_ownership.size(); i++){
             if(*buffer_ownership[i].dstQueue == graphicsQueue){
                 for(auto& bar : buffer_ownership[i].barriers){
@@ -531,6 +532,7 @@ namespace EWE {
                 EWE_UNREACHABLE;
             }
         }
+		buffer_ownership.clear();
 
         graphicsInfo.imageMemoryBarrierCount = static_cast<uint32_t>(graphics_image_barriers.size());
         graphicsInfo.bufferMemoryBarrierCount = static_cast<uint32_t>(graphics_buffer_barriers.size());
@@ -559,15 +561,19 @@ namespace EWE {
         computeInfo.bufferMemoryBarrierCount = 0;
     }
     void STC_Submitter::UpdateResources(){
-        for(auto& img_owned : image_ownership){
-            for(auto& img : img_owned.images){
+        for(std::size_t i = 0; i < image_ownership.size(); i++){
+			auto& img_owned = image_ownership[i];
+            for(std::size_t j = 0; j < img_owned.images.size(); j++){
+				auto& img = img_owned.images[j];
                 img->data.layout = img_owned.layout;
                 img->readyForUsage = true;
                 img->owningQueue = img_owned.dstQueue;
             }
         }
-        for(auto& buf_owned : buffer_ownership){
-            for(auto& buf : buf_owned.bufs){
+        for(std::size_t i = 0; i < buffer_ownership.size(); i++){
+			auto& buf_owned = buffer_ownership[i];
+            for(std::size_t j = 0; j < buf_owned.bufs.size(); j++){
+				auto& buf = buf_owned.bufs[j];
                 buf->owningQueue = buf_owned.dstQueue;
                 buf->existsOnTheGPU = true;
             }
