@@ -8,7 +8,7 @@
 #endif
 
 #ifdef _WIN32
-#defien WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <processthreadsapi.h>
 #elif defined(__linux__) || defined(__APPLE__)

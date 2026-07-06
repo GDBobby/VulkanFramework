@@ -54,7 +54,7 @@ namespace EWE{
         VkDebugUtilsLabelEXT labelUtil{
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
             .pNext = nullptr,
-            .pLabelName = name.c_str(),
+            .pLabelName = name.string().c_str(),
             .color = {0.f, 0.f, 0.f, 1.f}
         };
         logicalDevice.BeginLabel(cmdBuffers[frameIndex], &labelUtil);
