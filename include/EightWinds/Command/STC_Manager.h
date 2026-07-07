@@ -119,8 +119,16 @@ namespace EWE{
             Queue& graphicsQueue, Queue& computeQueue
         );
 
-        std::vector<STC_Sub_Package<Image>> image_ownership;
-        std::vector<STC_Sub_Package<Buffer>> buffer_ownership;
+        std::mutex loading_buffer_mut;
+        //0 is for the async thread thats posting work
+        //1 is the rendergraph submitting
+        //since 1 is only accessed from 1 thread, only the swap needs to be synchronized
+        //and any access to 0 needs to be synchronized, because any number of threads can access it
+
+        std::vector<STC_Sub_Package<Image>> image_ownership_posting;
+        std::vector<STC_Sub_Package<Buffer>> buffer_ownership_posting;
+        std::vector<STC_Sub_Package<Image>> image_ownership_submission;
+        std::vector<STC_Sub_Package<Buffer>> buffer_ownership_submission;
 
         bool CheckSize(Queue::Type qType) const;
         void CollectSTCs();

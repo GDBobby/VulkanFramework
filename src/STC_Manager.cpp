@@ -494,21 +494,36 @@ namespace EWE {
 
     void STC_Submitter::CollectSTCs() {
 
+		Clear();
+
+		if((image_ownership_posting.size() == 0) && (buffer_ownership_posting.size() == 0)){
+			return;
+		}
+		if(!loading_buffer_mut.try_lock()){
+			//just spin and wait to submit until the next poll / render update
+			return;
+		}
+		//Log::Debug("locking loading buffer mut\n");
+        //mut_thread = (unsigned long)syscall(SYS_gettid);
+		std::swap(image_ownership_posting, image_ownership_submission);
+		std::swap(buffer_ownership_posting, buffer_ownership_submission);
+		loading_buffer_mut.unlock();
+		//Log::Debug("UNLOCKED loading buffer mut\n");
         //this over-allocates, but that's ok.
         //not doing multiple allocations is better
-        graphics_image_barriers.reserve(image_ownership.size());
-        compute_image_barriers.reserve(image_ownership.size());
-        graphics_buffer_barriers.reserve(buffer_ownership.size());
-        compute_buffer_barriers.reserve(buffer_ownership.size());
+        graphics_image_barriers.reserve(image_ownership_submission.size());
+        compute_image_barriers.reserve(image_ownership_submission.size());
+        graphics_buffer_barriers.reserve(buffer_ownership_submission.size());
+        compute_buffer_barriers.reserve(buffer_ownership_submission.size());
 
-        for(std::size_t i = 0; i < image_ownership.size(); i++){
-            if(*image_ownership[i].dstQueue == graphicsQueue){
-                for(auto& bar : image_ownership[i].barriers){
+        for(std::size_t i = 0; i < image_ownership_submission.size(); i++){
+            if(*image_ownership_submission[i].dstQueue == graphicsQueue){
+                for(auto& bar : image_ownership_submission[i].barriers){
                     graphics_image_barriers.push_back(bar);
                 }
             }
-            else if(*image_ownership[i].dstQueue == computeQueue){
-                for(auto& bar : image_ownership[i].barriers){
+            else if(*image_ownership_submission[i].dstQueue == computeQueue){
+                for(auto& bar : image_ownership_submission[i].barriers){
                     compute_image_barriers.push_back(bar);
                 }
             }
@@ -516,15 +531,14 @@ namespace EWE {
                 EWE_UNREACHABLE;
             }
         }
-		image_ownership.clear();
-        for(std::size_t i = 0; i < buffer_ownership.size(); i++){
-            if(*buffer_ownership[i].dstQueue == graphicsQueue){
-                for(auto& bar : buffer_ownership[i].barriers){
+        for(std::size_t i = 0; i < buffer_ownership_submission.size(); i++){
+            if(*buffer_ownership_submission[i].dstQueue == graphicsQueue){
+                for(auto& bar : buffer_ownership_submission[i].barriers){
                     graphics_buffer_barriers.push_back(bar);
                 }
             }
-            else if(*buffer_ownership[i].dstQueue == computeQueue){
-                for(auto& bar : buffer_ownership[i].barriers){
+            else if(*buffer_ownership_submission[i].dstQueue == computeQueue){
+                for(auto& bar : buffer_ownership_submission[i].barriers){
                     compute_buffer_barriers.push_back(bar);
                 }
             }
@@ -532,7 +546,6 @@ namespace EWE {
                 EWE_UNREACHABLE;
             }
         }
-		buffer_ownership.clear();
 
         graphicsInfo.imageMemoryBarrierCount = static_cast<uint32_t>(graphics_image_barriers.size());
         graphicsInfo.bufferMemoryBarrierCount = static_cast<uint32_t>(graphics_buffer_barriers.size());
@@ -561,8 +574,9 @@ namespace EWE {
         computeInfo.bufferMemoryBarrierCount = 0;
     }
     void STC_Submitter::UpdateResources(){
-        for(std::size_t i = 0; i < image_ownership.size(); i++){
-			auto& img_owned = image_ownership[i];
+
+        for(std::size_t i = 0; i < image_ownership_submission.size(); i++){
+			auto& img_owned = image_ownership_submission[i];
             for(std::size_t j = 0; j < img_owned.images.size(); j++){
 				auto& img = img_owned.images[j];
                 img->data.layout = img_owned.layout;
@@ -570,16 +584,16 @@ namespace EWE {
                 img->owningQueue = img_owned.dstQueue;
             }
         }
-        for(std::size_t i = 0; i < buffer_ownership.size(); i++){
-			auto& buf_owned = buffer_ownership[i];
+        for(std::size_t i = 0; i < buffer_ownership_submission.size(); i++){
+			auto& buf_owned = buffer_ownership_submission[i];
             for(std::size_t j = 0; j < buf_owned.bufs.size(); j++){
 				auto& buf = buf_owned.bufs[j];
                 buf->owningQueue = buf_owned.dstQueue;
                 buf->existsOnTheGPU = true;
             }
         }
-        image_ownership.clear();
-        buffer_ownership.clear();
+        image_ownership_submission.clear();
+        buffer_ownership_submission.clear();
     }
 
 }//namespace EWE

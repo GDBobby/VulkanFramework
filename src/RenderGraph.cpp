@@ -1,5 +1,7 @@
 #include "EightWinds/RenderGraph/RenderGraph.h"
 #include "EightWinds/VulkanHeader.h"
+#include <thread>
+
 
 namespace EWE{
 
@@ -48,7 +50,7 @@ namespace EWE{
         current_stc_manager{stc_management.GetNext()}
         //binary_semaphores{0, logicalDevice}
     {
-        auto& stc_m = *stc_management.begin();
+        //auto& stc_m = *stc_management.begin();
     
 #if EWE_DEBUG_BOOL
         Log::Warning("need visual feedback for rendergraph\n");
@@ -367,10 +369,22 @@ namespace EWE{
     template <> 
     void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Image> const& data) {
         //do flip flop storage
-        current_stc_manager->image_ownership.push_back(data);
+        auto* manager = current_stc_manager;
+        manager->loading_buffer_mut.lock();
+		//Log::Debug("locking loading buffer mut\n");
+        //manager->mut_thread = (unsigned long)syscall(SYS_gettid);
+        manager->image_ownership_posting.push_back(data);
+        manager->loading_buffer_mut.unlock();
+		//Log::Debug("UNLOCKED loading buffer mut\n");
     }
     template<>
     void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Buffer> const& data){
-        current_stc_manager->buffer_ownership.push_back(data);
+        auto* manager = current_stc_manager;
+        manager->loading_buffer_mut.lock();
+		//Log::Debug("locking loading buffer mut\n");
+        //manager->mut_thread = (unsigned long)syscall(SYS_gettid);
+        manager->buffer_ownership_posting.push_back(data);
+        manager->loading_buffer_mut.unlock();
+		//Log::Debug("UNLOCKED loading buffer mut\n");
     }
 }
