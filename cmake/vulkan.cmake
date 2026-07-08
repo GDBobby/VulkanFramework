@@ -41,7 +41,7 @@ if (NOT Vulkan_FOUND)
     GIT_TAG        v1.4.350
   )
   FetchContent_MakeAvailable(VulkanHeaders)
-  set(Vulkan_INCLUDE_DIR "${vulkanheaders_SOURCE_DIR}/include")
+  set(Vulkan_INCLUDE_DIR "${vulkanheaders_SOURCE_DIR}/include" CACHE PATH "" FORCE)
   set(Vulkan_FOUND TRUE)
   message(STATUS "Vulkan headers fetched : ${Vulkan_INCLUDE_DIR}")
 else()
