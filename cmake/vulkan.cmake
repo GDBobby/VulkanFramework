@@ -1,9 +1,9 @@
-if (DEFINED VULKAN_SDK_PATH)
+if (DEFINED VULKAN_SDK_PATH AND NOT "${VULKAN_SDK_PATH}" STREQUAL "")
   message(STATUS "Using explicitly defined Vulkan SDK path: ${VULKAN_SDK_PATH}")
   set(Vulkan_INCLUDE_DIR "${VULKAN_SDK_PATH}/include")
   set(Vulkan_FOUND TRUE)
 elseif (WIN32)
-  if (DEFINED ENV{VULKAN_SDK})
+  if (DEFINED ENV{VULKAN_SDK} AND NOT "$ENV{VULKAN_SDK}" STREQUAL "")
     message(STATUS "Automatically detected Windows Vulkan SDK at: $ENV{VULKAN_SDK}")
     set(Vulkan_INCLUDE_DIR "$ENV{VULKAN_SDK}/include")
     set(Vulkan_FOUND TRUE)
@@ -22,10 +22,10 @@ else()
   message(STATUS "Searching for linux Vulkan headers")
   find_path(Vulkan_INCLUDE_DIR
     NAMES vulkan/vulkan.h
-    PATHS 
-      /usr/include 
-      /usr/local/include
-      /opt/vulkan/*
+    PATHS
+    /usr/include
+    /usr/local/include
+    /opt/vulkan/*
     NO_CMAKE_FIND_ROOT_PATH
   )
   if (Vulkan_INCLUDE_DIR)
@@ -38,7 +38,7 @@ if (NOT Vulkan_FOUND)
   FetchContent_Declare(
     VulkanHeaders
     GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
-    GIT_TAG v1.4.350
+    GIT_TAG        v1.4.350
   )
   FetchContent_MakeAvailable(VulkanHeaders)
   set(Vulkan_INCLUDE_DIR "${vulkanheaders_SOURCE_DIR}/include")
