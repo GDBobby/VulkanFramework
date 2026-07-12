@@ -39,12 +39,15 @@ namespace EWE {
             uint32_t size;
             enum Type{
                 Buffer,
-                Texture
+                Texture,
+
+                Other //for imgui specifically, until i rework it
             };
             Type type;
         };
         std::vector<Member> buffers;
         std::vector<Member> textures;
+        std::vector<Member> others;
 
         [[nodiscard]] PushConstant();
 

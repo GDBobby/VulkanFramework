@@ -95,7 +95,7 @@ namespace EWE {
 	};
 
 	template<typename Key, typename Value>
-	class KeyValueContainer {
+	struct KeyValueContainer {
 	private:
 
 		using KVPair = KeyValuePair<Key, Value>;

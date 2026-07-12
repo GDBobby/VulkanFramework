@@ -11,45 +11,9 @@
 
 namespace EWE {
 
-#if PIPELINE_HOT_RELOAD
-	void imgui_vkbool(std::string_view name, VkBool32& vkBool) {
-		bool loe = vkBool;
-		ImGui::Checkbox(name.data(), &loe);
-		vkBool = loe;
-	}
-
-	template<typename T>
-	void imgui_enum(std::string_view name, T& val, int min, int max) {
-
-		ImGui::SliderInt(name.data(), reinterpret_cast<int*>(&val), min, max, magic_enum::enum_name(val).data());
-	}
-	PipelineConfigInfo::PipelineConfigInfo(PipelineConfigInfo const& other) {
-		viewportInfo = other.viewportInfo;
-		rasterizationInfo = other.rasterizationInfo;
-		multisampleInfo = other.multisampleInfo;
-		if (other.multisampleInfo.pSampleMask != other.sampleMask) {
-			Log::Warning("invalid copy of sampel mask, BE WARNED\n");
-		}
-		memcpy(sampleMask, other.sampleMask, sizeof(uint32_t) * 2);
-		multisampleInfo.pSampleMask = sampleMask;          // Optional
-
-		colorBlendAttachment = other.colorBlendAttachment;
-		colorBlendInfo = other.colorBlendInfo;
-		colorBlendInfo.pAttachments = &colorBlendAttachment;
-		depthStencilInfo = other.depthStencilInfo;
-
-		dynamicStateEnables = other.dynamicStateEnables;
-		dynamicStateInfo.sType = other.dynamicStateInfo.sType;
-		dynamicStateInfo.pNext = nullptr;
-		dynamicStateInfo.pDynamicStates = dynamicStateEnables.data();
-		dynamicStateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-	}
-#endif
-
 	void GraphicsPipeline::CreateVkPipeline(
 		TaskRasterConfig const& taskConfig,
-		ObjectRasterConfig const& objectConfig,
-        std::vector<VkDynamicState> const& dynamicState
+		ObjectRasterConfig const& objectConfig
     ) noexcept {
 
 		//shaders
@@ -81,7 +45,7 @@ namespace EWE {
 			.pNext = &pipelineRenderingCreateInfo,
 			.stageCount = static_cast<uint32_t>(shaderStages.Size()),
 			.pStages = shaderStages.Data(),
-			.layout = layout->vkLayout,
+			.layout = layout->layout,
 			.renderPass = VK_NULL_HANDLE, //DNI
 			.subpass = 0, //sub render pass, DNI
 			.basePipelineHandle = VK_NULL_HANDLE, //derivates, DNI
@@ -199,46 +163,25 @@ namespace EWE {
 			1, 
 			&pipelineCreateInfo, 
 			nullptr, 
-			&vkPipe
+			&pipe
 		);
 	}
 
 
 	GraphicsPipeline::GraphicsPipeline(
-        LogicalDevice& _logicalDevice, 
-        PipelineID pipeID, 
+        LogicalDevice& _logicalDevice,
         PipeLayout* _layout, //the layout SHOULD cover the input assembly
 		TaskRasterConfig const& passConfig,
-		ObjectRasterConfig const& objectConfig,
-        std::vector<VkDynamicState> const& dynamicState//deduced maybe?
+		ObjectRasterConfig const& objectConfig
     ) noexcept
-     : Pipeline{ _logicalDevice, pipeID, _layout }
+     : Pipeline{ _logicalDevice, _layout }
 #if PIPELINE_HOT_RELOAD
 		, copyConfigInfo{ configInfo }
 #endif
 	{
 		//read the default spec info
-		CreateVkPipeline(passConfig, objectConfig, dynamicState);
+		CreateVkPipeline(passConfig, objectConfig);
 	}
-
-	/*
-	GraphicsPipeline::GraphicsPipeline(
-        LogicalDevice& _logicalDevice, 
-        PipelineID pipeID, 
-        PipeLayout* _layout, //the layout SHOULD cover the input assembly
-		TaskRasterConfig const& passConfig,
-        ObjectRasterConfig const& objectConfig,
-        std::vector<VkDynamicState> const& dynamicState,//deduced maybe?
-    	KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> const& specInfo
-    ) noexcept
-    : Pipeline{ _logicalDevice, pipeID, _layout, specInfo }
-#if PIPELINE_HOT_RELOAD
-		, copyConfigInfo{ configInfo }
-#endif
-	{
-		CreateVkPipeline(passConfig, objectConfig, dynamicState);
-	}
-	*/
 
 #if PIPELINE_HOT_RELOAD
 	void GraphicsPipeline::HotReload(bool layoutReload) {

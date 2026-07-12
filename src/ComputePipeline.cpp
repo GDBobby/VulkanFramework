@@ -11,7 +11,7 @@ namespace EWE{
 			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
 			.pNext = nullptr,
 			.stage = layout->shaders[ShaderStage::Compute]->shaderStageCreateInfo,
-			.layout = layout->vkLayout
+			.layout = layout->layout
 		};
 		/*
 		if(copySpecInfo.size() > 0){
@@ -19,22 +19,21 @@ namespace EWE{
 			pipelineCreateInfo.stage.pSpecializationInfo = &temp.specInfo;
 		}
 		*/
-		EWE_VK(vkCreateComputePipelines, logicalDevice.device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &vkPipe);
+		EWE_VK(vkCreateComputePipelines, logicalDevice.device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &pipe);
 
 	}
 
-	ComputePipeline::ComputePipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* _layout) 
-		: Pipeline{ _logicalDevice, pipeID, _layout }
+	ComputePipeline::ComputePipeline(LogicalDevice& _logicalDevice, PipeLayout* _layout) 
+		: Pipeline{ _logicalDevice, _layout }
 	{
 		CreateVkPipeline();
 	}
 
 	/*
-	ComputePipeline::ComputePipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* _layout, std::vector<Shader::SpecializationEntry> const& specInfo) 
+	ComputePipeline::ComputePipeline(LogicalDevice& _logicalDevice, PipeLayout* _layout, std::vector<Shader::SpecializationEntry> const& specInfo) 
 	: 
 		Pipeline{ 
 			_logicalDevice, 
-			pipeID, 
 			_layout
 			//, 
 			//KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>>{} 

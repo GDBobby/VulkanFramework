@@ -63,6 +63,12 @@ namespace EWE {
 					temp_offset = std::min(temp_offset, member_ranges.back().start);
 					temp_size = std::max(temp_size, member_ranges.back().end);
 				}
+				for(auto const& oth : shader->pushRange.others){
+					member_ranges.emplace_back(oth);
+					temp_offset = std::min(temp_offset, member_ranges.back().start);
+					temp_size = std::max(temp_size, member_ranges.back().end);
+
+				}
 			}
 		}
 
@@ -89,6 +95,9 @@ namespace EWE {
 			}
 			else if(mr.member->type == PushConstant::Member::Buffer){
 				ret.buffers.push_back(*mr.member);
+			}
+			else if(mr.member->type == PushConstant::Member::Other){
+				ret.others.push_back(*mr.member);
 			}
 		}
 		return ret;
@@ -221,7 +230,7 @@ namespace EWE {
 			.pPushConstantRanges = &pushConstantRange
 		};
 
-		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &vkLayout);
+		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &layout);
 	}
 
 #if PIPELINE_HOT_RELOAD
@@ -248,7 +257,7 @@ namespace EWE {
 
 	void PipeLayout::SetDebugName(std::string_view name) {
 #if EWE_DEBUG_NAMING
-		logicalDevice.SetObjectName(vkLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name);
+		logicalDevice.SetObjectName(layout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name);
 #endif
 	}
 }

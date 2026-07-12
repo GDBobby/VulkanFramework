@@ -53,6 +53,7 @@ namespace EWE{
             std::array<std::bitset<max_images_per_type>, static_cast<size_t>(DescriptorType::COUNT)> occupancy;
             std::mutex binding_mutex;
             KeyValueContainer<DescriptorImageInfo*, TextureIndex> tracker;
+            KeyValueContainer<VkDescriptorImageInfo, TextureIndex> tracker_raw; //specifically for imgui
 
             std::string GetImageNameForIndex(TextureIndex index) const;
 
@@ -69,6 +70,10 @@ namespace EWE{
 
             TextureIndex BindImage(DescriptorImageInfo& dii);
             void Unbind(DescriptorImageInfo& dii);
+
+            //specifically for imgui -- guaranteed to be DescriptorType::Sampled
+            TextureIndex BindImage(VkDescriptorImageInfo raw_dii); 
+            void UnbindRaw(TextureIndex texIndex);  //texIndex needs to be for a raw dii
         private:
             //id prefer to put these in the implementation only, but I need to set other members. by reference maybe?
             void CreateLayout();

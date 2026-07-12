@@ -1,6 +1,7 @@
 #include "EightWinds/DescriptorImageInfo.h"
 
-
+#include "EightWinds/ImageView.h"
+#include "EightWinds/Sampler.h"
 
 namespace EWE{
 
@@ -52,7 +53,7 @@ namespace EWE{
 
     DescriptorImageInfo::~DescriptorImageInfo() {
         //if it was moved, index will be invalid
-        if (index != null_texture) {
+        if (!index.IsNull()) {
             view.image.logicalDevice.bindlessDescriptor.Unbind(*this);
         }
     }

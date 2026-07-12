@@ -22,7 +22,7 @@ namespace EWE {
         void* pUserData
     ) {
 
-        //stealing from github.com/Ak-Elements/Onyx /modules/rhi/private/onyx/rhi/vulkan/debugutilsmessenger
+        //stealing from github.com/Ak-Elements/Onyx - /modules/rhi/private/onyx/rhi/vulkan/debugutilsmessenger
         std::string_view messageTypeString;
         switch (messageType) {
             case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
@@ -81,6 +81,7 @@ namespace EWE {
                 }
                 else{
                     Log::Warning("ERROR-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
+                    EWE_Debug_Breakpoint();
                     throw EWEException{pCallbackData->pMessage};
                 }
 #if EWE_DEBUG_BOOL

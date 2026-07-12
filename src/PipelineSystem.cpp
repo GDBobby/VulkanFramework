@@ -1,6 +1,7 @@
 #include "EightWinds/Pipeline/PipelineSystem.h"
 #include "EightWinds/Pipeline/PipelineBase.h"
 
+	/*
 namespace EWE{
 
 		Pipeline* PipelineSystem::At(PipelineID pipeID) {
@@ -163,4 +164,6 @@ namespace EWE{
 			}
 		}
 #endif
+
 }
+*/

@@ -3,13 +3,10 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Backend/Descriptor/Bindless.h"
 
-#include "EightWinds/ImageView.h"
-#include "EightWinds/Sampler.h"
-
-#include "EightWinds/Data/StreamHelper.h"
-
 namespace EWE{
     struct LogicalDevice;
+    struct Sampler;
+    struct ImageView;
     
     struct DescriptorImageInfo{
 

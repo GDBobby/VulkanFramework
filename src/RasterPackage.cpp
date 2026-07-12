@@ -59,17 +59,16 @@ namespace EWE{
 
 		for(auto& group : vertex_pipeline_groups){
 			auto latest_pipeline = new GraphicsPipeline(
-				logicalDevice, 0,
+				logicalDevice,
 				group.first.layout, 
-				task_config, group.first.config,
-				std::vector<VkDynamicState>{VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT} 
+				task_config, group.first.config
 			);
 			created_pipelines.push_back(latest_pipeline);
 			
 			paramPool.PushBack(
 				ParamPack<Inst::BindPipeline>{
-					.pipe = latest_pipeline->vkPipe,
-					.layout = latest_pipeline->layout->vkLayout,
+					.pipe = latest_pipeline->pipe,
+					.layout = latest_pipeline->layout->layout,
 					.bindPoint = latest_pipeline->layout->bindPoint
 				}
 			);

@@ -6,7 +6,7 @@
 #include <string>
 
 namespace EWE{
-
+/*
 	struct Pipeline;
     //need to make this an object instead of a namespace
 	//same problem as factory, where the best place to put it would be logicaldevice
@@ -21,7 +21,7 @@ namespace EWE{
 		template<typename T>
 		void Emplace(T pipeID, Pipeline* pipeSys) {
 			const std::string pipeName = std::string(magic_enum::enum_name(pipeID));
-			Emplace(pipeName, pipeID, pipeSys);
+			Emplace(pipeName, pipeSys);
 		}
 #else
 		void Emplace(PipelineID pipeID, Pipeline* pipeSys);
@@ -41,4 +41,5 @@ namespace EWE{
 		std::unordered_map<PipelineID, std::string> pipelineNames{};
 #endif
 	};
+*/
 }

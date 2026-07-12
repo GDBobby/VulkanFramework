@@ -53,17 +53,15 @@ namespace EWE {
 		*/
 
 		[[nodiscard]] GraphicsPipeline(
-			LogicalDevice& logicalDevice, 
-			PipelineID pipeID, 
+			LogicalDevice& logicalDevice,
             PipeLayout* layout, 
-			TaskRasterConfig const& taskConfig, ObjectRasterConfig const& objectConfig,
-            std::vector<VkDynamicState> const& dynamicState //deduced maybe?
-		) noexcept;
+			TaskRasterConfig const& taskConfig, 
+			ObjectRasterConfig const& objectConfig
+        ) noexcept;
 
 		void CreateVkPipeline(
 			TaskRasterConfig const& taskConfig,
-			ObjectRasterConfig const& objectConfig,
-        	std::vector<VkDynamicState> const& dynamicState
+			ObjectRasterConfig const& objectConfig
 		) noexcept;
 		
 #if PIPELINE_HOT_RELOAD

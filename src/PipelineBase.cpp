@@ -13,8 +13,8 @@ namespace EWE {
 	
 	
 	void Pipeline::WriteToParamPack(ParamPack<Inst::BindPipeline>& paramPack) const{
-		paramPack.pipe = vkPipe;
-		paramPack.layout = layout->vkLayout;
+		paramPack.pipe = pipe;
+		paramPack.layout = layout->layout;
 		paramPack.bindPoint = layout->bindPoint;
 	}
 
@@ -38,10 +38,9 @@ namespace EWE {
 	}
 */
 
-	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID id, PipeLayout* _layout) 
+	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipeLayout* _layout) 
 	: 
 		logicalDevice{_logicalDevice},
-		myID{ id },
 		layout{ _layout }
 		//, copySpecInfo{ SpecInitializer(layout) }
 	{}
@@ -57,7 +56,7 @@ namespace EWE {
 
 	void Pipeline::SetDebugName(const char* name) {
 #if EWE_DEBUG_NAMING
-		logicalDevice.SetObjectName(vkPipe, VK_OBJECT_TYPE_PIPELINE, name);
+		logicalDevice.SetObjectName(pipe, VK_OBJECT_TYPE_PIPELINE, name);
 		layout->SetDebugName(name);
 #endif
 	}

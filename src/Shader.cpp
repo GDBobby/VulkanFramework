@@ -310,24 +310,45 @@ namespace EWE {
 		{ //populating textures / buffers
 			for (uint32_t m = 0; m < push_type.member_types.size(); m++) {
 				auto const& member_type = compiler.get_type(push_type.member_types[m]);
+				auto const& push_mem_name = compiler.get_member_name(push_id, m);
 				if(member_type.pointer){
-					ParsePushBufferAddress(compiler, shader, push_type, m, compiler.get_member_name(push_id, m));
+					ParsePushBufferAddress(compiler, shader, push_type, m, push_mem_name);
 				}
 				else if(member_type.basetype == spirv_cross::SPIRType::Int){
-					ParsePushTextureIndex(compiler, shader, push_type, m, compiler.get_member_name(push_id, m));
+					ParsePushTextureIndex(compiler, shader, push_type, m, push_mem_name);
 				}
 				else if(member_type.basetype == spirv_cross::SPIRType::UInt64){
-					Log::Warning("non-pointer address in shader : %s\n", shader.name.string().c_str());
+					Log::Error("non-pointer address in shader : %s\n", shader.name.string().c_str());
 				}
 				else{
-					EWE_ASSERT(false, "invalid spirv type");
+					//only taking vectors of floats at the moment. do matrices count as basetype float? ill find out
+					EWE_ASSERT(member_type.basetype == spirv_cross::SPIRType::Float);
+
+					std::size_t member_offset = 0;
+					if(shader.pushRange.others.size() == 0){
+						if(shader.pushRange.textures.size() == 0){
+							if(shader.pushRange.buffers.size() > 0){
+								member_offset = shader.pushRange.buffers.back().offset + shader.pushRange.buffers.back().size;
+							}
+						}
+						else{
+							member_offset = shader.pushRange.textures.back().offset + shader.pushRange.textures.back().size;
+						}
+					}
+					else{
+						member_offset = shader.pushRange.others.back().offset + shader.pushRange.others.back().size;
+					}
+					shader.pushRange.others.push_back(
+						PushConstant::Member{
+							.name = compiler.get_member_name(push_id, m),
+							.offset = member_offset,
+							.size = 4 * member_type.vecsize, //int in bytes
+							.type = PushConstant::Member::Other
+						}
+					);
+					//EWE_ASSERT(false, "invalid spirv type");
 				}
 			}
-		}
-
-		//calculate offsets
-		for(uint8_t i = 0; i < shader.pushRange.buffers.size(); i++){
-			
 		}
 	}
 

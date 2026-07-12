@@ -26,9 +26,13 @@ namespace EWE {
 
 	struct PipeLayout {
 		LogicalDevice& logicalDevice;
-		VkPipelineLayout vkLayout;
+		VkPipelineLayout layout;
 		//i suspect theres a mismangement of the Tracker references here
-		[[nodiscard]] explicit PipeLayout(LogicalDevice& logicalDevice, std::initializer_list<Shader*> shaders, VkDescriptorSetLayout dsl = VK_NULL_HANDLE) noexcept;
+		[[nodiscard]] explicit PipeLayout(
+			LogicalDevice& logicalDevice, 
+			std::initializer_list<Shader*> shaders,
+			VkDescriptorSetLayout dsl = VK_NULL_HANDLE
+		) noexcept;
 
 		template<std::size_t... Is>
 		static PipeLayout* CreateWithArrayImpl(LogicalDevice& logicalDevice, 

@@ -131,7 +131,6 @@ namespace EWE{
                 logicalDevice.images.Remove(&image);
             }
             
-            
             imageViews.DestroyAll();
         }
         images.Resize(swapImageCount);
