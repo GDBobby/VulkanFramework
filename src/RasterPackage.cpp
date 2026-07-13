@@ -110,6 +110,45 @@ namespace EWE{
 	}
 
 
+	void RasterPackage::UpdateScissor(VkRect2D _scissor, uint8_t frame){
+		for(std::size_t param_index = 0; param_index < paramPool.param_data.size(); param_index++){
+			if(paramPool.GetInstructionTypeOfParam(param_index) == Inst::DS_Scissor){
+				auto* scissor_pack = paramPool.CastParam<Inst::DS_Scissor>(param_index);
+				scissor_pack->GetRef(frame).scissor = _scissor;
+			}
+		}
+	}
+	void RasterPackage::UpdateScissor(VkRect2D _scissor){
+		for(std::size_t param_index = 0; param_index < paramPool.param_data.size(); param_index++){
+			if(paramPool.GetInstructionTypeOfParam(param_index) == Inst::DS_Scissor){
+				auto* scissor_pack = paramPool.CastParam<Inst::DS_Scissor>(param_index);
+				for_each_frame{
+					scissor_pack->GetRef(frame).scissor = _scissor;
+				}
+			}
+		}
+	}
+
+	void RasterPackage::UpdateViewport(VkViewport _viewport, uint8_t frame){
+		for(std::size_t param_index = 0; param_index < paramPool.param_data.size(); param_index++){
+			if(paramPool.GetInstructionTypeOfParam(param_index) == Inst::DS_Viewport){
+				auto* vp_pack = paramPool.CastParam<Inst::DS_Viewport>(param_index);
+				vp_pack->GetRef(frame).viewport = _viewport;
+			}
+		}
+	}
+	void RasterPackage::UpdateViewport(VkViewport _viewport){
+		for(std::size_t param_index = 0; param_index < paramPool.param_data.size(); param_index++){
+			if(paramPool.GetInstructionTypeOfParam(param_index) == Inst::DS_Viewport){
+				auto* vp_pack = paramPool.CastParam<Inst::DS_Viewport>(param_index);
+				for_each_frame{
+					vp_pack->GetRef(frame).viewport = _viewport;
+				}
+			}
+		}
+	}
+
+
 #if EWE_IMGUI
 	void RasterPackage::Imgui() {
 		ImGui::PushID();

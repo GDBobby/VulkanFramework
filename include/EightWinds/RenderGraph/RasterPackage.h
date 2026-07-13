@@ -72,6 +72,12 @@ namespace EWE{
 		void AdjustPipelines();
 
 		void Undefer(FullRenderInfo& info);
+
+		void UpdateScissor(VkRect2D scissor, uint8_t frame);
+		void UpdateScissor(VkRect2D scissor);
+
+		void UpdateViewport(VkViewport viewport, uint8_t frame);
+		void UpdateViewport(VkViewport viewport);
 	};
 } //namespace EWE
 
