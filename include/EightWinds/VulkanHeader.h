@@ -27,6 +27,24 @@
 
 namespace EWE{
 
+#define r_cast reinterpret_cast
+#define s_cast static_cast
+#define d_cast dynamic_cast
+    
+    using u8 = uint8_t;
+    using u16 = uint16_t;
+    using u32 = uint32_t;
+    using u64 = uint64_t;
+    using sst = std::size_t; //different name? architecture bit width?
+    using s8 = int8_t;
+    using s16 = int16_t;
+    using s32 = int32_t;
+    using s64 = int64_t;
+
+    using f32 = float;
+    using f64 = double;
+
+
     
     static constexpr uint8_t max_frames_in_flight = 2;
     template <typename T>

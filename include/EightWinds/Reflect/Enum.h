@@ -34,7 +34,11 @@ namespace Enum{
         std::string_view name;
         E value;
 
-        UnderlyingType GetUnderlyingValue() const {
+        constexpr operator E() const{
+            return value;
+        }
+
+        constexpr UnderlyingType GetUnderlyingValue() const {
             return static_cast<UnderlyingType>(value);
         }
     };

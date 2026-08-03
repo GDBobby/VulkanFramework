@@ -94,11 +94,21 @@ namespace Stream{
 		[[nodiscard]] explicit Operator(StreamT& s) : stream(s) {}
 
 		template<typename T>
+		requires(!requires(T& t){
+			t.begin();
+			t.end();
+			t.size();
+		})
 		Operator& Process(T& data) {
 			StreamOps<StreamT>::Process(stream, data);
 			return *this;
 		}
 		template<typename T>
+		requires(!requires(T& t){
+			t.begin();
+			t.end();
+			t.size();
+		})
 		Operator& Process(T* data, std::size_t size) {
 			StreamOps<StreamT>::Process(stream, reinterpret_cast<QualifiedPtr<char>>(data), size);
 			return *this;
@@ -123,11 +133,10 @@ namespace Stream{
 		{
 			std::size_t size_buffer = data.size();
 			StreamOps<StreamT>::Process(stream, size_buffer);
-			if constexpr(ft == Stream::FileType::Read){
-				data.resize(size_buffer);
-			}
-
 			if(size_buffer != 0){
+				if constexpr(ft == Stream::FileType::Read){
+					data.resize(size_buffer);
+				}
 				StreamOps<StreamT>::Process(stream, QualifiedPtr<char>(&data[0]), size_buffer);
 			}
 			return *this;
@@ -141,7 +150,7 @@ namespace Stream{
 			return ret;
 		}
 
-	private:
+
 		StreamT& stream;
 	};
 

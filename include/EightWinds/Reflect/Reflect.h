@@ -143,7 +143,6 @@ namespace Reflect{
     NonStaticData,
     Static,
 
-
     Invalid
   };
 
