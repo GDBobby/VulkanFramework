@@ -60,6 +60,11 @@ namespace Inst{ //Inst is short for Instruction :)
         Breakpoint,
         DebugFunction,
 #endif
+
+        //Queries - https://docs.vulkan.org/spec/latest/chapters/queries.html
+        Query_Timestamp,
+        
+
         //im only going to implement vp scissor for the moment
         DS_LineWidth,
         DS_DepthBias,

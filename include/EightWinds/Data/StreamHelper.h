@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <type_traits>
 #include <fstream>
 
@@ -95,9 +96,9 @@ namespace Stream{
 
 		template<typename T>
 		requires(!requires(T& t){
-			t.begin();
-			t.end();
-			t.size();
+				t.begin();
+				t.end();
+				t.size();
 		})
 		Operator& Process(T& data) {
 			StreamOps<StreamT>::Process(stream, data);
@@ -148,6 +149,47 @@ namespace Stream{
 			T ret;
 			Process(ret);
 			return ret;
+		}
+
+		int64_t GetFilePos(){
+			if constexpr(ft == FileType::Read || ft == FileType::ReadWrite){
+				return stream.tellg();
+			}
+			else if constexpr(ft == FileType::Write){
+				return stream.tellp();
+			}
+			return std::numeric_limits<int64_t>::max();
+		}
+
+		void Seek(std::ios::seekdir seekdir, int64_t offset = 0){
+			if constexpr(ft == FileType::Read || ft == FileType::ReadWrite){
+				stream.seekg(offset, seekdir);
+			}
+			else if constexpr(ft == FileType::Write){
+				stream.seekp(offset, seekdir);
+			}
+		}
+
+		int64_t CheckDistance(std::ios::seekdir lhs, std::ios::seekdir rhs){
+			EWE_ASSERT(lhs != std::ios::end && rhs != std::ios::beg);
+			if(lhs == rhs){
+				return 0;
+			}
+
+			const int64_t original_pos = GetFilePos();
+
+			int64_t lh_pos = 0;
+			if(lhs == std::ios::cur){
+				lh_pos = original_pos;
+			}
+
+			int64_t rh_pos = original_pos;
+			if(rhs == std::ios::end){
+				Seek(std::ios::end);
+				rh_pos = GetFilePos();
+				Seek(std::ios::beg, original_pos);
+			}
+			return rh_pos - lh_pos;
 		}
 
 
