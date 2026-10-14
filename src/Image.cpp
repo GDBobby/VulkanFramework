@@ -1,19 +1,17 @@
 #include "EightWinds/Image.h"
 
-namespace EWE{
-    Image::Image(LogicalDevice& _logicalDevice) noexcept
-        : logicalDevice{_logicalDevice}
-    {
-
-    }
-    Image::~Image(){
+namespace EWE {
+    Image::Image(LogicalDevice& _logicalDevice) noexcept : logicalDevice{_logicalDevice} {}
+    Image::~Image() {
         //can we assume it was created?
-        logicalDevice.garbageDisposal.Toss([&, img = image, mem = memory]{vmaDestroyImage(logicalDevice.vmaAllocator, img, mem);});
+        logicalDevice.garbageDisposal.Toss([&, img = image, mem = memory] {
+            vmaDestroyImage(logicalDevice.vmaAllocator, img, mem);
+        });
 
         logicalDevice.images.Remove(this);
     }
 
-    bool Image::Create(VmaAllocationCreateInfo const& allocCreateInfo){
+    bool Image::Create(VmaAllocationCreateInfo const& allocCreateInfo) {
         VkImageCreateInfo imgCreateInfo{
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .pNext = nullptr,
@@ -30,7 +28,7 @@ namespace EWE{
 
             .queueFamilyIndexCount = 1,
             .pQueueFamilyIndices = &owningQueue->family.index,
-        //use preinitialized if its going to be copied to
+            //use preinitialized if its going to be copied to
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
 
         };

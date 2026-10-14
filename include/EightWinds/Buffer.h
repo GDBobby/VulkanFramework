@@ -8,13 +8,13 @@
 #endif
 
 
-namespace EWE{
+namespace EWE {
     template<typename T, typename U>
-    constexpr bool BitwiseContains(T const lhs, U const rhs) noexcept{
+    constexpr bool BitwiseContains(T const lhs, U const rhs) noexcept {
         return (lhs & rhs) == rhs;
     }
 
-    struct Buffer{
+    struct Buffer {
         using Barrier = VkBufferMemoryBarrier2;
 
         LogicalDevice& logicalDevice;
@@ -22,24 +22,27 @@ namespace EWE{
         std::filesystem::path name;
 
         [[nodiscard]] explicit Buffer(LogicalDevice& device); //does not get initialized on the GPU
-        
+
         [[nodiscard]] explicit Buffer(
-            LogicalDevice& logicalDevice, 
-            VkDeviceSize instanceSize, uint32_t instanceCount, 
-            VmaAllocationCreateInfo const& vmaAllocCreateInfo, 
+            LogicalDevice& logicalDevice,
+            VkDeviceSize instanceSize,
+            uint32_t instanceCount,
+            VmaAllocationCreateInfo const& vmaAllocCreateInfo,
             VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
         );
         [[nodiscard]] explicit Buffer(
             std::filesystem::path const& name,
-            LogicalDevice& logicalDevice, 
-            VkDeviceSize instanceSize, uint32_t instanceCount, 
-            VmaAllocationCreateInfo const& vmaAllocCreateInfo, 
+            LogicalDevice& logicalDevice,
+            VkDeviceSize instanceSize,
+            uint32_t instanceCount,
+            VmaAllocationCreateInfo const& vmaAllocCreateInfo,
             VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
         );
         ~Buffer();
 
         void Init(
-            VkDeviceSize instanceSize, uint32_t instanceCount,
+            VkDeviceSize instanceSize,
+            uint32_t instanceCount,
             VmaAllocationCreateInfo const& vmaAllocCreateInfo,
             VkBufferUsageFlags usageFlags = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
         );
@@ -55,7 +58,7 @@ namespace EWE{
         //VkDeviceSize alignmentSize;
         VkDeviceSize instanceSize;
         VkDeviceSize bufferSize;
-        //write the 
+        //write the
         VkDeviceSize minOffsetAlignment = 1;
 
 
@@ -78,12 +81,10 @@ namespace EWE{
         VkDescriptorBufferInfo* DescriptorInfo(VkDeviceSize size, VkDeviceSize offset);
 
         //[[nodiscard]] static VkDeviceSize CalculateAlignment(VkDeviceSize instanceSize, VkBufferUsageFlags usageFlags, VkPhysicalDeviceLimits const& limits);
-
     private:
         void CreateTheVkBuffer(VmaAllocationCreateInfo const& vmaAllocCreateInfo);
         void DestroyTheVkBuffer();
     public:
-
 #if EWE_DEBUG_NAMING
         std::stacktrace creation_trace;
 #endif

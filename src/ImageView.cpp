@@ -1,23 +1,22 @@
 #include "EightWinds/ImageView.h"
 
-namespace EWE{
-
+namespace EWE {
 
 
     constexpr VkImageViewType ImageTypeToViewType(VkImageType imageType, uint32_t arrayCount) {
         //https://docs.vulkan.org/refpages/latest/refpages/source/VkImageViewCreateInfo.html
         //conversion chart here
-        switch(imageType) {
+        switch (imageType) {
             case VK_IMAGE_TYPE_1D:
-                if(arrayCount > 1){
+                if (arrayCount > 1) {
                     return VK_IMAGE_VIEW_TYPE_1D_ARRAY;
                 }
                 return VK_IMAGE_VIEW_TYPE_1D;
             case VK_IMAGE_TYPE_2D:
-                if(arrayCount == 6){
+                if (arrayCount == 6) {
                     return VK_IMAGE_VIEW_TYPE_CUBE;
                 }
-                if(arrayCount > 1){
+                if (arrayCount > 1) {
                     return VK_IMAGE_VIEW_TYPE_2D_ARRAY;
                 }
                 return VK_IMAGE_VIEW_TYPE_2D;
@@ -32,7 +31,7 @@ namespace EWE{
     }
 
 
-    VkImageSubresourceRange ImageView::GetDefaultSubresource(Image& image) noexcept{
+    VkImageSubresourceRange ImageView::GetDefaultSubresource(Image& image) noexcept {
 
         VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         switch (image.data.format) {
@@ -44,7 +43,7 @@ namespace EWE{
             case VK_FORMAT_X8_D24_UNORM_PACK32:
                 aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
                 break;
-            default: 
+            default:
                 break;
         }
 
@@ -75,52 +74,48 @@ namespace EWE{
             //theres a conversion chart on that page
             .viewType = ImageTypeToViewType(image.data.type, image.data.arrayLayers),
             .format = image.data.format,
-            .components = VkComponentMapping{
-                .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .a = VK_COMPONENT_SWIZZLE_IDENTITY
-            },
+            .components =
+                VkComponentMapping{
+                    .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+                    .a = VK_COMPONENT_SWIZZLE_IDENTITY
+                },
 
             .subresourceRange = GetDefaultSubresource(image)
         };
     }
 
-    ImageView::ImageView(Image& _image, VkImageViewCreateInfo const& createInfo) 
-    : image{_image},
-        subresource{createInfo.subresourceRange}
-    { 
+    ImageView::ImageView(Image& _image, VkImageViewCreateInfo const& createInfo)
+        : image{_image},
+          subresource{createInfo.subresourceRange} {
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
         SetName(_image.name.string());
     }
-    
-    ImageView::ImageView(Image& _image) 
-    : image{_image}
-    {
+
+    ImageView::ImageView(Image& _image) : image{_image} {
         const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
         subresource = createInfo.subresourceRange;
 
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
         SetName(_image.name.string());
     }
-    ImageView::ImageView(Image& _image, bool readyForConstruction) noexcept
-    : image{_image}
-    {
+    ImageView::ImageView(Image& _image, bool readyForConstruction) noexcept : image{_image} {
         //the creation of the view on the GPU is postponed, most likely because the image has not yet been created on the GPU
     }
 
-    ImageView::~ImageView(){
+    ImageView::~ImageView() {
         image.logicalDevice.garbageDisposal.TossVK(view);
     }
-    
-    void ImageView::Create(){
+
+    void ImageView::Create() {
         const auto createInfo = GetDefaultFullImageViewCreateInfo(image);
         subresource = createInfo.subresourceRange;
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
         SetName(image.name.string());
     }
 
-    void ImageView::Create(VkImageViewCreateInfo const& createInfo){
+    void ImageView::Create(VkImageViewCreateInfo const& createInfo) {
         subresource = createInfo.subresourceRange;
         EWE_VK(vkCreateImageView, image.logicalDevice.device, &createInfo, nullptr, &view);
         SetName(image.name.string());

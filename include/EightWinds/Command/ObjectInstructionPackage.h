@@ -4,53 +4,55 @@
 #include "EightWinds/ObjectRasterConfig.h"
 #include "EightWinds/Shader.h"
 
-namespace EWE{
-namespace Command{
-	struct ObjectPackage : public InstructionPackage{
-        [[nodiscard]] ObjectPackage();
-        [[nodiscard]] explicit ObjectPackage(std::filesystem::path const& name);
-		static constexpr auto allowed_instructions = {
-			Inst::Push,
-			Inst::Draw,
-			Inst::DrawIndexed,
-            
-            Inst::DrawIndirect,
-            Inst::DrawIndexedIndirect,
-            
-            Inst::DrawIndirectCount,
-            Inst::DrawIndexedIndirectCount,
+namespace EWE {
+    namespace Command {
+        struct ObjectPackage : public InstructionPackage {
+            [[nodiscard]] ObjectPackage();
+            [[nodiscard]] explicit ObjectPackage(std::filesystem::path const& name);
+            static constexpr auto allowed_instructions = {
+                Inst::Push,
+                Inst::Draw,
+                Inst::DrawIndexed,
 
-            Inst::DrawMeshTasks,
-            Inst::DrawMeshTasksIndirect,
-            Inst::DrawMeshTasksIndirectCount,
+                Inst::DrawIndirect,
+                Inst::DrawIndexedIndirect,
 
-            //Inst::DS_Viewport,
-            //Inst::DS_ViewportCount,
-            //Inst::DS_Scissor,
-            //Inst::DS_ScissorCount,
+                Inst::DrawIndirectCount,
+                Inst::DrawIndexedIndirectCount,
 
-            Inst::BeginLabel,
-            Inst::EndLabel,
+                Inst::DrawMeshTasks,
+                Inst::DrawMeshTasksIndirect,
+                Inst::DrawMeshTasksIndirectCount,
 
-			Inst::If,
-			Inst::EndIf
-		};
-        struct Payload{
-            //do some smart hiding so they cant add vertex and compute and mesh and raytracing at the same time
-            std::array<Shader*, ShaderStage::Bits::COUNT> shaders;
-            ObjectRasterConfig config;
+                //Inst::DS_Viewport,
+                //Inst::DS_ViewportCount,
+                //Inst::DS_Scissor,
+                //Inst::DS_ScissorCount,
+
+                Inst::BeginLabel,
+                Inst::EndLabel,
+
+                Inst::If,
+                Inst::EndIf
+            };
+            struct Payload {
+                //do some smart hiding so they cant add vertex and compute and mesh and raytracing at the same time
+                std::array<Shader*, ShaderStage::Bits::COUNT> shaders;
+                ObjectRasterConfig config;
+            };
+            Payload payload;
+
+            enum class DrawType {
+                Vertex,
+                Mesh,
+
+                INVALID
+            };
+            DrawType GetDrawType() const;
+
+            std::span<const Inst::Type> GetAllowedInstructions() override final {
+                return std::span{allowed_instructions.begin(), allowed_instructions.end()};
+            }
         };
-        Payload payload;
-
-        enum class DrawType{
-            Vertex,
-            Mesh,
-
-            INVALID
-        };
-        DrawType GetDrawType() const;
-
-		std::span<const Inst::Type> GetAllowedInstructions() override final {return std::span{allowed_instructions.begin(), allowed_instructions.end()};}
-	};
-} //namespace Command
+    } //namespace Command
 } //namepsace EWE

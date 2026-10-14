@@ -7,9 +7,9 @@
 
 #include "EightWinds/Data/MemoryHelpers.h"
 
-namespace EWE{
-	template<typename T, std::size_t Size>
-	struct StackBlock : MemoryHelper_Construction<StackBlock<T, Size>, T> {
+namespace EWE {
+    template<typename T, std::size_t Size>
+    struct StackBlock : MemoryHelper_Construction<StackBlock<T, Size>, T> {
         static constexpr std::size_t size = Size;
         alignas(T) std::byte memory[size * sizeof(T)];
     };

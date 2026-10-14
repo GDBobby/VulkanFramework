@@ -1,16 +1,15 @@
 #include "EightWinds/Backend/Fence.h"
 
-namespace EWE{
+namespace EWE {
 
     Fence::Fence(LogicalDevice& _logicalDevice, VkFenceCreateInfo const& fenceCreateInfo)
-        : logicalDevice{ _logicalDevice }
-    {
+        : logicalDevice{_logicalDevice} {
         EWE::EWE_VK(vkCreateFence, logicalDevice.device, &fenceCreateInfo, nullptr, &vkFence);
     }
     Fence::~Fence() {
         logicalDevice.garbageDisposal.TossVK(vkFence);
     }
-    
+
     bool Fence::CheckReturn(uint64_t time) {
         if (!submitted) {
 #if DEBUGGING_FENCES
@@ -23,7 +22,7 @@ namespace EWE{
 #endif
 
 #if EWE_DEBUG_BOOL
-        if(vkFence == VK_NULL_HANDLE){
+        if (vkFence == VK_NULL_HANDLE) {
             Log::Error("invalid fence?\n");
         }
 #endif
@@ -46,13 +45,13 @@ namespace EWE{
         }
     }
 
-    bool Fence::Wait(uint64_t time){
+    bool Fence::Wait(uint64_t time) {
         return true;
     }
-    
-        void Fence::SetName(std::string_view name){
+
+    void Fence::SetName(std::string_view name) {
 #if EWE_DEBUG_NAMING
-            logicalDevice.SetObjectName(vkFence, VK_OBJECT_TYPE_FENCE, name);
+        logicalDevice.SetObjectName(vkFence, VK_OBJECT_TYPE_FENCE, name);
 #endif
-        }
+    }
 }

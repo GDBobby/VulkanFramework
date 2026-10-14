@@ -8,92 +8,98 @@
 
 #include <string.h> //memcpy
 
-namespace EWE{
+namespace EWE {
 
     struct PushConstant;
 
-namespace Command{
-    //can this be template generated? would that be worth the effort?
-    struct ParamPool{
-        /*
+    namespace Command {
+        //can this be template generated? would that be worth the effort?
+        struct ParamPool {
+            /*
             * using a heap block instead of a stack block allows this to
                 be easily moved, copied, and resized
             * might be better to use something that can handle a disparity between size and capacity
                 it would mean less moves
         */
-        PerFlight<HeapBlock<std::byte>> params; 
-        std::vector<Inst::Type> instructions;
+            PerFlight<HeapBlock<std::byte>> params;
+            std::vector<Inst::Type> instructions;
 
-        //instruction pointer adjuster being moved or copied is acceptable here, the underlying data has a reliable state
-        //the inst pointers are 1:1 with instructions. if no params, then nullptr
-        std::vector<InstructionPointerAdjuster> param_data;
+            //instruction pointer adjuster being moved or copied is acceptable here, the underlying data has a reliable state
+            //the inst pointers are 1:1 with instructions. if no params, then nullptr
+            std::vector<InstructionPointerAdjuster> param_data;
 
-        Inst::Type GetInstructionTypeOfParam(std::size_t param_index);
+            Inst::Type GetInstructionTypeOfParam(std::size_t param_index);
 
-        template<Inst::Type iType>
-        requires(Inst::GetParamSize(iType) > 0)
-        auto* CastParam(std::size_t param_index){
+            template<Inst::Type iType>
+                requires(Inst::GetParamSize(iType) > 0)
+            auto* CastParam(std::size_t param_index) {
 #if EWE_DEBUG_BOOL
-            EWE_ASSERT(GetInstructionTypeOfParam(param_index) == iType);
+                EWE_ASSERT(GetInstructionTypeOfParam(param_index) == iType);
 #endif
-            return param_data[param_index].CastTo<ParamPack<iType>>();
-        }
-
-        [[nodiscard]] ParamPool();
-        [[nodiscard]] ParamPool(ParamPool const& copySrc); //this will be supported shortly i just dont want to code it rn
-        ParamPool(ParamPool&& moveSrc) noexcept;
-        ParamPool& operator=(ParamPool const& copySrc);
-        //i dont currently want to support discarding the existing data
-        ParamPool& operator=(ParamPool&& moveSrc) = delete;
-
-        std::size_t GetPackIndex(std::size_t inst_index) const;
-        std::size_t GetParamOffset(std::size_t inst_index) const;
-        void Erase(std::size_t index);
-        void ShrinkToSize(std::size_t index);
-        void PopBack();
-        void PushBack(Inst::Type itype);
-        void Insert(std::size_t index, Inst::Type itype);
-
-        ParamPool& Append(ParamPool const& other);
-        void Clear();
-
-        void ReadjustOffsets(PerFlight<std::size_t> previous_addr, PerFlight<std::size_t> next_addr);
-
-        template<Inst::Type IType>
-        void PushBack(ParamPack<IType> const& pp){
-            PushBack(IType);
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                memcpy(reinterpret_cast<void*>(param_data.back().data[frame]), &pp, sizeof(ParamPack<IType>));
+                return param_data[param_index].CastTo<ParamPack<iType>>();
             }
-        }
-        template<Inst::Type IType>
-        void PushBack(PerFlight<ParamPack<IType>*> const& pp){
-            PushBack(IType);
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                memcpy(reinterpret_cast<void*>(param_data.back().data[frame]), pp[frame], sizeof(ParamPack<IType>));
-            }
-        }
 
-        template<Inst::Type IType>
-        void Insert(std::size_t index, ParamPack<IType> const& pp){
-            Insert(index, IType);
-            const std::size_t pack_index = GetPackIndex(index);
-            for(uint8_t frame = 0; frame < max_frames_in_flight; frame++){
-                memcpy(reinterpret_cast<void*>(param_data[pack_index].data[frame]), &pp, sizeof(ParamPack<IType>));
-            }
-        }
-        template<Inst::Type IType>
-        void PushBack(std::size_t index, PerFlight<ParamPack<IType>*> const& pp){
-            Insert(index, IType);
-            const std::size_t pack_index = GetPackIndex(index);
-            for_each_frame{
-                memcpy(reinterpret_cast<void*>(param_data[pack_index].data[frame]), pp[frame], sizeof(ParamPack<IType>));
-            }
-        }
+            [[nodiscard]] ParamPool();
+            [[nodiscard]] ParamPool(
+                ParamPool const& copySrc
+            ); //this will be supported shortly i just dont want to code it rn
+            ParamPool(ParamPool&& moveSrc) noexcept;
+            ParamPool& operator=(ParamPool const& copySrc);
+            //i dont currently want to support discarding the existing data
+            ParamPool& operator=(ParamPool&& moveSrc) = delete;
 
-    
-        void AdjustPushConstants(PushConstant const& meta) noexcept;
-    };
+            std::size_t GetPackIndex(std::size_t inst_index) const;
+            std::size_t GetParamOffset(std::size_t inst_index) const;
+            void Erase(std::size_t index);
+            void ShrinkToSize(std::size_t index);
+            void PopBack();
+            void PushBack(Inst::Type itype);
+            void Insert(std::size_t index, Inst::Type itype);
 
-} //namepsace Command
+            ParamPool& Append(ParamPool const& other);
+            void Clear();
+
+            void ReadjustOffsets(PerFlight<std::size_t> previous_addr, PerFlight<std::size_t> next_addr);
+
+            template<Inst::Type IType>
+            void PushBack(ParamPack<IType> const& pp) {
+                PushBack(IType);
+                for (uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
+                    memcpy(reinterpret_cast<void*>(param_data.back().data[frame]), &pp, sizeof(ParamPack<IType>));
+                }
+            }
+            template<Inst::Type IType>
+            void PushBack(PerFlight<ParamPack<IType>*> const& pp) {
+                PushBack(IType);
+                for (uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
+                    memcpy(reinterpret_cast<void*>(param_data.back().data[frame]), pp[frame], sizeof(ParamPack<IType>));
+                }
+            }
+
+            template<Inst::Type IType>
+            void Insert(std::size_t index, ParamPack<IType> const& pp) {
+                Insert(index, IType);
+                const std::size_t pack_index = GetPackIndex(index);
+                for (uint8_t frame = 0; frame < max_frames_in_flight; frame++) {
+                    memcpy(reinterpret_cast<void*>(param_data[pack_index].data[frame]), &pp, sizeof(ParamPack<IType>));
+                }
+            }
+            template<Inst::Type IType>
+            void PushBack(std::size_t index, PerFlight<ParamPack<IType>*> const& pp) {
+                Insert(index, IType);
+                const std::size_t pack_index = GetPackIndex(index);
+                for_each_frame {
+                    memcpy(
+                        reinterpret_cast<void*>(param_data[pack_index].data[frame]),
+                        pp[frame],
+                        sizeof(ParamPack<IType>)
+                    );
+                }
+            }
+
+
+            void AdjustPushConstants(PushConstant const& meta) noexcept;
+        };
+
+    } //namepsace Command
 } //namepsace EWE

@@ -11,96 +11,86 @@
 
 //UNFINISHED
 
-namespace EWE{
-	
-	
+namespace EWE {
+
+
     template<typename T>
     struct HeapBlock : public MemoryHelper_Construction<HeapBlock<T>, T> {
-	private:
+    private:
         std::allocator<T> allocator{};
-	public:
+    public:
         T* memory;
 
-		std::size_t size; //DO NOT CHANGE EXTERNALLY
+        std::size_t size; //DO NOT CHANGE EXTERNALLY
+    public:
+        [[nodiscard]] HeapBlock() : memory{nullptr}, size{0} {}
 
-	public:
-	
-		[[nodiscard]] HeapBlock() 
-		: memory{nullptr}, size{0}
-		{}
-
-        [[nodiscard]] explicit HeapBlock(std::size_t _size) 
-		: size{_size}
-		{
-			if(size == 0){
-				memory = nullptr;	
-			}
-			else{
-            	memory = allocator.allocate(size);
-			}
+        [[nodiscard]] explicit HeapBlock(std::size_t _size) : size{_size} {
+            if (size == 0) {
+                memory = nullptr;
+            }
+            else {
+                memory = allocator.allocate(size);
+            }
         }
-		~HeapBlock(){
-			if(size != 0){
-				allocator.deallocate(memory, size);
-			}
-		}
+        ~HeapBlock() {
+            if (size != 0) {
+                allocator.deallocate(memory, size);
+            }
+        }
 
-		std::size_t Size() const {return size;}
-		
-		[[nodiscard]] HeapBlock(HeapBlock const& copySrc)
-		requires std::is_trivially_copyable_v<T>
-		: memory{allocator.allocate(copySrc.size)},
-			size{copySrc.size}
-		{
-			memcpy(memory, copySrc.memory, size * sizeof(T));
-		}
-		HeapBlock& operator=(HeapBlock const& copySrc)
-		requires std::is_trivially_copyable_v<T>
-		{
-			if(size != 0){
-				allocator.deallocate(memory, size);
-			}
-			memory = allocator.allocate(copySrc.size);
-			size = copySrc.size;
-			memcpy(memory, copySrc.memory, size * sizeof(T));
-			return *this;
-		}
-		HeapBlock(HeapBlock&& moveSrc) noexcept
-			: memory{moveSrc.memory},
-			size{moveSrc.size}
-		{
-			moveSrc.memory = nullptr;
-			moveSrc.size = 0;
-		}
+        std::size_t Size() const { return size; }
 
-		HeapBlock& operator=(HeapBlock&& moveSrc) noexcept{
-			if(memory != nullptr){
-				allocator.deallocate(memory, size);
-			}
-			memory = moveSrc.memory;
-			size = moveSrc.size;
-			moveSrc.memory = nullptr;
-			moveSrc.size = 0;
-		}
+        [[nodiscard]] HeapBlock(HeapBlock const& copySrc)
+            requires std::is_trivially_copyable_v<T>
+            : memory{allocator.allocate(copySrc.size)},
+              size{copySrc.size} {
+            memcpy(memory, copySrc.memory, size * sizeof(T));
+        }
+        HeapBlock& operator=(HeapBlock const& copySrc)
+            requires std::is_trivially_copyable_v<T>
+        {
+            if (size != 0) {
+                allocator.deallocate(memory, size);
+            }
+            memory = allocator.allocate(copySrc.size);
+            size = copySrc.size;
+            memcpy(memory, copySrc.memory, size * sizeof(T));
+            return *this;
+        }
+        HeapBlock(HeapBlock&& moveSrc) noexcept : memory{moveSrc.memory}, size{moveSrc.size} {
+            moveSrc.memory = nullptr;
+            moveSrc.size = 0;
+        }
 
-		void Clear(){
-			if(size != 0){
-				allocator.deallocate(memory, size);
-			}
-			size = 0;
-			memory = nullptr;
-		}
-		
-		void Resize(std::size_t count){
-			if(count != size){
-				if(size != 0){
-					allocator.deallocate(memory, count);
-				}
-				memory = allocator.allocate(count);
-				size = count;
-			}
-		}
+        HeapBlock& operator=(HeapBlock&& moveSrc) noexcept {
+            if (memory != nullptr) {
+                allocator.deallocate(memory, size);
+            }
+            memory = moveSrc.memory;
+            size = moveSrc.size;
+            moveSrc.memory = nullptr;
+            moveSrc.size = 0;
+        }
+
+        void Clear() {
+            if (size != 0) {
+                allocator.deallocate(memory, size);
+            }
+            size = 0;
+            memory = nullptr;
+        }
+
+        void Resize(std::size_t count) {
+            if (count != size) {
+                if (size != 0) {
+                    allocator.deallocate(memory, count);
+                }
+                memory = allocator.allocate(count);
+                size = count;
+            }
+        }
     };
-	
-	//this wont control construction or deconstruction, just the memory itself
+
+    //this wont control construction or deconstruction, just the memory itself
 }

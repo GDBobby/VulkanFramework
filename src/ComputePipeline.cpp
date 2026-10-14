@@ -4,32 +4,30 @@
 #include "EWGraphics/imgui/imgui.h"
 #endif
 
-namespace EWE{
+namespace EWE {
 
-	void ComputePipeline::CreateVkPipeline() {
-		VkComputePipelineCreateInfo pipelineCreateInfo{
-			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-			.pNext = nullptr,
-			.stage = layout->shaders[ShaderStage::Compute]->shaderStageCreateInfo,
-			.layout = layout->layout
-		};
-		/*
+    void ComputePipeline::CreateVkPipeline() {
+        VkComputePipelineCreateInfo pipelineCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+            .pNext = nullptr,
+            .stage = layout->shaders[ShaderStage::Compute]->shaderStageCreateInfo,
+            .layout = layout->layout
+        };
+        /*
 		if(copySpecInfo.size() > 0){
 			Shader::VkSpecInfo_RAII temp{ copySpecInfo[0].value };
 			pipelineCreateInfo.stage.pSpecializationInfo = &temp.specInfo;
 		}
 		*/
-		EWE_VK(vkCreateComputePipelines, logicalDevice.device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &pipe);
+        EWE_VK(vkCreateComputePipelines, logicalDevice.device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &pipe);
+    }
 
-	}
+    ComputePipeline::ComputePipeline(LogicalDevice& _logicalDevice, PipeLayout* _layout)
+        : Pipeline{_logicalDevice, _layout} {
+        CreateVkPipeline();
+    }
 
-	ComputePipeline::ComputePipeline(LogicalDevice& _logicalDevice, PipeLayout* _layout) 
-		: Pipeline{ _logicalDevice, _layout }
-	{
-		CreateVkPipeline();
-	}
-
-	/*
+    /*
 	ComputePipeline::ComputePipeline(LogicalDevice& _logicalDevice, PipeLayout* _layout, std::vector<Shader::SpecializationEntry> const& specInfo) 
 	: 
 		Pipeline{ 
@@ -48,12 +46,12 @@ namespace EWE{
 	*/
 
 #if PIPELINE_HOT_RELOAD
-	void ComputePipeline::HotReload(bool layoutReload) {
-		//layout should ALWAYS be reloaded
-		layout->HotReload();
-		stalePipeline = vkPipe;
-		vkPipe = VK_NULL_HANDLE;
-		CreateVkPipeline();
-	}
+    void ComputePipeline::HotReload(bool layoutReload) {
+        //layout should ALWAYS be reloaded
+        layout->HotReload();
+        stalePipeline = vkPipe;
+        vkPipe = VK_NULL_HANDLE;
+        CreateVkPipeline();
+    }
 #endif
 }

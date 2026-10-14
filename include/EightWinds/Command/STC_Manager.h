@@ -15,11 +15,11 @@
 #include <array>
 #include <functional>
 
-namespace EWE{
+namespace EWE {
     struct CommandBuffer;
     struct RenderGraph;
 
-    class STC_Manager{
+    class STC_Manager {
     public:
         RenderGraph* current_renderGraph = nullptr;
         Queue& renderQueue;
@@ -28,18 +28,16 @@ namespace EWE{
 
         static std::function<bool()> use_custom_yield;
         static std::function<TimelineSemaphore&(RingBuffer<TimelineSemaphore, 8>&, std::mutex&)> custom_yield_func;
-
     private:
         RingBuffer<CommandPool, max_frames_in_flight * 2> renderCommandPools;
         //idk count, i want like 2 per fiber but i wont know fiber count at compile time
-        
+
         std::array<std::mutex, Queue::COUNT> stc_mut;
         std::array<std::condition_variable, Queue::COUNT> cmdPool_cv;
         std::array<RingBuffer<CommandPool, 8>, Queue::COUNT> stc_command_pools;
         CommandPool& AcquireCommandPool(Queue::Type qType);
         void ReturnCommandPool(CommandPool& sem, Queue::Type qType);
 
-        
 
         std::condition_variable sem_cv;
         std::mutex semAcqMut{};
@@ -48,16 +46,16 @@ namespace EWE{
         void ReturnSemaphore(TimelineSemaphore& sem);
 
 
-
         SingleTimeCommand* GetSTC(Queue::Type requested_queue);
 
         Queue::Type GetQueueType(Queue const& queue) const;
         Queue& GetQueueFromType(Queue::Type qType);
-
     public:
         [[nodiscard]] explicit STC_Manager(
-            LogicalDevice& logicalDevice, 
-            Queue& renderQueue, Queue& transferQueue, Queue& computeQueue
+            LogicalDevice& logicalDevice,
+            Queue& renderQueue,
+            Queue& transferQueue,
+            Queue& computeQueue
         );
         ~STC_Manager();
 
@@ -71,7 +69,10 @@ namespace EWE{
         bool CheckFencesForUsage();
         void CheckFencesForCallbacks();
 
-        void AsyncTransferToCompute(std::function<void(CommandBuffer& cmdBuf)> transfer, std::function<void(CommandBuffer& cmdBuf)> compute);
+        void AsyncTransferToCompute(
+            std::function<void(CommandBuffer& cmdBuf)> transfer,
+            std::function<void(CommandBuffer& cmdBuf)> compute
+        );
 
         SingleTimeCommand* GetBeginSTC();
         void EndAndSubmit(SingleTimeCommand& stc);
@@ -91,33 +92,39 @@ namespace EWE{
         void InlineTransfer(TransferContext<RT>& transferContext);
     };
 
-    template<> void STC_Manager::Async_SingleQueueTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType);
-    template<> void STC_Manager::AsyncTransfer_Helper(TransferContext<Image>& transferContext, Queue::Type dstQueueType);
+    template<>
+    void STC_Manager::Async_SingleQueueTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType);
+    template<>
+    void STC_Manager::AsyncTransfer_Helper(TransferContext<Image>& transferContext, Queue::Type dstQueueType);
     //this will ONLY work in a separate thread
-    template<> void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue& rh_queue);
-    template<> void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueue);
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue& rh_queue);
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueue);
 
-    template<> void STC_Manager::Async_SingleQueueTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType);
-    template<> void STC_Manager::AsyncTransfer_Helper(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType);
-    template<> void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue& rh_queue);
-    template<> void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueue);
+    template<>
+    void STC_Manager::Async_SingleQueueTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType);
+    template<>
+    void STC_Manager::AsyncTransfer_Helper(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType);
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue& rh_queue);
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueue);
 
-    template<> void STC_Manager::InlineTransfer(TransferContext<Image>& transferContext);
-    template<> void STC_Manager::InlineTransfer(TransferContext<Buffer>& transferContext);
+    template<>
+    void STC_Manager::InlineTransfer(TransferContext<Image>& transferContext);
+    template<>
+    void STC_Manager::InlineTransfer(TransferContext<Buffer>& transferContext);
 
 
-
-    struct STC_Submitter{
+    struct STC_Submitter {
         LogicalDevice& logicalDevice;
 
         //transfer queue isn't included because it's not a valid dst queue
         Queue& graphicsQueue;
         Queue& computeQueue;
 
-        [[nodiscard]] STC_Submitter(
-            LogicalDevice& logicalDevice, 
-            Queue& graphicsQueue, Queue& computeQueue
-        );
+        [[nodiscard]] STC_Submitter(LogicalDevice& logicalDevice, Queue& graphicsQueue, Queue& computeQueue);
 
         std::mutex loading_buffer_mut;
         //0 is for the async thread thats posting work

@@ -5,15 +5,15 @@
 
 #include <cstdint>
 
-namespace EWE{
-	//struct Image;
-	//struct Buffer;
+namespace EWE {
+    //struct Image;
+    //struct Buffer;
     struct LogicalDevice;
-	
-    struct StagingBuffer{
+
+    struct StagingBuffer {
         LogicalDevice& logicalDevice;
 
-        VkBuffer buffer{ VK_NULL_HANDLE };
+        VkBuffer buffer{VK_NULL_HANDLE};
         VkDeviceSize bufferSize;
         VmaAllocation vmaAlloc{};
         StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size);
@@ -23,8 +23,8 @@ namespace EWE{
         void Stage(const void* data, uint64_t bufferSize);
         void Map(void*& data);
         void Unmap();
-		
-		
-		//void StageImage(Image& image, bool mipmapping);
+
+
+        //void StageImage(Image& image, bool mipmapping);
     };
 }

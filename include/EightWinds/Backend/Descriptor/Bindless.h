@@ -9,7 +9,7 @@
 #include <mutex>
 
 
-namespace EWE{
+namespace EWE {
     struct LogicalDevice;
     struct DescriptorImageInfo;
 
@@ -23,30 +23,40 @@ namespace EWE{
     };
     constexpr DescriptorType VkCompactDescriptorType(VkDescriptorType type) {
         switch (type) {
-            case VK_DESCRIPTOR_TYPE_SAMPLER: return DescriptorType::Sampler;
-            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return DescriptorType::Combined;
-            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: return DescriptorType::Sampled;
-            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: return DescriptorType::Storage;
-            default: EWE_UNREACHABLE;
+            case VK_DESCRIPTOR_TYPE_SAMPLER:
+                return DescriptorType::Sampler;
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                return DescriptorType::Combined;
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+                return DescriptorType::Sampled;
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+                return DescriptorType::Storage;
+            default:
+                EWE_UNREACHABLE;
         }
         EWE_UNREACHABLE;
     }
     constexpr VkDescriptorType VkExpandDescriptorType(DescriptorType type) {
         switch (type) {
-            case DescriptorType::Sampler: return VK_DESCRIPTOR_TYPE_SAMPLER;
-            case DescriptorType::Combined: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            case DescriptorType::Sampled: return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            case DescriptorType::Storage: return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-            default: EWE_UNREACHABLE;
+            case DescriptorType::Sampler:
+                return VK_DESCRIPTOR_TYPE_SAMPLER;
+            case DescriptorType::Combined:
+                return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            case DescriptorType::Sampled:
+                return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            case DescriptorType::Storage:
+                return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            default:
+                EWE_UNREACHABLE;
         }
         EWE_UNREACHABLE;
         return VK_DESCRIPTOR_TYPE_SAMPLER; //error silencer
     }
 
-    namespace Backend{
+    namespace Backend {
 
         //images only. use DBA for buffers
-        struct BindlessDescriptor{
+        struct BindlessDescriptor {
             static constexpr std::size_t max_images_per_type{UINT16_MAX};
 
             LogicalDevice& logicalDevice;
@@ -72,8 +82,8 @@ namespace EWE{
             void Unbind(DescriptorImageInfo& dii);
 
             //specifically for imgui -- guaranteed to be DescriptorType::Sampled
-            TextureIndex BindImage(VkDescriptorImageInfo raw_dii); 
-            void UnbindRaw(TextureIndex texIndex);  //texIndex needs to be for a raw dii
+            TextureIndex BindImage(VkDescriptorImageInfo raw_dii);
+            void UnbindRaw(TextureIndex texIndex); //texIndex needs to be for a raw dii
         private:
             //id prefer to put these in the implementation only, but I need to set other members. by reference maybe?
             void CreateLayout();

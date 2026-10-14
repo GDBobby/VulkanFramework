@@ -9,102 +9,100 @@
 
 namespace EWE {
 
-	constexpr VkPipelineBindPoint BindPointFromType(PipelineType pt) {
-		switch (pt) {
-		case PipelineType::Vertex: return VK_PIPELINE_BIND_POINT_GRAPHICS;
-		case PipelineType::Compute: return VK_PIPELINE_BIND_POINT_COMPUTE;
-		case PipelineType::Mesh: return VK_PIPELINE_BIND_POINT_GRAPHICS;
-		//case PipelineType::MeshWithMeshDisabled: return VK_PIPELINE_BIND_POINT_GRAPHICS; //this is a bit more ambiguous
-		case PipelineType::Raytracing: return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-			//Scheduler, //graph/scheduling - distinct? idk
-		default: EWE_UNREACHABLE;
-		}
-		return VK_PIPELINE_BIND_POINT_GRAPHICS;//error silencer
-	}
+    constexpr VkPipelineBindPoint BindPointFromType(PipelineType pt) {
+        switch (pt) {
+            case PipelineType::Vertex:
+                return VK_PIPELINE_BIND_POINT_GRAPHICS;
+            case PipelineType::Compute:
+                return VK_PIPELINE_BIND_POINT_COMPUTE;
+            case PipelineType::Mesh:
+                return VK_PIPELINE_BIND_POINT_GRAPHICS;
+            //case PipelineType::MeshWithMeshDisabled: return VK_PIPELINE_BIND_POINT_GRAPHICS; //this is a bit more ambiguous
+            case PipelineType::Raytracing:
+                return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+                //Scheduler, //graph/scheduling - distinct? idk
+            default:
+                EWE_UNREACHABLE;
+        }
+        return VK_PIPELINE_BIND_POINT_GRAPHICS; //error silencer
+    }
 
-	PushConstant MergePushRanges(std::span<Shader*> shaders) {
+    PushConstant MergePushRanges(std::span<Shader*> shaders) {
 
-		uint32_t temp_offset = UINT32_MAX;
-		uint32_t temp_size = 0;
+        uint32_t temp_offset = UINT32_MAX;
+        uint32_t temp_size = 0;
 
-		struct Range{
-			PushConstant::Member const* member;
-			uint32_t start;
-			uint32_t end;
+        struct Range {
+            PushConstant::Member const* member;
+            uint32_t start;
+            uint32_t end;
 
-			[[nodiscard]] explicit Range(PushConstant::Member const& _member)
-			: member{&_member},
-				start{_member.offset},
-				end{_member.offset + _member.size}
-			{}
+            [[nodiscard]] explicit Range(PushConstant::Member const& _member)
+                : member{&_member},
+                  start{_member.offset},
+                  end{_member.offset + _member.size} {}
 
-			bool Overlaps(Range const& other) const{
-				return 
-					start >= other.start && start < other.end
-					|| end <= other.end && end > other.start;
-			}
-			bool operator==(Range const& other) const{
-				return start == other.start && end == other.end;
-			}
-		};
-		std::vector<Range> member_ranges{};
-		for(auto const& shader : shaders){
-			if(shader == nullptr){
-				continue;
-			}
-			if(shader->pushRange.size != 0){
-				for(auto const& buffer : shader->pushRange.buffers){
-					member_ranges.emplace_back(buffer);
-					temp_offset = std::min(temp_offset, member_ranges.back().start);
-					temp_size = std::max(temp_size, member_ranges.back().end);
-				}
-				for(auto const& tex : shader->pushRange.textures){
-					member_ranges.emplace_back(tex);
-					temp_offset = std::min(temp_offset, member_ranges.back().start);
-					temp_size = std::max(temp_size, member_ranges.back().end);
-				}
-				for(auto const& oth : shader->pushRange.others){
-					member_ranges.emplace_back(oth);
-					temp_offset = std::min(temp_offset, member_ranges.back().start);
-					temp_size = std::max(temp_size, member_ranges.back().end);
+            bool Overlaps(Range const& other) const {
+                return start >= other.start && start < other.end || end <= other.end && end > other.start;
+            }
+            bool operator==(Range const& other) const { return start == other.start && end == other.end; }
+        };
+        std::vector<Range> member_ranges{};
+        for (auto const& shader : shaders) {
+            if (shader == nullptr) {
+                continue;
+            }
+            if (shader->pushRange.size != 0) {
+                for (auto const& buffer : shader->pushRange.buffers) {
+                    member_ranges.emplace_back(buffer);
+                    temp_offset = std::min(temp_offset, member_ranges.back().start);
+                    temp_size = std::max(temp_size, member_ranges.back().end);
+                }
+                for (auto const& tex : shader->pushRange.textures) {
+                    member_ranges.emplace_back(tex);
+                    temp_offset = std::min(temp_offset, member_ranges.back().start);
+                    temp_size = std::max(temp_size, member_ranges.back().end);
+                }
+                for (auto const& oth : shader->pushRange.others) {
+                    member_ranges.emplace_back(oth);
+                    temp_offset = std::min(temp_offset, member_ranges.back().start);
+                    temp_size = std::max(temp_size, member_ranges.back().end);
+                }
+            }
+        }
 
-				}
-			}
-		}
+        for (std::size_t i = 0; i < member_ranges.size(); i++) {
+            for (std::size_t j = i + 1; j < member_ranges.size(); j++) {
+                if (member_ranges[i].Overlaps(member_ranges[j])) {
+                    EWE_ASSERT(member_ranges[i] == member_ranges[j]);
+                    EWE_ASSERT(member_ranges[i].member->name == member_ranges[j].member->name);
 
-		for(std::size_t i = 0; i < member_ranges.size(); i++){
-			for(std::size_t j = i + 1; j < member_ranges.size(); j++){
-				if(member_ranges[i].Overlaps(member_ranges[j])){
-					EWE_ASSERT(member_ranges[i] == member_ranges[j]);
-					EWE_ASSERT(member_ranges[i].member->name == member_ranges[j].member->name);
+                    //may not be worth erasing if new data is allocated
+                    member_ranges.erase(member_ranges.begin() + j);
+                    j--;
+                }
+            }
+        }
 
-					//may not be worth erasing if new data is allocated
-					member_ranges.erase(member_ranges.begin() + j); 
-					j--;
-				}
-			}
-		}
+        PushConstant ret{};
+        ret.offset = temp_offset;
+        ret.size = temp_size;
 
-		PushConstant ret{};
-		ret.offset = temp_offset;
-		ret.size = temp_size;
-
-		for(auto const& mr : member_ranges){
-			if(mr.member->type == PushConstant::Member::Texture){
-				ret.textures.push_back(*mr.member);
-			}
-			else if(mr.member->type == PushConstant::Member::Buffer){
-				ret.buffers.push_back(*mr.member);
-			}
-			else if(mr.member->type == PushConstant::Member::Other){
-				ret.others.push_back(*mr.member);
-			}
-		}
-		return ret;
-
+        for (auto const& mr : member_ranges) {
+            if (mr.member->type == PushConstant::Member::Texture) {
+                ret.textures.push_back(*mr.member);
+            }
+            else if (mr.member->type == PushConstant::Member::Buffer) {
+                ret.buffers.push_back(*mr.member);
+            }
+            else if (mr.member->type == PushConstant::Member::Other) {
+                ret.others.push_back(*mr.member);
+            }
+        }
+        return ret;
 
 
-		/*
+        /*
 		std::vector<VkPushConstantRange> ranges{};
 		ranges.reserve(shaders.size());
 		for (auto& shader : shaders) {
@@ -148,41 +146,44 @@ namespace EWE {
 		}
 		return merged;
 		*/
-	}
+    }
 
-	PipeLayout::PipeLayout(LogicalDevice& _logicalDevice, std::initializer_list<::EWE::Shader*> _shaders, VkDescriptorSetLayout dsl) noexcept
-		: logicalDevice{_logicalDevice}
-	{
-		this->shaders.fill(nullptr);
-		for (auto& shader : _shaders) {
-			if(shader != nullptr){
-				shaders[ShaderStage(shader->shaderStageCreateInfo.stage).value] = shader;
-				has_bindless_textures |= shader->has_bindless_textures;
-			}
-		}
-		pushConstantRange = MergePushRanges(std::span<EWE::Shader*>{this->shaders});
-		CreateVkPipeLayout(dsl);
-		bindPoint = BindPointFromType(pipelineType);
-	}
+    PipeLayout::PipeLayout(
+        LogicalDevice& _logicalDevice,
+        std::initializer_list<::EWE::Shader*> _shaders,
+        VkDescriptorSetLayout dsl
+    ) noexcept
+        : logicalDevice{_logicalDevice} {
+        this->shaders.fill(nullptr);
+        for (auto& shader : _shaders) {
+            if (shader != nullptr) {
+                shaders[ShaderStage(shader->shaderStageCreateInfo.stage).value] = shader;
+                has_bindless_textures |= shader->has_bindless_textures;
+            }
+        }
+        pushConstantRange = MergePushRanges(std::span<EWE::Shader*>{this->shaders});
+        CreateVkPipeLayout(dsl);
+        bindPoint = BindPointFromType(pipelineType);
+    }
 
-	RuntimeArray<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
-		uint8_t shader_count = 0;
-		for (auto& shader : shaders) {
-			if (shader != nullptr) {
-				shader_count++;
-			}
-		}
-		RuntimeArray<VkPipelineShaderStageCreateInfo> ret{shader_count};
-		uint8_t shader_iter = 0;
-		for (auto& shader : shaders) {
-			if (shader != nullptr) {
-				ret[shader_iter] = shader->shaderStageCreateInfo;
-				shader_iter++;
-			}
-		}
-		return ret;
-	}
-	/*
+    RuntimeArray<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
+        uint8_t shader_count = 0;
+        for (auto& shader : shaders) {
+            if (shader != nullptr) {
+                shader_count++;
+            }
+        }
+        RuntimeArray<VkPipelineShaderStageCreateInfo> ret{shader_count};
+        uint8_t shader_iter = 0;
+        for (auto& shader : shaders) {
+            if (shader != nullptr) {
+                ret[shader_iter] = shader->shaderStageCreateInfo;
+                shader_iter++;
+            }
+        }
+        return ret;
+    }
+    /*
 	std::vector<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData(std::vector<KeyValuePair<ShaderStage, Shader::VkSpecInfo_RAII>> const& specInfo) const {
 		std::vector<VkPipelineShaderStageCreateInfo> ret{};
 		for (auto& shader : shaders) {
@@ -202,62 +203,62 @@ namespace EWE {
 	*/
 
 
-	void PipeLayout::CreateVkPipeLayout(VkDescriptorSetLayout dsl) {
+    void PipeLayout::CreateVkPipeLayout(VkDescriptorSetLayout dsl) {
 
-		if (shaders[ShaderStage::Vertex] != nullptr) {
-			pipelineType = PipelineType::Vertex;
-		}
-		else if (shaders[ShaderStage::Mesh] != nullptr) {
-			pipelineType = PipelineType::Mesh;
-		}
-		else if (shaders[ShaderStage::Compute] != nullptr) {
-			pipelineType = PipelineType::Compute;
-		}
-		else {
-			Log::Error("this is going to be raytracing i guess?\n");
-			EWE_ASSERT(false);
-		}
+        if (shaders[ShaderStage::Vertex] != nullptr) {
+            pipelineType = PipelineType::Vertex;
+        }
+        else if (shaders[ShaderStage::Mesh] != nullptr) {
+            pipelineType = PipelineType::Mesh;
+        }
+        else if (shaders[ShaderStage::Compute] != nullptr) {
+            pipelineType = PipelineType::Compute;
+        }
+        else {
+            Log::Error("this is going to be raytracing i guess?\n");
+            EWE_UNREACHABLE;
+        }
 
-		VkPipelineLayoutCreateInfo plCreateInfo{
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.pNext = nullptr,
-			.flags = 0,
-			
-			.setLayoutCount = static_cast<uint32_t>(has_bindless_textures),
-			.pSetLayouts = &logicalDevice.bindlessDescriptor.layout,
+        VkPipelineLayoutCreateInfo plCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
 
-			.pushConstantRangeCount = 1,
-			.pPushConstantRanges = &pushConstantRange
-		};
+            .setLayoutCount = static_cast<uint32_t>(has_bindless_textures),
+            .pSetLayouts = &logicalDevice.bindlessDescriptor.layout,
 
-		EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &layout);
-	}
+            .pushConstantRangeCount = 1,
+            .pPushConstantRanges = &pushConstantRange
+        };
+
+        EWE_VK(vkCreatePipelineLayout, logicalDevice.device, &plCreateInfo, nullptr, &layout);
+    }
 
 #if PIPELINE_HOT_RELOAD
-	void PipeLayout::HotReload() {
-		for (auto& shader : shaders) {
-			if (shader != nullptr) {
-				shader->HotReload();
-			}
-		}
-		Log::Error("memory leak here - descriptor sets not freed before recreated\n");
-		//Deconstruct(descriptorSets); //need this to be stored then deleted stale
+    void PipeLayout::HotReload() {
+        for (auto& shader : shaders) {
+            if (shader != nullptr) {
+                shader->HotReload();
+            }
+        }
+        Log::Error("memory leak here - descriptor sets not freed before recreated\n");
+        //Deconstruct(descriptorSets); //need this to be stored then deleted stale
 
-		descriptorSets = MergeDescriptorSets(this->shaders);
-		pushConstantRange = MergePushRanges(this->shaders);
-		CreateVkPipeLayout();
-	}
+        descriptorSets = MergeDescriptorSets(this->shaders);
+        pushConstantRange = MergePushRanges(this->shaders);
+        CreateVkPipeLayout();
+    }
 
-	void PipeLayout::DrawImgui() {
-		for (uint8_t i = 0; i < shaders.size(); i++) {
-			//ImGui::InputText(magic_enum::enum_name(static_cast<ShaderStage::Bits>(i)).data(), shaders[i]->filepath.c_str());
-		}
-	}
+    void PipeLayout::DrawImgui() {
+        for (uint8_t i = 0; i < shaders.size(); i++) {
+            //ImGui::InputText(magic_enum::enum_name(static_cast<ShaderStage::Bits>(i)).data(), shaders[i]->filepath.c_str());
+        }
+    }
 #endif
 
-	void PipeLayout::SetDebugName(std::string_view name) {
+    void PipeLayout::SetDebugName(std::string_view name) {
 #if EWE_DEBUG_NAMING
-		logicalDevice.SetObjectName(layout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name);
+        logicalDevice.SetObjectName(layout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name);
 #endif
-	}
+    }
 }

@@ -12,23 +12,23 @@
 #include <vector>
 #include <filesystem>
 
-namespace EWE{
+namespace EWE {
     struct Queue;
 
-namespace Command{
-    struct PackageRecord{
-        std::filesystem::path name{};
-        Queue& queue;
-        std::vector<InstructionPackage*> packages;
+    namespace Command {
+        struct PackageRecord {
+            std::filesystem::path name{};
+            Queue& queue;
+            std::vector<InstructionPackage*> packages;
 
-        [[nodiscard]] explicit PackageRecord(std::filesystem::path const& name, Queue& queue);
+            [[nodiscard]] explicit PackageRecord(std::filesystem::path const& name, Queue& queue);
 
-        PackageRecord(PackageRecord const&) = delete;
-        PackageRecord& operator=(PackageRecord const&) = delete;
-        PackageRecord(PackageRecord&&) = delete;
-        PackageRecord& operator=(PackageRecord&&) = delete;
+            PackageRecord(PackageRecord const&) = delete;
+            PackageRecord& operator=(PackageRecord const&) = delete;
+            PackageRecord(PackageRecord&&) = delete;
+            PackageRecord& operator=(PackageRecord&&) = delete;
 
-        ParamPool Compile() const;
-    };
-} //namespace Command
+            ParamPool Compile() const;
+        };
+    } //namespace Command
 } //namespace EWE

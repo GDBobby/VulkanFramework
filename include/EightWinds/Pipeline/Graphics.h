@@ -21,27 +21,27 @@ https://developer.nvidia.com/blog/vulkan-dos-donts/ */
 namespace EWE {
 
 
-	//dropping tess support
-	//its not ideal to have less support, BUT
-	//i think tess and geo are on the way out.
+    //dropping tess support
+    //its not ideal to have less support, BUT
+    //i think tess and geo are on the way out.
 
-	//im moving out vertex assembly, attributes, all of it
-	//i dont really want pointers in either config. if its unavoidable ill add it
-	//but id prefer it to be fully stack
+    //im moving out vertex assembly, attributes, all of it
+    //i dont really want pointers in either config. if its unavoidable ill add it
+    //but id prefer it to be fully stack
 
-	//this needs a new home
-	//std::vector<VkDynamicState> dynamicStateEnables{};
-	//VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
-	//VkPipelineRenderingCreateInfo pipelineRenderingInfo;
+    //this needs a new home
+    //std::vector<VkDynamicState> dynamicStateEnables{};
+    //VkPipelineDynamicStateCreateInfo dynamicStateInfo{};
+    //VkPipelineRenderingCreateInfo pipelineRenderingInfo;
 
 
-	//each pipeline is going to need four different packages.
-	//render info, thats rasterization, blend, samples, etc
-	//input info, thats vertex assembly, bindings, attributes
-	//dynamic state, dynamic viewport, whatever
+    //each pipeline is going to need four different packages.
+    //render info, thats rasterization, blend, samples, etc
+    //input info, thats vertex assembly, bindings, attributes
+    //dynamic state, dynamic viewport, whatever
     //and VkPipelineRenderingCreateInfo
-	struct GraphicsPipeline : public Pipeline {
-		/*
+    struct GraphicsPipeline : public Pipeline {
+        /*
 		[[nodiscard]] GraphicsPipeline(
 			LogicalDevice& logicalDevice, 
 			PipelineID pipeID, 
@@ -52,24 +52,21 @@ namespace EWE {
 		) noexcept;
 		*/
 
-		[[nodiscard]] GraphicsPipeline(
-			LogicalDevice& logicalDevice,
-            PipeLayout* layout, 
-			TaskRasterConfig const& taskConfig, 
-			ObjectRasterConfig const& objectConfig
+        [[nodiscard]] GraphicsPipeline(
+            LogicalDevice& logicalDevice,
+            PipeLayout* layout,
+            TaskRasterConfig const& taskConfig,
+            ObjectRasterConfig const& objectConfig
         ) noexcept;
 
-		void CreateVkPipeline(
-			TaskRasterConfig const& taskConfig,
-			ObjectRasterConfig const& objectConfig
-		) noexcept;
-		
+        void CreateVkPipeline(TaskRasterConfig const& taskConfig, ObjectRasterConfig const& objectConfig) noexcept;
+
 #if PIPELINE_HOT_RELOAD
-		void HotReload(bool layoutReload = true) override final;
-		PipelineConfigInfo copyConfigInfo;
+        void HotReload(bool layoutReload = true) override final;
+        PipelineConfigInfo copyConfigInfo;
 #endif
-	protected:
-		//internal
-		//void CreateVkPipeline_SecondStage(PipelineConfigInfo& configInfo, VkGraphicsPipelineCreateInfo& pipelineInfo);
-	};
+    protected:
+        //internal
+        //void CreateVkPipeline_SecondStage(PipelineConfigInfo& configInfo, VkGraphicsPipelineCreateInfo& pipelineInfo);
+    };
 }

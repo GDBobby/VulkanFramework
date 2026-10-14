@@ -7,7 +7,7 @@
 #include <array>
 #include <memory>
 
-namespace EWE{
+namespace EWE {
 
     VkDevice LogicalDevice::CreateDevice(VkDeviceCreateInfo& deviceCreateInfo) {
         deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -31,7 +31,8 @@ namespace EWE{
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         VkDeviceQueueCreateInfo queueCreateInfo{
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .pNext = nullptr,// this is just for protected bit, and i think it requires vkdevicequeuecreateinfo2 or something
+            .pNext =
+                nullptr, // this is just for protected bit, and i think it requires vkdevicequeuecreateinfo2 or something
             .queueCount = 1
         };
 
@@ -86,16 +87,21 @@ namespace EWE{
         EWE_VK(vkCreateDevice, physicalDevice.device, &deviceCreateInfo, nullptr, &device);
 
         volkLoadDevice(device);
-        
+
         queues.Resize(queueCreateInfos.size());
         for (std::size_t i = 0; i < queueCreateInfos.size(); i++) {
             //VkDevice logicalDeviceExplicit, QueueFamily& family, float priority
-            queues.ConstructAt(i, *this, physicalDevice.queueFamilies[queueCreateInfos[i].queueFamilyIndex], queuePriorities[queueCreateInfos[i].queueFamilyIndex]);
+            queues.ConstructAt(
+                i,
+                *this,
+                physicalDevice.queueFamilies[queueCreateInfos[i].queueFamilyIndex],
+                queuePriorities[queueCreateInfos[i].queueFamilyIndex]
+            );
         }
 
         return device;
     }
-    
+
     LogicalDevice::LogicalDevice(
         PhysicalDevice&& physDevice,
         VkDeviceCreateInfo& deviceCreateInfo,
@@ -104,37 +110,46 @@ namespace EWE{
         Backend::FeaturePack const& featurePack,
         Backend::PropertyPack const& propertyPack
     ) noexcept
-    : instance{physDevice.instance},
-        physicalDevice{std::forward<PhysicalDevice>(physDevice)},
-        api_version{_api_version},
-        queues{deviceCreateInfo.queueCreateInfoCount},
-        device{CreateDevice(deviceCreateInfo)},
-        
-        bindlessDescriptor{*this},
-        
-        features{featurePack.features},
-        features11{featurePack.features11},
-        features12{featurePack.features12},
-        features13{featurePack.features13},
-        features14{featurePack.features14},
-        
-        properties{ propertyPack.properties},
-        properties11{ propertyPack.properties11},
-        properties12{ propertyPack.properties12},
-        properties13{ propertyPack.properties13},
-        properties14{ propertyPack.properties14},
+        : instance{physDevice.instance},
+          physicalDevice{std::forward<PhysicalDevice>(physDevice)},
+          api_version{_api_version},
+          queues{deviceCreateInfo.queueCreateInfoCount},
+          device{CreateDevice(deviceCreateInfo)},
 
-        garbageDisposal{*this}
-    {
+          bindlessDescriptor{*this},
+
+          features{featurePack.features},
+          features11{featurePack.features11},
+          features12{featurePack.features12},
+          features13{featurePack.features13},
+          features14{featurePack.features14},
+
+          properties{propertyPack.properties},
+          properties11{propertyPack.properties11},
+          properties12{propertyPack.properties12},
+          properties13{propertyPack.properties13},
+          properties14{propertyPack.properties14},
+
+          garbageDisposal{*this} {
 #if EWE_DEBUG_NAMING
         physicalDevice.name = properties.properties.deviceName;
-        BeginLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT"));
-        EndLabel = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT"));
-        debugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT"));
+        BeginLabel = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(
+            vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT")
+        );
+        EndLabel =
+            reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT"));
+        debugUtilsObjectName = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
+            vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT")
+        );
 #endif
-        cmdDrawMeshTasks = reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksEXT"));
-        cmdDrawMeshTasksIndirect = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectEXT"));
-        cmdDrawMeshTasksIndirectCount = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectCountEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectCountEXT"));
+        cmdDrawMeshTasks =
+            reinterpret_cast<PFN_vkCmdDrawMeshTasksEXT>(vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksEXT"));
+        cmdDrawMeshTasksIndirect = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectEXT>(
+            vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectEXT")
+        );
+        cmdDrawMeshTasksIndirectCount = reinterpret_cast<PFN_vkCmdDrawMeshTasksIndirectCountEXT>(
+            vkGetDeviceProcAddr(device, "vkCmdDrawMeshTasksIndirectCountEXT")
+        );
 
         VmaVulkanFunctions vma_vulkan_func;
 
@@ -150,7 +165,7 @@ namespace EWE{
         Log::Normal("vma vk version : %zu\n", VMA_VULKAN_VERSION);
 
         //do I need to explicitly do this? doesnt really mattter
-        allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func; 
+        allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func;
         EWE_VK_RESULT(vmaImportVulkanFunctionsFromVolk(&allocatorCreateInfo, &vma_vulkan_func));
         allocatorCreateInfo.pVulkanFunctions = &vma_vulkan_func;
         EWE_VK_RESULT(vmaCreateAllocator(&allocatorCreateInfo, &vmaAllocator));
@@ -175,7 +190,6 @@ namespace EWE{
     //a separate function will allow for customizaiton of queues
 
 
-
 #if EWE_USING_EXCEPTIONS
     void LogicalDevice::HandleVulkanException(EWEException& renderExcept) {
 
@@ -185,7 +199,8 @@ namespace EWE{
         if (renderExcept.result == VK_ERROR_DEVICE_LOST) {
             Log::Warning("device was lost : IMMINENT CRASH\n");
             PFN_vkGetDeviceFaultInfoEXT GetDeviceFaultInfo = nullptr;
-            GetDeviceFaultInfo = reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(device, "vkGetDeviceFaultInfoEXT"));
+            GetDeviceFaultInfo =
+                reinterpret_cast<PFN_vkGetDeviceFaultInfoEXT>(vkGetDeviceProcAddr(device, "vkGetDeviceFaultInfoEXT"));
             if (GetDeviceFaultInfo == nullptr) {
                 throw std::runtime_error("unhandled device lost");
                 return;
@@ -208,12 +223,14 @@ namespace EWE{
             };
 
             if (faultCounts.addressInfoCount > 0) {
-                faultInfo.pAddressInfos = reinterpret_cast<VkDeviceFaultAddressInfoEXT*>
-                    (malloc(sizeof(VkDeviceFaultAddressInfoEXT) * faultCounts.addressInfoCount));
+                faultInfo.pAddressInfos = reinterpret_cast<VkDeviceFaultAddressInfoEXT*>(
+                    malloc(sizeof(VkDeviceFaultAddressInfoEXT) * faultCounts.addressInfoCount)
+                );
             }
             if (faultCounts.vendorInfoCount > 0) {
-                faultInfo.pVendorInfos = reinterpret_cast<VkDeviceFaultVendorInfoEXT*>
-                    (malloc(sizeof(VkDeviceFaultVendorInfoEXT) * faultCounts.vendorInfoCount));
+                faultInfo.pVendorInfos = reinterpret_cast<VkDeviceFaultVendorInfoEXT*>(
+                    malloc(sizeof(VkDeviceFaultVendorInfoEXT) * faultCounts.vendorInfoCount)
+                );
             }
             if (faultCounts.vendorBinarySize > 0) {
                 faultInfo.pVendorBinaryData = malloc(faultCounts.vendorBinarySize);
@@ -233,16 +250,38 @@ namespace EWE{
                 auto& addrInfo = faultInfo.pAddressInfos[i];
                 std::string addrType;
                 switch (addrInfo.addressType) {
-                    case VK_DEVICE_FAULT_ADDRESS_TYPE_NONE_EXT: addrType = "none"; break;
-                    case VK_DEVICE_FAULT_ADDRESS_TYPE_READ_INVALID_EXT: addrType = "invalid read"; break;
-                    case VK_DEVICE_FAULT_ADDRESS_TYPE_WRITE_INVALID_EXT: addrType = "invalid write"; break;
-                    case VK_DEVICE_FAULT_ADDRESS_TYPE_EXECUTE_INVALID_EXT: addrType = "invalid execute"; break;
-                    case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_UNKNOWN_EXT: addrType = "unknown instruction"; break;
-                    case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_INVALID_EXT: addrType = "invalid pointer"; break;
-                    case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT: addrType = "pointer fault"; break;
-                    default: addrType = "unknown address type?"; break;
+                    case VK_DEVICE_FAULT_ADDRESS_TYPE_NONE_EXT:
+                        addrType = "none";
+                        break;
+                    case VK_DEVICE_FAULT_ADDRESS_TYPE_READ_INVALID_EXT:
+                        addrType = "invalid read";
+                        break;
+                    case VK_DEVICE_FAULT_ADDRESS_TYPE_WRITE_INVALID_EXT:
+                        addrType = "invalid write";
+                        break;
+                    case VK_DEVICE_FAULT_ADDRESS_TYPE_EXECUTE_INVALID_EXT:
+                        addrType = "invalid execute";
+                        break;
+                    case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_UNKNOWN_EXT:
+                        addrType = "unknown instruction";
+                        break;
+                    case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_INVALID_EXT:
+                        addrType = "invalid pointer";
+                        break;
+                    case VK_DEVICE_FAULT_ADDRESS_TYPE_INSTRUCTION_POINTER_FAULT_EXT:
+                        addrType = "pointer fault";
+                        break;
+                    default:
+                        addrType = "unknown address type?";
+                        break;
                 }
-                Log::Warning("\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n", i, addrType.c_str(), addrInfo.reportedAddress, addrInfo.addressPrecision);
+                Log::Warning(
+                    "\taddress info[%u] - [%s]\n\t\t[%zu] - [%zu]\n",
+                    i,
+                    addrType.c_str(),
+                    addrInfo.reportedAddress,
+                    addrInfo.addressPrecision
+                );
             }
 
             Log::Warning("\nvendor description - %u\n", faultCounts.vendorInfoCount);
@@ -254,7 +293,11 @@ namespace EWE{
                 Log::Warning("\t\tcode[%zu] - data[%zu]\n", vendorInfo.vendorFaultCode, vendorInfo.vendorFaultData);
             }
 
-            Log::Warning("vendor binary data address and size - [%zu][%zu]\n", reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData), faultCounts.vendorBinarySize);
+            Log::Warning(
+                "vendor binary data address and size - [%zu][%zu]\n",
+                reinterpret_cast<std::size_t>(faultInfo.pVendorBinaryData),
+                faultCounts.vendorBinarySize
+            );
             //once finished with it, probably move this
             free(faultInfo.pAddressInfos);
             free(faultInfo.pVendorInfos);
@@ -267,28 +310,28 @@ namespace EWE{
 
 #if EWE_DEBUG_BOOL
 
-    Buffer const* LogicalDevice::RevertVkBuffer(VkBuffer buffer) const{
-        for(auto const& res : buffers.resources){
+    Buffer const* LogicalDevice::RevertVkBuffer(VkBuffer buffer) const {
+        for (auto const& res : buffers.resources) {
             Buffer const& buf = res.CastToRef<Buffer>();
-            if(buf.buffer_info.buffer == buffer){
+            if (buf.buffer_info.buffer == buffer) {
                 return &buf;
             }
         }
         return nullptr;
     }
 
-    Buffer const* LogicalDevice::RevertDA(DeviceAddress dev_addr) const{
-        for(auto const& res : buffers.resources){
+    Buffer const* LogicalDevice::RevertDA(DeviceAddress dev_addr) const {
+        for (auto const& res : buffers.resources) {
             Buffer const& buf = res.CastToRef<Buffer>();
-            if(buf.deviceAddress == dev_addr){
+            if (buf.deviceAddress == dev_addr) {
                 return &buf;
             }
         }
         return nullptr;
     }
-    DescriptorImageInfo const* LogicalDevice::RevertTI(TextureIndex index) const{
-        for(auto const& kvp : bindlessDescriptor.tracker){
-            if(kvp.value == index){
+    DescriptorImageInfo const* LogicalDevice::RevertTI(TextureIndex index) const {
+        for (auto const& kvp : bindlessDescriptor.tracker) {
+            if (kvp.value == index) {
                 return kvp.key;
             }
         }

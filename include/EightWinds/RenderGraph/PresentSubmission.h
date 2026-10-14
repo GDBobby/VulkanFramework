@@ -4,7 +4,7 @@
 #include "EightWinds/RenderGraph/SubmissionTask.h"
 #include "EightWinds/Swapchain.h"
 
-namespace EWE{
+namespace EWE {
     struct PresentSubmission {
         Swapchain& swapchain;
         Queue& presentQueue;
@@ -20,4 +20,4 @@ namespace EWE{
 
         void Present(uint8_t frameIndex);
     };
-}//namespace EWE
+} //namespace EWE

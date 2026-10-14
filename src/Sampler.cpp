@@ -1,10 +1,9 @@
 #include "EightWinds/Sampler.h"
 
-namespace EWE{
+namespace EWE {
     Sampler::Sampler(LogicalDevice& _logicalDevice, VkSamplerCreateInfo const& samplerInfo)
         : logicalDevice{_logicalDevice},
-        info{samplerInfo}
-    {
+          info{samplerInfo} {
         EWE_VK(vkCreateSampler, logicalDevice, &info, nullptr, &sampler);
     }
 
@@ -12,19 +11,26 @@ namespace EWE{
         logicalDevice.garbageDisposal.TossVK(sampler);
     }
 
-    Sampler::CondensedType Sampler::Condense(VkSamplerCreateInfo const& info){
+    Sampler::CondensedType Sampler::Condense(VkSamplerCreateInfo const& info) {
         //we can ignore flags
         uint64_t ret = 0;
-    
+
         std::size_t current_bit_placement = 0;
 
-        auto AddFilter = [](uint64_t& _ret, std::size_t& _current_bit_placement, VkFilter filter){
+        auto AddFilter = [](uint64_t& _ret, std::size_t& _current_bit_placement, VkFilter filter) {
             uint64_t temp = 0;
-            switch(filter){
-                case VK_FILTER_NEAREST: temp = 0b01; break;
-                case VK_FILTER_LINEAR: temp = 0b10; break;
-                case VK_FILTER_CUBIC_EXT: temp = 0b11; break;
-                default: EWE_UNREACHABLE;
+            switch (filter) {
+                case VK_FILTER_NEAREST:
+                    temp = 0b01;
+                    break;
+                case VK_FILTER_LINEAR:
+                    temp = 0b10;
+                    break;
+                case VK_FILTER_CUBIC_EXT:
+                    temp = 0b11;
+                    break;
+                default:
+                    EWE_UNREACHABLE;
             }
             _ret |= temp << _current_bit_placement;
             _current_bit_placement += 2;
@@ -36,14 +42,20 @@ namespace EWE{
         ret |= info.mipmapMode << current_bit_placement;
         current_bit_placement++;
 
-        auto address_mode_condenser = [](VkSamplerAddressMode const& am){
-            switch(am){
-                case VK_SAMPLER_ADDRESS_MODE_REPEAT: return 0b000;
-                case VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: return 0b001;
-                case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: return 0b010;
-                case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: return 0b011;
-                case VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: return 0b100;
-                default: EWE_UNREACHABLE;
+        auto address_mode_condenser = [](VkSamplerAddressMode const& am) {
+            switch (am) {
+                case VK_SAMPLER_ADDRESS_MODE_REPEAT:
+                    return 0b000;
+                case VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT:
+                    return 0b001;
+                case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE:
+                    return 0b010;
+                case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER:
+                    return 0b011;
+                case VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE:
+                    return 0b100;
+                default:
+                    EWE_UNREACHABLE;
             }
         };
 
@@ -64,9 +76,9 @@ namespace EWE{
         ret |= info.compareOp << current_bit_placement;
         current_bit_placement += 3;
 
-        if(info.borderColor <= 5){
+        if (info.borderColor <= 5) {
             //the custom colors will bug this, so it's been defaulted to TRANSPARENT_BLACK
-            ret |= info.borderColor << current_bit_placement; 
+            ret |= info.borderColor << current_bit_placement;
             current_bit_placement += 3;
         }
 
@@ -77,10 +89,10 @@ namespace EWE{
         uint8_t minLod = static_cast<uint8_t>(info.minLod);
         uint8_t maxLod = static_cast<uint8_t>(info.maxLod);
         float normalized_lodBias = (info.mipLodBias - info.minLod) / (info.maxLod - info.minLod);
-        if(normalized_lodBias < 0.f){
+        if (normalized_lodBias < 0.f) {
             normalized_lodBias = 0.f;
         }
-        else if (normalized_lodBias > 1.f){
+        else if (normalized_lodBias > 1.f) {
             normalized_lodBias = 1.f;
         }
         uint8_t mipLodBias = static_cast<uint8_t>(normalized_lodBias * 255.0f);
@@ -88,7 +100,7 @@ namespace EWE{
         uint8_t maxAni = static_cast<uint8_t>(info.maxAnisotropy);
 
         //if i keep it uint8 and shift it, i'll get math errors. so i need to re-cast it
-        auto float_emplacer = [](uint64_t& _ret, uint8_t condensed_float, std::size_t& _current_bit_placement){
+        auto float_emplacer = [](uint64_t& _ret, uint8_t condensed_float, std::size_t& _current_bit_placement) {
             uint64_t float_buffer = condensed_float;
             _ret |= float_buffer << _current_bit_placement;
             _current_bit_placement += 8;
@@ -100,27 +112,37 @@ namespace EWE{
 
         return ret;
     }
-    VkSamplerCreateInfo Sampler::Expand(CondensedType condensed){
+    VkSamplerCreateInfo Sampler::Expand(CondensedType condensed) {
 
-        auto ExpandFilter = [](CondensedType buffer, uint8_t bit_shift) -> VkFilter{
+        auto ExpandFilter = [](CondensedType buffer, uint8_t bit_shift) -> VkFilter {
             const auto temp = (buffer >> bit_shift) & 0b11;
-            switch(temp){
-                case 0b01: return VK_FILTER_NEAREST;
-                case 0b10: return VK_FILTER_LINEAR;
-                case 0b11: return VK_FILTER_CUBIC_EXT;
-                default: EWE_UNREACHABLE;
+            switch (temp) {
+                case 0b01:
+                    return VK_FILTER_NEAREST;
+                case 0b10:
+                    return VK_FILTER_LINEAR;
+                case 0b11:
+                    return VK_FILTER_CUBIC_EXT;
+                default:
+                    EWE_UNREACHABLE;
             }
         };
 
-        auto address_mode_expander = [](CondensedType buffer, uint8_t bit_shift) -> VkSamplerAddressMode{
+        auto address_mode_expander = [](CondensedType buffer, uint8_t bit_shift) -> VkSamplerAddressMode {
             const auto temp = (buffer >> bit_shift) & 0b111;
-            switch(temp){
-                case 0b000: return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-                case 0b001: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-                case 0b010: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-                case 0b011: return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-                case 0b100: return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
-                default: EWE_UNREACHABLE;
+            switch (temp) {
+                case 0b000:
+                    return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+                case 0b001:
+                    return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+                case 0b010:
+                    return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+                case 0b011:
+                    return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+                case 0b100:
+                    return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
+                default:
+                    EWE_UNREACHABLE;
             }
         };
 

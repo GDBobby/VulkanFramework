@@ -16,13 +16,12 @@ namespace EWE {
         return supportsSurface;
     }
 
-    QueueFamily::QueueFamily(uint32_t _index, VkQueueFamilyProperties const& _properties, bool _supportsSurface) 
-      : index{_index}, 
-        properties{_properties},
-        supportsSurface{_supportsSurface}
-    {}
-    
-/*
+    QueueFamily::QueueFamily(uint32_t _index, VkQueueFamilyProperties const& _properties, bool _supportsSurface)
+        : index{_index},
+          properties{_properties},
+          supportsSurface{_supportsSurface} {}
+
+    /*
     std::vector<Queue> QueueRequest::RequestQueues(std::vector<QueueFamily> const& families, std::span<QueueRequest> requests) {
         /*
         std::vector<uint8_t> requestFlagCount(requests.size());

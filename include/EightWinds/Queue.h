@@ -6,7 +6,7 @@
 
 #include <mutex>
 
-namespace EWE{
+namespace EWE {
     struct LogicalDevice;
     struct CommandPool;
 
@@ -39,14 +39,12 @@ namespace EWE{
         void Submit2(VkSubmitInfo2 const& submitInfo, VkFence fence = VK_NULL_HANDLE);
         void Submit2(uint32_t submitCount, VkSubmitInfo2* submitInfos, VkFence fence = VK_NULL_HANDLE);
         void Present(VkPresentInfoKHR const& presentInfo);
-        
-        uint32_t FamilyIndex() const{
-            return family.index;
-        }
+
+        uint32_t FamilyIndex() const { return family.index; }
 
         //TODO
-		//void BeginLabel(const char* name, float red, float green, float blue);
-		//void EndLabel();
+        //void BeginLabel(const char* name, float red, float green, float blue);
+        //void EndLabel();
 
         operator VkQueue() const { return queue; }
 

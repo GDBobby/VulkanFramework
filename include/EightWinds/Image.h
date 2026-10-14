@@ -9,39 +9,37 @@
 #if EWE_DEBUG_NAMING
 #include <stacktrace>
 #endif
-namespace EWE{
+namespace EWE {
     //the framework isnt going to provide a method to load images
     //it can be done externally via stb or the like
 
     struct StagingBuffer;
 
-    struct Image{
+    struct Image {
         using Barrier = VkImageMemoryBarrier2;
-        
+
         LogicalDevice& logicalDevice;
         VkImage image;
         std::filesystem::path name; //directory, this is the hash key for an unordered_set
 
         [[nodiscard]] explicit Image(LogicalDevice& logicalDevice) noexcept;
-        
+
         bool readyForUsage = false;
-        
+
         Image(Image const& copySrc) = delete;
         Image& operator=(Image const& copySrc) = delete;
         Image(Image&& moveSrc) = delete;
         Image& operator=(Image&& moveSrc) = delete;
 
         ~Image();
-        
-        operator VkImage() const {
-            return image;
-        }
+
+        operator VkImage() const { return image; }
 #if EWE_DEBUG_NAMING
         std::stacktrace creation_trace{std::stacktrace::current(1)};
 #endif
         void SetName(std::string_view name);
 
-        struct Data{
+        struct Data {
             VkExtent3D extent;
 
             uint32_t arrayLayers;
@@ -51,7 +49,9 @@ namespace EWE{
 
             VkImageLayout layout;
 
-            VkImageCreateFlags createFlags;//this will specify if it's a cube or not. bunch of other flags, like 2d array. not sure what's necessary
+            //this will specify if it's a cube or not. bunch of other flags, like 2d array. not sure what's necessary
+            VkImageCreateFlags createFlags;
+
             VkImageUsageFlags usage;
             VkImageType type;
             VkSampleCountFlagBits samples;
@@ -68,7 +68,7 @@ namespace EWE{
 
         bool Create(VmaAllocationCreateInfo const& allocCreateInfo);
     };
-    
+
     /*
         i could create an abstraction for imagecreateinfo
         everything covered by Image can be left out

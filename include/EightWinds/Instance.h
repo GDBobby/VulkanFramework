@@ -6,12 +6,16 @@
 #include <string>
 #include <unordered_map>
 
-namespace EWE{
+namespace EWE {
 
     //https://registry.khronos.org/vulkan/specs/latest/html/vkspec.html#vkCreateInstance
     //https://registry.khronos.org/vulkan/specs/latest/man/html/VkInstanceCreateInfo.html
-    struct Instance{
-        [[nodiscard]] Instance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions);
+    struct Instance {
+        [[nodiscard]] Instance(
+            const uint32_t api_version,
+            std::vector<const char*> const& requiredExtensions,
+            std::unordered_map<std::string, bool>& optionalExtensions
+        );
 
         ~Instance();
 
@@ -27,10 +31,8 @@ namespace EWE{
         DebugMessenger debugMessenger;
 #endif
 
-        operator VkInstance() const {return instance;}
+        operator VkInstance() const { return instance; }
 
-        bool operator==(Instance const& other) const {
-            return instance == other.instance;
-        }
+        bool operator==(Instance const& other) const { return instance == other.instance; }
     };
 }

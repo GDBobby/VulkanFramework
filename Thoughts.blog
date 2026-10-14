@@ -144,3 +144,6 @@ i changed the parampool into its own class. that enabled it to be more hive like
 i think i need to set it up so shaders have their own meta files. using the meta files, I can setup controls so that each 
     buffer and texture used by the shader can signal whether or not they require a barrier. that would alleviate the need
     to hand code the barriers.
+
+## 9/17/2026
+im putting off the graphs until I get more experience using the system. They're evolving a little bit over time

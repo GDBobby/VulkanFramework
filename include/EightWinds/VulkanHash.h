@@ -5,17 +5,20 @@
 
 #include "EightWinds/VulkanHeader.h"
 
-namespace EWE{
-	static constexpr std::size_t vulkan_hash_val = 0x9E3779B97F4A7C15;
+namespace EWE {
+    static constexpr std::size_t vulkan_hash_val = 0x9E3779B97F4A7C15;
 
-	inline void HashCombine(std::size_t& seed, std::size_t value) noexcept {
-		seed ^= value + vulkan_hash_val + (seed << 6) + (seed >> 2);
-	}
-	
-	struct HashCombiner {
-		std::size_t seed{ 0 };
-		constexpr HashCombiner& Combine(std::size_t value) { seed ^= value + vulkan_hash_val + (seed << 6) + (seed >> 2); return *this; }
-	};
+    inline void HashCombine(std::size_t& seed, std::size_t value) noexcept {
+        seed ^= value + vulkan_hash_val + (seed << 6) + (seed >> 2);
+    }
+
+    struct HashCombiner {
+        std::size_t seed{0};
+        constexpr HashCombiner& Combine(std::size_t value) {
+            seed ^= value + vulkan_hash_val + (seed << 6) + (seed >> 2);
+            return *this;
+        }
+    };
 }
 
 //template<>
@@ -27,35 +30,35 @@ namespace EWE{
 
 template<>
 struct std::hash<VkBlendFactor> {
-	std::size_t operator()(VkBlendFactor f) const noexcept {
-		const uint8_t val = static_cast<uint8_t>(f);
-		EWE_ASSERT(val != VK_BLEND_FACTOR_MAX_ENUM);
-		return std::hash<uint8_t>{}(static_cast<uint8_t>(val));
-	}
+    std::size_t operator()(VkBlendFactor f) const noexcept {
+        const uint8_t val = static_cast<uint8_t>(f);
+        EWE_ASSERT(val != VK_BLEND_FACTOR_MAX_ENUM);
+        return std::hash<uint8_t>{}(static_cast<uint8_t>(val));
+    }
 };
 
 template<>
 struct std::hash<VkBlendOp> {
-	std::size_t operator()(VkBlendOp op) const noexcept {
-		const uint8_t val = static_cast<uint8_t>(op);
-		EWE_ASSERT(val != VK_BLEND_OP_MAX_ENUM);
-		return std::hash<uint8_t>{}(static_cast<uint8_t>(val));
-	}
+    std::size_t operator()(VkBlendOp op) const noexcept {
+        const uint8_t val = static_cast<uint8_t>(op);
+        EWE_ASSERT(val != VK_BLEND_OP_MAX_ENUM);
+        return std::hash<uint8_t>{}(static_cast<uint8_t>(val));
+    }
 };
 
 template<>
 struct std::hash<VkPipelineColorBlendAttachmentState> {
-	std::size_t operator()(const VkPipelineColorBlendAttachmentState& s) const noexcept {
+    std::size_t operator()(const VkPipelineColorBlendAttachmentState& s) const noexcept {
 
-		EWE::HashCombiner hashCombiner{};
-		hashCombiner.Combine(std::hash<VkBool32>{}(s.blendEnable))
-			.Combine(std::hash<VkBlendFactor>{}(s.srcColorBlendFactor))
-			.Combine(std::hash<VkBlendFactor>{}(s.dstColorBlendFactor))
-			.Combine(std::hash<VkBlendOp>{}(s.colorBlendOp))
-			.Combine(std::hash<VkBlendFactor>{}(s.srcAlphaBlendFactor))
-			.Combine(std::hash<VkBlendFactor>{}(s.dstAlphaBlendFactor))
-			.Combine(std::hash<VkBlendOp>{}(s.alphaBlendOp))
-			.Combine(std::hash<VkColorComponentFlags>{}(s.colorWriteMask));
-		return hashCombiner.seed;
-	}
+        EWE::HashCombiner hashCombiner{};
+        hashCombiner.Combine(std::hash<VkBool32>{}(s.blendEnable))
+            .Combine(std::hash<VkBlendFactor>{}(s.srcColorBlendFactor))
+            .Combine(std::hash<VkBlendFactor>{}(s.dstColorBlendFactor))
+            .Combine(std::hash<VkBlendOp>{}(s.colorBlendOp))
+            .Combine(std::hash<VkBlendFactor>{}(s.srcAlphaBlendFactor))
+            .Combine(std::hash<VkBlendFactor>{}(s.dstAlphaBlendFactor))
+            .Combine(std::hash<VkBlendOp>{}(s.alphaBlendOp))
+            .Combine(std::hash<VkColorComponentFlags>{}(s.colorWriteMask));
+        return hashCombiner.seed;
+    }
 };

@@ -11,9 +11,9 @@
 #include "EightWinds/Backend/SubmitInfo.h"
 #include "GPUTask.h"
 
-namespace EWE{
+namespace EWE {
 
-    struct SubmissionTask{
+    struct SubmissionTask {
         LogicalDevice& logicalDevice;
         Queue* queue; //not optional
         CommandPool cmdPool;
@@ -24,22 +24,26 @@ namespace EWE{
 
         //specialized tasks are like the imgui task, which doesnt use GPUTask
         //more specifically, they aren't generated in graphs, but 'hand' coded
-        bool specializedSubmission = false; 
+        bool specializedSubmission = false;
 
         std::vector<std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)>> packaged_tasks;
         std::vector<GPUTask*> tasks; //rendergraph needs to iterate thru this, also used for writing to file
 
         //makes it so this task waits on the acquire semaphore
         bool uses_present_image = false;
-        
-        [[nodiscard]] explicit SubmissionTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue);
+
+        [[nodiscard]] explicit SubmissionTask(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice,
+            Queue& queue
+        );
 
         void CollectTaskWorkloads();
         bool Execute(uint8_t frameIndex);
     };
 
     //this is a helper struct that will build the semaphore wait data for each submission task
-    struct SubmissionBridge{ 
+    struct SubmissionBridge {
         //this wont care about access, only queue and layout
         std::span<SubmissionTask*> lhs;
         SubmissionTask* rhs;

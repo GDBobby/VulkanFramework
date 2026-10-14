@@ -4,7 +4,7 @@
 
 #include "EightWinds/CommandPool.h"
 
-namespace EWE{
+namespace EWE {
 
     //this is gonna be a handle to an in-use command buffer.
     //it'll be returned by CommandPool
@@ -38,11 +38,17 @@ namespace EWE{
         struct Tracking {
             std::string funcName;
             std::stacktrace stackTrace;
-            Tracking(std::string const& funcName) : funcName{ funcName } { Log::Error("need to set up stack trace here\n"); }
+            Tracking(std::string const& funcName) : funcName{funcName} {
+                Log::Error("need to set up stack trace here\n");
+            }
         };
         std::queue<std::vector<Tracking>> usageTracking;
 
-        CommandBuffer(CommandPool& commandPool) : commandPool{ commandPool }, cmdBuf { VK_NULL_HANDLE }, inUse{ false }, usageTracking{} {}
+        CommandBuffer(CommandPool& commandPool)
+            : commandPool{commandPool},
+              cmdBuf{VK_NULL_HANDLE},
+              inUse{false},
+              usageTracking{} {}
 #else
         [[nodiscard]] explicit CommandBuffer(CommandPool& commandPool, VkCommandBuffer cmdBuf) noexcept;
         CommandBuffer(CommandBuffer const& copySrc) = delete;
@@ -54,7 +60,7 @@ namespace EWE{
         operator VkCommandBuffer*() { return &cmdBuf; }
 #endif
 
-        bool operator==(CommandBuffer const& other) const noexcept { return cmdBuf == other.cmdBuf;}
+        bool operator==(CommandBuffer const& other) const noexcept { return cmdBuf == other.cmdBuf; }
         //CommandBuffer& operator=(VkCommandBuffer cmdBuf) noexcept;
 
         void Reset();

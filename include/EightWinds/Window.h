@@ -11,31 +11,31 @@
 
 template<typename T>
 struct Dimensions {
-	T width;
-	T height;
-	operator VkRect2D() const {
-		VkRect2D ret;
-		ret.offset.x = 0;
-		ret.offset.y = 0;
-		ret.extent.width = width;
-		ret.extent.height = height;
-		return ret;
-	}
+    T width;
+    T height;
+    operator VkRect2D() const {
+        VkRect2D ret;
+        ret.offset.x = 0;
+        ret.offset.y = 0;
+        ret.extent.width = width;
+        ret.extent.height = height;
+        return ret;
+    }
 };
 
 namespace EWE {
-	struct Window {
-		[[nodiscard]] Window(Instance& instance, uint32_t width, uint32_t height, std::string_view name);
-		
-		Instance& instance;
-		Dimensions<uint32_t> screenDimensions;
-		GLFWwindow* window;
-		VkSurfaceKHR surface;
+    struct Window {
+        [[nodiscard]] Window(Instance& instance, uint32_t width, uint32_t height, std::string_view name);
 
-		bool resizeable = false;
+        Instance& instance;
+        Dimensions<uint32_t> screenDimensions;
+        GLFWwindow* window;
+        VkSurfaceKHR surface;
 
-		void SetResizeable(bool resizeable);
+        bool resizeable = false;
 
-		std::function<void(GLFWwindow* windowPtr, int width, int height)> ResizeCallback = nullptr;
-	};
+        void SetResizeable(bool resizeable);
+
+        std::function<void(GLFWwindow* windowPtr, int width, int height)> ResizeCallback = nullptr;
+    };
 }

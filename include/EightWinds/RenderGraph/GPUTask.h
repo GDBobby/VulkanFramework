@@ -12,11 +12,11 @@
 #include "EightWinds/Command/PackageRecord.h"
 #include "EightWinds/Command/ParamPointerChain.h"
 
-namespace EWE{
+namespace EWE {
     //the id of this task is its address
     //GPUTask is intended to be used in a single thread.
     //if its desired to multi-thread within a single task, sync needs to be external
-    struct GPUTask{
+    struct GPUTask {
         std::filesystem::path name;
         LogicalDevice& logicalDevice;
         //i think i define a command pool here, or at least a queue
@@ -26,15 +26,25 @@ namespace EWE{
         std::optional<Command::ParamPool> paramPool;
         Command::PackageRecord* pkgRecord; //just for viewing in reconstruction
 
-        struct Meta{
+        struct Meta {
             //i can deduce whether it's a buffer or texture without further information
             std::vector<ParamPointerChain> resource_pointers;
         };
         Meta meta;
         Meta compiled_meta; //put this into subtask or rendergraph maybe?
 
-        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Queue& queue, Command::ParamPool const& pp);
-        [[nodiscard]] explicit GPUTask(std::filesystem::path const& name, LogicalDevice& logicalDevice, Command::PackageRecord& record, bool compile);
+        [[nodiscard]] explicit GPUTask(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice,
+            Queue& queue,
+            Command::ParamPool const& pp
+        );
+        [[nodiscard]] explicit GPUTask(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice,
+            Command::PackageRecord& record,
+            bool compile
+        );
         ~GPUTask();
         GPUTask(GPUTask const&) = delete;
         GPUTask(GPUTask&&) = delete;
@@ -45,8 +55,9 @@ namespace EWE{
         bool Execute(CommandBuffer& cmdBuf, uint8_t frameIndex);
 
         std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> workload = nullptr;
-        std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload = nullptr; //will be packed between prefix and suffix into workload
-        
+        std::function<bool(CommandBuffer& cmdBuf, uint8_t frameIndex)> external_workload =
+            nullptr; //will be packed between prefix and suffix into workload
+
         TaskResourceUsage resources;
 
         TaskAffix prefix{};

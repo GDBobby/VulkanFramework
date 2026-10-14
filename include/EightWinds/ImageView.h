@@ -3,7 +3,7 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Image.h"
 
-namespace EWE{
+namespace EWE {
     struct ImageView {
         Image& image;
         VkImageView view;
@@ -13,15 +13,18 @@ namespace EWE{
         [[nodiscard]] explicit ImageView(Image& image);
         //for any customization
         [[nodiscard]] explicit ImageView(Image& image, VkImageViewCreateInfo const& createInfo);
-        [[nodiscard]] explicit ImageView(Image& image, bool readyForConstruction) noexcept; //the  value isn't read, the object won't be constructed
-        
+        [[nodiscard]] explicit ImageView(
+            Image& image,
+            bool readyForConstruction
+        ) noexcept; //the  value isn't read, the object won't be constructed
+
         ~ImageView();
 
         ImageView(ImageView const& copySrc) = delete;
         ImageView(ImageView&& moveSrc) = delete;
         ImageView& operator=(ImageView const& copySrc) = delete;
         ImageView& operator=(ImageView&& moveSrc) = delete;
-        
+
 
         std::filesystem::path name;
         void SetName(std::string_view name);
@@ -29,9 +32,7 @@ namespace EWE{
         void Create();
         void Create(VkImageViewCreateInfo const& createInfo);
 
-        operator VkImageView() const {
-            return view;
-        }
+        operator VkImageView() const { return view; }
 
         static VkImageSubresourceRange GetDefaultSubresource(Image& image) noexcept;
         static VkImageViewCreateInfo GetDefaultFullImageViewCreateInfo(Image& image) noexcept;

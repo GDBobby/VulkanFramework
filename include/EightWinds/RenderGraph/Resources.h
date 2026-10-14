@@ -6,13 +6,13 @@
 #include <concepts>
 
 
-namespace EWE{
+namespace EWE {
     struct Buffer;
     struct Image;
 
     template<typename RT>
     concept ResourceType = std::same_as<RT, Buffer> || std::same_as<RT, Image>;
-    
+
 
     template<ResourceType T>
     struct UsageData;
@@ -24,7 +24,7 @@ namespace EWE{
         VkAccessFlags2 accessMask;
     };
     template<>
-    struct UsageData<Image>{
+    struct UsageData<Image> {
         VkPipelineStageFlags2 stage;
         VkAccessFlags2 accessMask;
         VkImageLayout layout;
@@ -35,26 +35,18 @@ namespace EWE{
         PerFlight<T*> resource;
         UsageData<T> usage;
 
-        [[nodiscard]] explicit Resource(UsageData<T> const& _usage)
-            :resource{nullptr},
-            usage{_usage}
-        {}
+        [[nodiscard]] explicit Resource(UsageData<T> const& _usage) : resource{nullptr}, usage{_usage} {}
         [[nodiscard]] explicit Resource(T& _resource, UsageData<T> const& _usage)
-            : resource{ &_resource },
-            usage{ _usage }
-        {}
+            : resource{&_resource},
+              usage{_usage} {}
         [[nodiscard]] explicit Resource(PerFlight<T>& _resource, UsageData<T> const& _usage)
-        :resource{&_resource[0], &_resource[1]},
-            usage{ _usage }
-        {}
+            : resource{&_resource[0], &_resource[1]},
+              usage{_usage} {}
         [[nodiscard]] explicit Resource(PerFlight<T*>& _resource, UsageData<T> const& _usage)
-        :resource{_resource},
-            usage{ _usage }
-        {}
+            : resource{_resource},
+              usage{_usage} {}
 
-        bool UniquePerFlight() const{
-            return (resource[0] != resource[1]) && (resource[1] != nullptr);
-        }
+        bool UniquePerFlight() const { return (resource[0] != resource[1]) && (resource[1] != nullptr); }
     };
 
 
@@ -90,7 +82,7 @@ namespace EWE{
         }
     }
 
-    struct TaskResourceUsage{
+    struct TaskResourceUsage {
         std::vector<Resource<Image>> images{};
         std::vector<Resource<Buffer>> buffers{};
 
@@ -111,8 +103,8 @@ namespace EWE{
         }
 
         template<ResourceType Res>
-        uint32_t AddResource(Res& res, UsageData<Res> const& usage){
-            if constexpr (std::is_same_v<Res, Buffer>){
+        uint32_t AddResource(Res& res, UsageData<Res> const& usage) {
+            if constexpr (std::is_same_v<Res, Buffer>) {
                 buffers.emplace_back(res, usage);
                 return buffers.size() - 1;
             }
@@ -150,18 +142,17 @@ namespace EWE{
 
     //transition and acquisition are created from something else, not directly constructed by the programmer
     template<ResourceType Res>
-    struct ResourceTransition{
+    struct ResourceTransition {
         Resource<Res>* lhs;
         Resource<Res>* rhs;
 
-        ResourceTransition(TaskResourceUsage& _lhs, uint32_t lh_index, TaskResourceUsage& _rhs, uint32_t rh_index)
-        {
+        ResourceTransition(TaskResourceUsage& _lhs, uint32_t lh_index, TaskResourceUsage& _rhs, uint32_t rh_index) {
             if constexpr (std::is_same_v<Res, Buffer>) {
 #if EWE_DEBUG_BOOL
                 for (uint8_t i = 0; i < max_frames_in_flight; i++) {
                     EWE_ASSERT(_lhs.buffers[lh_index].resource[i] == _rhs.buffers[rh_index].resource[i]);
                 }
-#endif 
+#endif
                 this->lhs = &_lhs.buffers[lh_index];
                 this->rhs = &_rhs.buffers[rh_index];
             }
@@ -176,10 +167,7 @@ namespace EWE{
             }
         }
 
-        [[nodiscard]] ResourceTransition(ResourceTransition&& moveSrc) noexcept
-        : lhs{moveSrc.lhs},
-            rhs{moveSrc.rhs}
-        {}
+        [[nodiscard]] ResourceTransition(ResourceTransition&& moveSrc) noexcept : lhs{moveSrc.lhs}, rhs{moveSrc.rhs} {}
 
         ResourceTransition(ResourceTransition const& copySrc) = delete;
         ResourceTransition& operator=(ResourceTransition&& moveSrc) = delete;
@@ -188,7 +176,7 @@ namespace EWE{
 
     //first time in use of frame, queue transfers aren't allowed here
     template<ResourceType Res>
-    struct ResourceAcquisition{
+    struct ResourceAcquisition {
         Resource<Res>* rhs;
 
         ResourceAcquisition(TaskResourceUsage& _rhs, uint32_t rh_index) {

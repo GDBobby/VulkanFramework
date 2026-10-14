@@ -8,38 +8,39 @@
 
 #include <meta>
 
-namespace EWE{
-namespace Command{
+namespace EWE {
+    namespace Command {
 
-	struct InstructionPackage{
-		enum Type : uint8_t{
-			Base,
-			Object,
-			Raster,
-			Compute,
-		};
+        struct InstructionPackage {
+            enum Type : uint8_t {
+                Base,
+                Object,
+                Raster,
+                Compute,
+            };
 
-		[[nodiscard]] InstructionPackage();
-		[[nodiscard]] explicit InstructionPackage(std::filesystem::path const& name);
+            [[nodiscard]] InstructionPackage();
+            [[nodiscard]] explicit InstructionPackage(std::filesystem::path const& name);
 
-		static constexpr auto allowed_instructions = {
+            static constexpr auto allowed_instructions = {
 
-            Inst::BeginLabel,
-            Inst::EndLabel,
+                Inst::BeginLabel,
+                Inst::EndLabel,
 
-			Inst::If,
-			Inst::EndIf
-		};
+                Inst::If,
+                Inst::EndIf
+            };
 
-		const Type type;
-        std::filesystem::path name;
-		ParamPool paramPool;
-		
-		virtual std::span<const Inst::Type> GetAllowedInstructions() {return std::span{allowed_instructions.begin(), allowed_instructions.end()};}
-	
-	protected:
-		[[nodiscard]] InstructionPackage(Type type);	
-		[[nodiscard]] InstructionPackage(Type type, std::filesystem::path const& name);	
-	};
-} //namespace Command
+            const Type type;
+            std::filesystem::path name;
+            ParamPool paramPool;
+
+            virtual std::span<const Inst::Type> GetAllowedInstructions() {
+                return std::span{allowed_instructions.begin(), allowed_instructions.end()};
+            }
+        protected:
+            [[nodiscard]] InstructionPackage(Type type);
+            [[nodiscard]] InstructionPackage(Type type, std::filesystem::path const& name);
+        };
+    } //namespace Command
 } //namepsace EWE

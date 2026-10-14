@@ -3,41 +3,30 @@
 #include "EightWinds/ImageView.h"
 #include "EightWinds/Sampler.h"
 
-namespace EWE{
+namespace EWE {
 
 
     DescriptorImageInfo::DescriptorImageInfo(ImageView& _view, DescriptorType _type, VkImageLayout explicitLayout)
-        : sampler{ nullptr },
-        view{ _view },
-        imageInfo{
-            .sampler = VK_NULL_HANDLE,
-            .imageView = view,
-            .imageLayout = explicitLayout
-        },
-        type{ _type },
-        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(*this) }
-    {
-    }
-    DescriptorImageInfo::DescriptorImageInfo(Sampler& _sampler, ImageView& _view, DescriptorType _type, VkImageLayout explicitLayout)
-        : sampler{ &_sampler },
-        view{ _view },
-        imageInfo{
-            .sampler = *sampler,
-            .imageView = view,
-            .imageLayout = explicitLayout
-        },
-        type{ _type },
-        index{ view.image.logicalDevice.bindlessDescriptor.BindImage(*this) }
-    {
-    }
+        : sampler{nullptr},
+          view{_view},
+          imageInfo{.sampler = VK_NULL_HANDLE, .imageView = view, .imageLayout = explicitLayout},
+          type{_type},
+          index{view.image.logicalDevice.bindlessDescriptor.BindImage(*this)} {}
+    DescriptorImageInfo::DescriptorImageInfo(
+        Sampler& _sampler,
+        ImageView& _view,
+        DescriptorType _type,
+        VkImageLayout explicitLayout
+    )
+        : sampler{&_sampler},
+          view{_view},
+          imageInfo{.sampler = *sampler, .imageView = view, .imageLayout = explicitLayout},
+          type{_type},
+          index{view.image.logicalDevice.bindlessDescriptor.BindImage(*this)} {}
     DescriptorImageInfo::DescriptorImageInfo(ImageView& _view, DescriptorType _type)
-        : DescriptorImageInfo(_view, _type, _view.image.data.layout)
-    {
-    }
+        : DescriptorImageInfo(_view, _type, _view.image.data.layout) {}
     DescriptorImageInfo::DescriptorImageInfo(Sampler& _sampler, ImageView& _view, DescriptorType _type)
-        : DescriptorImageInfo(_sampler, _view, _type, _view.image.data.layout)
-    {
-    }
+        : DescriptorImageInfo(_sampler, _view, _type, _view.image.data.layout) {}
 
     /*
     DescriptorImageInfo::DescriptorImageInfo(DescriptorImageInfo&& moveSrc) noexcept

@@ -5,8 +5,8 @@
 #include "EightWinds/LogicalDevice.h"
 #include "EightWinds/Queue.h"
 
-namespace EWE{
-	
+namespace EWE {
+
     struct BarrierObject {
         std::vector<VkMemoryBarrier2> memoryBarriers;
         std::vector<VkImageMemoryBarrier2> imageBarriers;
@@ -14,7 +14,10 @@ namespace EWE{
         VkDependencyInfo dependencyInfo;
 
         [[nodiscard]] BarrierObject();
-        [[nodiscard]] explicit BarrierObject(std::vector<VkImageMemoryBarrier2>&& imageBarriers, std::vector<VkBufferMemoryBarrier2>&& bufferBarriers);
+        [[nodiscard]] explicit BarrierObject(
+            std::vector<VkImageMemoryBarrier2>&& imageBarriers,
+            std::vector<VkBufferMemoryBarrier2>&& bufferBarriers
+        );
 
         void FixPointers();
 

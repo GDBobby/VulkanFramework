@@ -5,12 +5,4 @@
 #include <type_traits>
 #include <memory>
 
-namespace EWE{
-
-
-
-
-
-
-
-}
+namespace EWE {}

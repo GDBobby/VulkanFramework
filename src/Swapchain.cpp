@@ -4,7 +4,7 @@
 #include <limits>
 
 
-namespace EWE{
+namespace EWE {
 
     VkFenceCreateInfo GetFenceCreateInfo() {
         return VkFenceCreateInfo{
@@ -16,24 +16,23 @@ namespace EWE{
 
     Swapchain::Swapchain(LogicalDevice& _logicalDevice, Window& _window, Queue& _presentQueue) noexcept
         : logicalDevice{_logicalDevice},
-        window{_window},
-        presentQueue{_presentQueue},
-        swapCreateInfo{
-            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR, 
-            .pNext = nullptr,
-            .flags = 0,
-            .surface = window.surface,
-            .imageArrayLayers = 1,
-            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-            .queueFamilyIndexCount = 1,
-            .pQueueFamilyIndices = &presentQueue.family.index
-        },
-        activeSwapchain{VK_NULL_HANDLE},
-        images{0},
-        imageViews{0},
-        acquire_semaphores{logicalDevice},
-        inFlightFences{logicalDevice, GetFenceCreateInfo()}
-    {
+          window{_window},
+          presentQueue{_presentQueue},
+          swapCreateInfo{
+              .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+              .pNext = nullptr,
+              .flags = 0,
+              .surface = window.surface,
+              .imageArrayLayers = 1,
+              .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+              .queueFamilyIndexCount = 1,
+              .pQueueFamilyIndices = &presentQueue.family.index
+          },
+          activeSwapchain{VK_NULL_HANDLE},
+          images{0},
+          imageViews{0},
+          acquire_semaphores{logicalDevice},
+          inFlightFences{logicalDevice, GetFenceCreateInfo()} {
         CreateSwapchain();
 #if EWE_DEBUG_NAMING
         for (uint8_t i = 0; i < max_frames_in_flight; i++) {
@@ -42,20 +41,40 @@ namespace EWE{
         }
 #endif
     }
-    Swapchain::~Swapchain(){
+    Swapchain::~Swapchain() {
         //idk yet
     }
 
-    bool Swapchain::CreateSwapchain(){
+    bool Swapchain::CreateSwapchain() {
         uint32_t presentCount = 0;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(logicalDevice.physicalDevice.device, window.surface, &presentCount, nullptr);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            logicalDevice.physicalDevice.device,
+            window.surface,
+            &presentCount,
+            nullptr
+        );
         available_presentModes.resize(presentCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(logicalDevice.physicalDevice.device, window.surface, &presentCount, available_presentModes.data());
+        vkGetPhysicalDeviceSurfacePresentModesKHR(
+            logicalDevice.physicalDevice.device,
+            window.surface,
+            &presentCount,
+            available_presentModes.data()
+        );
 
         uint32_t surfaceFormatCount = 0;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(logicalDevice.physicalDevice.device, window.surface, &surfaceFormatCount, nullptr);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            logicalDevice.physicalDevice.device,
+            window.surface,
+            &surfaceFormatCount,
+            nullptr
+        );
         available_surface_formats.resize(surfaceFormatCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(logicalDevice.physicalDevice.device, window.surface, &surfaceFormatCount, available_surface_formats.data());
+        vkGetPhysicalDeviceSurfaceFormatsKHR(
+            logicalDevice.physicalDevice.device,
+            window.surface,
+            &surfaceFormatCount,
+            available_surface_formats.data()
+        );
         surface_format = Swapchain::GetSurfaceFormat(available_surface_formats);
 
         swapCreateInfo.imageColorSpace = surface_format.colorSpace;
@@ -77,15 +96,12 @@ namespace EWE{
         return RecreateSwapchain();
     }
 
-    bool Swapchain::RecreateSwapchain(){
-        if(window.screenDimensions.width == 0 || window.screenDimensions.height == 0){
+    bool Swapchain::RecreateSwapchain() {
+        if (window.screenDimensions.width == 0 || window.screenDimensions.height == 0) {
             //minimized?
             return false;
         }
-        VkExtent2D framebufferExtent{
-            window.screenDimensions.width,
-            window.screenDimensions.height
-        };
+        VkExtent2D framebufferExtent{window.screenDimensions.width, window.screenDimensions.height};
 
         //look at vkGetPhysicalDeviceSurfaceCapabilities2KHR as well
         VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo2{
@@ -98,11 +114,16 @@ namespace EWE{
             .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
             .pNext = nullptr
         };
-        vkGetPhysicalDeviceSurfaceCapabilities2KHR(logicalDevice.physicalDevice.device, &surfaceInfo2, &surfaceCapabilities2);
+        vkGetPhysicalDeviceSurfaceCapabilities2KHR(
+            logicalDevice.physicalDevice.device,
+            &surfaceInfo2,
+            &surfaceCapabilities2
+        );
 
 
         swapCreateInfo.compositeAlpha = Swapchain::GetCompositeAlpha(surfaceCapabilities2.surfaceCapabilities);
-        swapCreateInfo.imageExtent = Swapchain::GetImageExtent(surfaceCapabilities2.surfaceCapabilities, framebufferExtent);
+        swapCreateInfo.imageExtent =
+            Swapchain::GetImageExtent(surfaceCapabilities2.surfaceCapabilities, framebufferExtent);
 
         swapCreateInfo.minImageCount = Swapchain::GetImageCount(surfaceCapabilities2.surfaceCapabilities);
         swapCreateInfo.oldSwapchain = activeSwapchain;
@@ -115,7 +136,14 @@ namespace EWE{
             fences.push_back(inFlightFences[i].vkFence);
         }
         //timeout is not an accepted result here
-        EWE_VK(vkWaitForFences, logicalDevice.device, static_cast<uint32_t>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX);
+        EWE_VK(
+            vkWaitForFences,
+            logicalDevice.device,
+            static_cast<uint32_t>(fences.size()),
+            fences.data(),
+            VK_TRUE,
+            UINT64_MAX
+        );
 
         EWE_VK(vkCreateSwapchainKHR, logicalDevice.device, &swapCreateInfo, nullptr, &activeSwapchain);
 
@@ -127,10 +155,10 @@ namespace EWE{
             //im going to skip the destructor for Image
             //images.DestroyAll();
             //instead of using the default destructor, I'm going to manually handle the destruction
-            for(auto& image : images){
+            for (auto& image : images) {
                 logicalDevice.images.Remove(&image);
             }
-            
+
             imageViews.DestroyAll();
         }
         images.Resize(swapImageCount);
@@ -163,7 +191,7 @@ namespace EWE{
 
         present_semaphores.clear(); //these aren't getting destructed
         present_semaphores.reserve(swapImageCount);
-        for (uint8_t i = 0; i < swapImageCount; i++){
+        for (uint8_t i = 0; i < swapImageCount; i++) {
             present_semaphores.push_back(BinarySemaphore{logicalDevice});
 #if EWE_DEBUG_NAMING
             const std::string debugName = std::string("swapchain present semaphore [") + std::to_string(i) + ']';
@@ -176,25 +204,26 @@ namespace EWE{
 
         return true;
     }
-    bool Swapchain::RecreateSwapchain(VkPresentModeKHR desiredPresentMode){
+    bool Swapchain::RecreateSwapchain(VkPresentModeKHR desiredPresentMode) {
         //maybe assert that this exists within available present modes?
         //otherwise whats the point in storing them
         swapCreateInfo.presentMode = desiredPresentMode;
-        return RecreateSwapchain(); 
+        return RecreateSwapchain();
     }
 
-    bool Swapchain::AcquireNextImage(uint8_t frameIndex){
+    bool Swapchain::AcquireNextImage(uint8_t frameIndex) {
 
         //fix this
         auto const& window_dimensions = window.screenDimensions;
-        if(window_dimensions.width == 0 || window_dimensions.height == 0){
+        if (window_dimensions.width == 0 || window_dimensions.height == 0) {
             //means minimized?
             return false;
         }
-        if((window_dimensions.width != swapCreateInfo.imageExtent.width) || (window_dimensions.height != swapCreateInfo.imageExtent.height) || wantsToRecreate){
+        if ((window_dimensions.width != swapCreateInfo.imageExtent.width) ||
+            (window_dimensions.height != swapCreateInfo.imageExtent.height) || wantsToRecreate) {
             //resized
-            if(!RecreateSwapchain()){
-            //if recreating failed, return false
+            if (!RecreateSwapchain()) {
+                //if recreating failed, return false
                 return false;
             }
             wantsToRecreate = false;
@@ -208,17 +237,31 @@ namespace EWE{
 
         uint32_t acquire_image_index;
 
-        VkResult acquireResult = vkAcquireNextImageKHR(logicalDevice.device, activeSwapchain, UINT64_MAX, acquire_semaphores[frameIndex].vkSemaphore, VK_NULL_HANDLE, &acquire_image_index);
-        
-        switch(acquireResult){
-            case VK_SUCCESS: break; //dont do anything
-            case VK_SUBOPTIMAL_KHR: break; //dont do anythign? need to look into this
-            case VK_ERROR_OUT_OF_DATE_KHR: Log::Debug("recreating swapchain\n"); RecreateSwapchain(); return false;
-            default: EWE_VK_RESULT(acquireResult);break;
+        VkResult acquireResult = vkAcquireNextImageKHR(
+            logicalDevice.device,
+            activeSwapchain,
+            UINT64_MAX,
+            acquire_semaphores[frameIndex].vkSemaphore,
+            VK_NULL_HANDLE,
+            &acquire_image_index
+        );
+
+        switch (acquireResult) {
+            case VK_SUCCESS:
+                break; //dont do anything
+            case VK_SUBOPTIMAL_KHR:
+                break; //dont do anythign? need to look into this
+            case VK_ERROR_OUT_OF_DATE_KHR:
+                Log::Debug("recreating swapchain\n");
+                RecreateSwapchain();
+                return false;
+            default:
+                EWE_VK_RESULT(acquireResult);
+                break;
         }
 
 #if EWE_DEBUG_BOOL
-        //Log::Debug("acquired image index : %u\n", image_index);
+            //Log::Debug("acquired image index : %u\n", image_index);
 #endif
 
         imageIndex = acquire_image_index; //object index equal to local index
@@ -226,36 +269,44 @@ namespace EWE{
     }
 
     VkPresentModeKHR Swapchain::GetOptimalPresentMode() const {
-            
+
         static constexpr auto desired_v = std::array{VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_FIFO_RELAXED_KHR};
         for (auto const desired : desired_v) {
-            if (std::ranges::find(available_presentModes, desired) != available_presentModes.end()) { return desired; }
+            if (std::ranges::find(available_presentModes, desired) != available_presentModes.end()) {
+                return desired;
+            }
         }
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
     VkExtent2D Swapchain::GetImageExtent(VkSurfaceCapabilitiesKHR const& caps, VkExtent2D framebuffer) noexcept {
         constexpr auto limitless_v = std::numeric_limits<std::uint32_t>::max();
-        if (caps.currentExtent.width < limitless_v && caps.currentExtent.height < limitless_v) { return caps.currentExtent; }
+        if (caps.currentExtent.width < limitless_v && caps.currentExtent.height < limitless_v) {
+            return caps.currentExtent;
+        }
         auto const x = std::clamp(framebuffer.width, caps.minImageExtent.width, caps.maxImageExtent.width);
         auto const y = std::clamp(framebuffer.height, caps.minImageExtent.height, caps.maxImageExtent.height);
         return VkExtent2D{.width = x, .height = y};
     }
-    
+
     uint32_t Swapchain::GetImageCount(VkSurfaceCapabilitiesKHR const& caps) noexcept {
-        if (caps.maxImageCount < caps.minImageCount) { return std::max(3u, caps.minImageCount + 1); }
+        if (caps.maxImageCount < caps.minImageCount) {
+            return std::max(3u, caps.minImageCount + 1);
+        }
         return std::clamp(3u, caps.minImageCount + 1, caps.maxImageCount);
     }
 
     VkSurfaceFormatKHR Swapchain::GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) noexcept {
-        constexpr auto srgb_formats_v = std::array{VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_A8B8G8R8_SRGB_PACK32};
+        constexpr auto srgb_formats_v =
+            std::array{VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_B8G8R8A8_SRGB, VK_FORMAT_A8B8G8R8_SRGB_PACK32};
 
         for (auto const srgb_format : srgb_formats_v) {
             auto const it = std::ranges::find_if(supported, [srgb_format](VkSurfaceFormatKHR const& format) {
                 return format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR && format.format == srgb_format;
-                
             });
-            if (it != supported.end()) { return *it; }
+            if (it != supported.end()) {
+                return *it;
+            }
         }
 
 #if EWE_DEBUG_BOOL
@@ -265,9 +316,15 @@ namespace EWE{
     }
 
     VkCompositeAlphaFlagBitsKHR Swapchain::GetCompositeAlpha(VkSurfaceCapabilitiesKHR const& caps) noexcept {
-        if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) { return VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR; }
-        if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) { return VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR; }
-        if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR) { return VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR; }
+        if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR) {
+            return VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        }
+        if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR) {
+            return VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
+        }
+        if (caps.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR) {
+            return VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
+        }
         // according to the spec, at least one bit must be set
         return VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
     }

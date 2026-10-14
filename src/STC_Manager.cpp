@@ -10,81 +10,84 @@
 #include "EightWinds/Reflect/Enum.h"
 
 
-
 namespace EWE {
 
 
-	std::function<bool()> STC_Manager::use_custom_yield = nullptr;
-	std::function<TimelineSemaphore&(RingBuffer<TimelineSemaphore, 8>&, std::mutex&)> STC_Manager::custom_yield_func;
+    std::function<bool()> STC_Manager::use_custom_yield = nullptr;
+    std::function<TimelineSemaphore&(RingBuffer<TimelineSemaphore, 8>&, std::mutex&)> STC_Manager::custom_yield_func;
 
 
-	Queue::Type STC_Manager::GetQueueType(Queue const& queue) const{
-		if(queue == renderQueue){
-			return Queue::Graphics;
-		}
-		else if (queue == computeQueue){
-			return Queue::Compute;
-		}
-		else if (queue == transferQueue){
-			return Queue::Transfer;
-		}
-		EWE_UNREACHABLE;
-	}
-	Queue& STC_Manager::GetQueueFromType(Queue::Type qType){
-		switch (qType) {
-			case Queue::Graphics: return renderQueue;
-			case Queue::Compute: return computeQueue;
-			case Queue::Transfer: return transferQueue;
-			default: EWE_UNREACHABLE;
-		}
-		EWE_UNREACHABLE;
-	}
+    Queue::Type STC_Manager::GetQueueType(Queue const& queue) const {
+        if (queue == renderQueue) {
+            return Queue::Graphics;
+        }
+        else if (queue == computeQueue) {
+            return Queue::Compute;
+        }
+        else if (queue == transferQueue) {
+            return Queue::Transfer;
+        }
+        EWE_UNREACHABLE;
+    }
+    Queue& STC_Manager::GetQueueFromType(Queue::Type qType) {
+        switch (qType) {
+            case Queue::Graphics:
+                return renderQueue;
+            case Queue::Compute:
+                return computeQueue;
+            case Queue::Transfer:
+                return transferQueue;
+            default:
+                EWE_UNREACHABLE;
+        }
+        EWE_UNREACHABLE;
+    }
 
-	CommandPool& STC_Manager::AcquireCommandPool(Queue::Type qType){
-		std::unique_lock<std::mutex> lock(stc_mut[qType]);
-		cmdPool_cv[qType].wait(lock, [&] { return !stc_command_pools[qType].Full(); });
-		return *stc_command_pools[qType].GetNext();
-	}
-	void STC_Manager::ReturnCommandPool(CommandPool& cmdPool, Queue::Type qType){
-		{
-			std::lock_guard<std::mutex> lock(stc_mut[qType]);
-			stc_command_pools[qType].Return(&cmdPool);
-		}
-		cmdPool_cv[qType].notify_one();
-	}
+    CommandPool& STC_Manager::AcquireCommandPool(Queue::Type qType) {
+        std::unique_lock<std::mutex> lock(stc_mut[qType]);
+        cmdPool_cv[qType].wait(lock, [&] { return !stc_command_pools[qType].Full(); });
+        return *stc_command_pools[qType].GetNext();
+    }
+    void STC_Manager::ReturnCommandPool(CommandPool& cmdPool, Queue::Type qType) {
+        {
+            std::lock_guard<std::mutex> lock(stc_mut[qType]);
+            stc_command_pools[qType].Return(&cmdPool);
+        }
+        cmdPool_cv[qType].notify_one();
+    }
 
-	TimelineSemaphore& STC_Manager::AcquireSemaphore(){
-		//Log::Debug("acquiring STCA sem\n");
-		NameCurrentThread("acquiring STCA sem");
+    TimelineSemaphore& STC_Manager::AcquireSemaphore() {
+        //Log::Debug("acquiring STCA sem\n");
+        NameCurrentThread("acquiring STCA sem");
 
-		if(use_custom_yield != nullptr){
-			if(use_custom_yield()){
-				TimelineSemaphore& ret = custom_yield_func(semaphores, semAcqMut);
-				NameCurrentThread("acquired STCA sem");
-				return ret;
-			}
-		}
+        if (use_custom_yield != nullptr) {
+            if (use_custom_yield()) {
+                TimelineSemaphore& ret = custom_yield_func(semaphores, semAcqMut);
+                NameCurrentThread("acquired STCA sem");
+                return ret;
+            }
+        }
 
-		std::unique_lock<std::mutex> lock(semAcqMut);
-		sem_cv.wait(lock, [&] { return !semaphores.Full(); });
-		TimelineSemaphore& ret = *semaphores.GetNext();
-		NameCurrentThread("acquired STCA sem");
-		return ret;
-	}
+        std::unique_lock<std::mutex> lock(semAcqMut);
+        sem_cv.wait(lock, [&] { return !semaphores.Full(); });
+        TimelineSemaphore& ret = *semaphores.GetNext();
+        NameCurrentThread("acquired STCA sem");
+        return ret;
+    }
 
-	void STC_Manager::ReturnSemaphore(TimelineSemaphore& sem){
-		//Log::Debug("returning STCA sem\n");
-		NameCurrentThread("returning STCA sem");
-		{
-			std::lock_guard<std::mutex> lock(semAcqMut);
-			semaphores.Return(&sem);
-		}
-		sem_cv.notify_one();
-		NameCurrentThread("returned STCA sem");
-	}
+    void STC_Manager::ReturnSemaphore(TimelineSemaphore& sem) {
+        //Log::Debug("returning STCA sem\n");
+        NameCurrentThread("returning STCA sem");
+        {
+            std::lock_guard<std::mutex> lock(semAcqMut);
+            semaphores.Return(&sem);
+        }
+        sem_cv.notify_one();
+        NameCurrentThread("returned STCA sem");
+    }
 
-	SingleTimeCommand* STC_Manager::GetSTC(Queue::Type requested_queue) {
-		/*
+    SingleTimeCommand* STC_Manager::GetSTC(Queue::Type requested_queue) {
+        /*
 		Queue::Type actualQueueType = requested_queue;
 		switch (requested_queue) {
 			case Queue::Transfer:
@@ -105,365 +108,367 @@ namespace EWE {
 			default: break;
 		}
 		*/
-		return new SingleTimeCommand(AcquireCommandPool(requested_queue), AcquireSemaphore());
-	}
-
-    STC_Manager::STC_Manager(LogicalDevice& logicalDevice, Queue& _renderQueue, Queue& _transferQueue, Queue& _computeQueue)
-    : renderQueue{_renderQueue}, transferQueue{_transferQueue}, computeQueue{_computeQueue},
-		renderCommandPools{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT },
-        stc_command_pools{
-            RingBuffer<CommandPool, 8>{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-            RingBuffer<CommandPool, 8>{logicalDevice, computeQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-            RingBuffer<CommandPool, 8>{logicalDevice, transferQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-        },
-		semaphores{logicalDevice}
-    {
+        return new SingleTimeCommand(AcquireCommandPool(requested_queue), AcquireSemaphore());
     }
 
-    STC_Manager::~STC_Manager() {
-		
+    STC_Manager::STC_Manager(
+        LogicalDevice& logicalDevice,
+        Queue& _renderQueue,
+        Queue& _transferQueue,
+        Queue& _computeQueue
+    )
+        : renderQueue{_renderQueue},
+          transferQueue{_transferQueue},
+          computeQueue{_computeQueue},
+          renderCommandPools{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+          stc_command_pools{
+              RingBuffer<CommandPool, 8>{logicalDevice, renderQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+              RingBuffer<CommandPool, 8>{logicalDevice, computeQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+              RingBuffer<CommandPool, 8>{logicalDevice, transferQueue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+          },
+          semaphores{logicalDevice} {}
+
+    STC_Manager::~STC_Manager() {}
+
+    SingleTimeCommand* STC_Manager::GetBeginSTC() {
+        VkCommandBufferBeginInfo const cmdBeginInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .pNext = nullptr,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+            .pInheritanceInfo = nullptr
+        };
+
+        SingleTimeCommand* stc = GetSTC(Queue::Transfer);
+        stc->cmdBuf.Begin(cmdBeginInfo);
+
+        return stc;
+    }
+    void STC_Manager::EndAndSubmit(SingleTimeCommand& stc) {
+        stc.cmdBuf.End();
+        VkCommandBufferSubmitInfo cmdInfo{
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+            .pNext = nullptr,
+            .commandBuffer = stc.cmdBuf,
+            .deviceMask = 0
+        };
+
+
+        VkSemaphoreSubmitInfo semInfo = stc.semaphore.GetSignalSubmitInfo(VK_PIPELINE_STAGE_2_TRANSFER_BIT);
+        VkSubmitInfo2 submitInfo{
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+            .pNext = nullptr,
+            .waitSemaphoreInfoCount = 0,
+            .commandBufferInfoCount = 1,
+            .pCommandBufferInfos = &cmdInfo,
+            .signalSemaphoreInfoCount = 1,
+            .pSignalSemaphoreInfos = &semInfo
+        };
+        stc.cmdPool.queue.Submit2(1, &submitInfo, VK_NULL_HANDLE);
+
+        //TimelineSemaphore* ret = AcquireSemaphore();
+        //ret->SetName("STC first");
+        //return ret;
     }
 
-	SingleTimeCommand* STC_Manager::GetBeginSTC(){
-		VkCommandBufferBeginInfo const cmdBeginInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-			.pNext = nullptr,
-			.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-			.pInheritanceInfo = nullptr
-		};
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue& rh_queue) {
+        AsyncTransfer(transferContext, GetQueueType(rh_queue));
+    }
 
-		SingleTimeCommand* stc = GetSTC(Queue::Transfer);
-		stc->cmdBuf.Begin(cmdBeginInfo);
-
-		return stc;
-	}
-	void STC_Manager::EndAndSubmit(SingleTimeCommand& stc){
-		stc.cmdBuf.End();
-		VkCommandBufferSubmitInfo cmdInfo{
-			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-			.pNext = nullptr,
-			.commandBuffer = stc.cmdBuf,
-			.deviceMask = 0
-		};
-
-
-		VkSemaphoreSubmitInfo semInfo = stc.semaphore.GetSignalSubmitInfo(VK_PIPELINE_STAGE_2_TRANSFER_BIT);
-		VkSubmitInfo2 submitInfo{
-			.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-			.pNext = nullptr,
-			.waitSemaphoreInfoCount = 0,
-			.commandBufferInfoCount = 1,
-			.pCommandBufferInfos = &cmdInfo,
-			.signalSemaphoreInfoCount = 1,
-			.pSignalSemaphoreInfos = &semInfo
-		};
-		stc.cmdPool.queue.Submit2(1, &submitInfo, VK_NULL_HANDLE);
-
-		//TimelineSemaphore* ret = AcquireSemaphore();
-		//ret->SetName("STC first");
-		//return ret;
-	}
-    
-	template<>
-    void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue& rh_queue){
-		AsyncTransfer(transferContext, GetQueueType(rh_queue));
-	}
-
-	template<>
-	void STC_Manager::AsyncTransfer_Helper(TransferContext<Image>& transferContext, Queue::Type dstQueueType){
+    template<>
+    void STC_Manager::AsyncTransfer_Helper(TransferContext<Image>& transferContext, Queue::Type dstQueueType) {
         Queue& rh_queue = GetQueueFromType(dstQueueType);
 
-		SingleTimeCommand* stc = GetBeginSTC();
+        SingleTimeCommand* stc = GetBeginSTC();
 
-        VkImageLayout initial_layout = (transferContext.generatingMipMaps || dstQueueType == Queue::Type::Compute) ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		if (transferContext.final_usage.layout == VK_IMAGE_LAYOUT_GENERAL) {
-			initial_layout = VK_IMAGE_LAYOUT_GENERAL;
-		}
-		const UsageData<Image> initial_usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			.layout = initial_layout
-		};
+        VkImageLayout initial_layout = (transferContext.generatingMipMaps || dstQueueType == Queue::Type::Compute)
+                                           ? VK_IMAGE_LAYOUT_GENERAL
+                                           : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        if (transferContext.final_usage.layout == VK_IMAGE_LAYOUT_GENERAL) {
+            initial_layout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        const UsageData<Image> initial_usage{
+            .stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .layout = initial_layout
+        };
 
-		transferContext.Acquire(stc->cmdBuf, transferQueue, initial_usage);
-		transferContext.Stage(stc->cmdBuf, initial_usage);
+        transferContext.Acquire(stc->cmdBuf, transferQueue, initial_usage);
+        transferContext.Stage(stc->cmdBuf, initial_usage);
 
-		const auto owner_barriers = transferContext.ChangeOwnership(stc->cmdBuf, transferQueue, rh_queue, initial_usage);
+        const auto owner_barriers =
+            transferContext.ChangeOwnership(stc->cmdBuf, transferQueue, rh_queue, initial_usage);
 
-		STC_Sub_Package<Image> stc_helper{
-			.barriers{owner_barriers.Size()},
-			.images{transferContext.images.Size()},
-			.layout{transferContext.final_usage.layout},
-			.dstQueue{&rh_queue}
-		};
-		for(std::size_t i = 0; i < transferContext.images.Size(); i++){
-			stc_helper.images[i] = transferContext.images[i];
-			stc_helper.barriers[i] = owner_barriers[i];
-		}
-		
-		EndAndSubmit(*stc);
+        STC_Sub_Package<Image> stc_helper{
+            .barriers{owner_barriers.Size()},
+            .images{transferContext.images.Size()},
+            .layout{transferContext.final_usage.layout},
+            .dstQueue{&rh_queue}
+        };
+        for (std::size_t i = 0; i < transferContext.images.Size(); i++) {
+            stc_helper.images[i] = transferContext.images[i];
+            stc_helper.barriers[i] = owner_barriers[i];
+        }
 
-		EWE_ASSERT(current_renderGraph != nullptr);
-		current_renderGraph->ResourceOwnershipTransfer(stc_helper);
+        EndAndSubmit(*stc);
 
-		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
+        EWE_ASSERT(current_renderGraph != nullptr);
+        current_renderGraph->ResourceOwnershipTransfer(stc_helper);
 
-		stc->cmdBuf.state = CommandBuffer::State::Invalid;
-		transferContext.stagingBuffer.Free();
+        TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
-		ReturnSemaphore(stc->semaphore);
-		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
-	}
+        stc->cmdBuf.state = CommandBuffer::State::Invalid;
+        transferContext.stagingBuffer.Free();
 
-	template<>
-	void STC_Manager::Async_SingleQueueTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType){
+        ReturnSemaphore(stc->semaphore);
+        ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+    }
 
-		Queue& queue = GetQueueFromType(dstQueueType);
+    template<>
+    void STC_Manager::Async_SingleQueueTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType) {
 
-		SingleTimeCommand* stc = GetBeginSTC();
+        Queue& queue = GetQueueFromType(dstQueueType);
 
-        VkImageLayout initial_layout = (transferContext.generatingMipMaps || dstQueueType == Queue::Type::Compute) ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		if (transferContext.final_usage.layout == VK_IMAGE_LAYOUT_GENERAL) {
-			initial_layout = VK_IMAGE_LAYOUT_GENERAL;
-		}
-		const UsageData<Image> initial_usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			.layout = initial_layout
-		};
+        SingleTimeCommand* stc = GetBeginSTC();
 
-		transferContext.Acquire(stc->cmdBuf, queue, initial_usage);
-		transferContext.Stage(stc->cmdBuf, initial_usage);
+        VkImageLayout initial_layout = (transferContext.generatingMipMaps || dstQueueType == Queue::Type::Compute)
+                                           ? VK_IMAGE_LAYOUT_GENERAL
+                                           : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        if (transferContext.final_usage.layout == VK_IMAGE_LAYOUT_GENERAL) {
+            initial_layout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        const UsageData<Image> initial_usage{
+            .stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .layout = initial_layout
+        };
 
-		if (initial_usage.layout != transferContext.final_usage.layout) { //ownership and potentially layout transition
-			transferContext.ChangeOwnership(stc->cmdBuf, queue, queue, initial_usage);
-		}
-		if (transferContext.generatingMipMaps) {
-			EWE_ASSERT(stc->cmdPool.queue.family.SupportsGraphics());
-		}
-		
-		EndAndSubmit(*stc);
+        transferContext.Acquire(stc->cmdBuf, queue, initial_usage);
+        transferContext.Stage(stc->cmdBuf, initial_usage);
 
-		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
+        if (initial_usage.layout != transferContext.final_usage.layout) { //ownership and potentially layout transition
+            transferContext.ChangeOwnership(stc->cmdBuf, queue, queue, initial_usage);
+        }
+        if (transferContext.generatingMipMaps) {
+            EWE_ASSERT(stc->cmdPool.queue.family.SupportsGraphics());
+        }
 
-		for(auto& img : transferContext.images){
-			img->readyForUsage = true;
-			img->data.layout = transferContext.final_usage.layout;
-		}
+        EndAndSubmit(*stc);
 
-		stc->cmdBuf.state = CommandBuffer::State::Invalid;
-		transferContext.stagingBuffer.Free();
+        TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
-		ReturnSemaphore(stc->semaphore);
-		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
-	}
+        for (auto& img : transferContext.images) {
+            img->readyForUsage = true;
+            img->data.layout = transferContext.final_usage.layout;
+        }
+
+        stc->cmdBuf.state = CommandBuffer::State::Invalid;
+        transferContext.stagingBuffer.Free();
+
+        ReturnSemaphore(stc->semaphore);
+        ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+    }
 
     //fiber focused
-	template<>
-    void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType){
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Image>& transferContext, Queue::Type dstQueueType) {
 
-		//EWE_ASSERT(!CheckMainThread());
+        //EWE_ASSERT(!CheckMainThread());
 
 #if EWE_DEBUG_BOOL
-		NameCurrentThread("STCA");
+        NameCurrentThread("STCA");
 #endif
 
         Queue& rh_queue = GetQueueFromType(dstQueueType);
-		if (transferContext.generatingMipMaps) {
-			EWE_ASSERT(rh_queue.family.SupportsGraphics());
-		}
+        if (transferContext.generatingMipMaps) {
+            EWE_ASSERT(rh_queue.family.SupportsGraphics());
+        }
 
-		//when im ready for signle queue transfers i can fix this up
+        //when im ready for signle queue transfers i can fix this up
         Queue& lh_queue = transferQueue;
 
-		if(lh_queue != rh_queue){
-			AsyncTransfer_Helper(transferContext, dstQueueType);
-		}
-		else{
-			Async_SingleQueueTransfer(transferContext, dstQueueType);
-		}
+        if (lh_queue != rh_queue) {
+            AsyncTransfer_Helper(transferContext, dstQueueType);
+        }
+        else {
+            Async_SingleQueueTransfer(transferContext, dstQueueType);
+        }
     }
 
 
-	template<>
-	void STC_Manager::Async_SingleQueueTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType){
-		Queue& queue = GetQueueFromType(dstQueueType);
+    template<>
+    void STC_Manager::Async_SingleQueueTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType) {
+        Queue& queue = GetQueueFromType(dstQueueType);
 
-		SingleTimeCommand* stc = GetBeginSTC();
+        SingleTimeCommand* stc = GetBeginSTC();
 
         const UsageData<Buffer> initial_usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT
-		};
+            .stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT
+        };
 
-		transferContext.Acquire(stc->cmdBuf, queue, initial_usage);
-		transferContext.Stage(stc->cmdBuf);
+        transferContext.Acquire(stc->cmdBuf, queue, initial_usage);
+        transferContext.Stage(stc->cmdBuf);
 
-		EndAndSubmit(*stc);
-		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
+        EndAndSubmit(*stc);
+        TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
-		for(auto& buf : transferContext.buffers) {
-			buf->existsOnTheGPU = true;
-			buf->owningQueue = &queue;
-		}
-		stc->cmdBuf.state = CommandBuffer::State::Invalid;
-		transferContext.stagingBuffer.Free();
-		
-		ReturnSemaphore(stc->semaphore);
-		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
-	}
-	template<>
-	void STC_Manager::AsyncTransfer_Helper(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType){
-		Queue& rh_queue = GetQueueFromType(dstQueueType);
+        for (auto& buf : transferContext.buffers) {
+            buf->existsOnTheGPU = true;
+            buf->owningQueue = &queue;
+        }
+        stc->cmdBuf.state = CommandBuffer::State::Invalid;
+        transferContext.stagingBuffer.Free();
 
-		SingleTimeCommand* stc = GetBeginSTC();
+        ReturnSemaphore(stc->semaphore);
+        ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+    }
+    template<>
+    void STC_Manager::AsyncTransfer_Helper(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType) {
+        Queue& rh_queue = GetQueueFromType(dstQueueType);
 
-		const UsageData<Buffer> initial_usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-		};
+        SingleTimeCommand* stc = GetBeginSTC();
 
-		transferContext.Acquire(stc->cmdBuf, transferQueue, initial_usage);
-		transferContext.Stage(stc->cmdBuf);
+        const UsageData<Buffer> initial_usage{
+            .stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+        };
 
-		const auto owner_barriers = transferContext.ChangeOwnership(stc->cmdBuf, transferQueue, rh_queue, initial_usage);
+        transferContext.Acquire(stc->cmdBuf, transferQueue, initial_usage);
+        transferContext.Stage(stc->cmdBuf);
 
-		STC_Sub_Package<Buffer> stc_helper{
-			.barriers{owner_barriers.Size()},
-			.bufs{transferContext.buffers.Size()},
-			.dstQueue = &rh_queue
-		};	
-		for(std::size_t i = 0; i < transferContext.buffers.Size(); i++){
-			stc_helper.barriers[i] = owner_barriers[i];
-			stc_helper.bufs[i] = transferContext.buffers[i];
-		}
+        const auto owner_barriers =
+            transferContext.ChangeOwnership(stc->cmdBuf, transferQueue, rh_queue, initial_usage);
 
-		EndAndSubmit(*stc);
+        STC_Sub_Package<Buffer> stc_helper{
+            .barriers{owner_barriers.Size()},
+            .bufs{transferContext.buffers.Size()},
+            .dstQueue = &rh_queue
+        };
+        for (std::size_t i = 0; i < transferContext.buffers.Size(); i++) {
+            stc_helper.barriers[i] = owner_barriers[i];
+            stc_helper.bufs[i] = transferContext.buffers[i];
+        }
 
-		EWE_ASSERT(current_renderGraph != nullptr);
-		current_renderGraph->ResourceOwnershipTransfer(stc_helper);
+        EndAndSubmit(*stc);
 
-		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
+        EWE_ASSERT(current_renderGraph != nullptr);
+        current_renderGraph->ResourceOwnershipTransfer(stc_helper);
 
-		stc->cmdBuf.state = CommandBuffer::State::Invalid;
-		transferContext.stagingBuffer.Free();
-		
-		ReturnSemaphore(stc->semaphore);
-		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
-	}
-        
+        TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
+
+        stc->cmdBuf.state = CommandBuffer::State::Invalid;
+        transferContext.stagingBuffer.Free();
+
+        ReturnSemaphore(stc->semaphore);
+        ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+    }
 
 
-	template<>
-	void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue& rh_queue){
-		AsyncTransfer(transferContext, GetQueueType(rh_queue));
-	}
-	template<>
-	void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType){
-		//EWE_ASSERT(!CheckMainThread(), "only works in a marl fiber rn\n");
-		//i could assign the thread id to the STC_Context and check it within the rendergraph
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue& rh_queue) {
+        AsyncTransfer(transferContext, GetQueueType(rh_queue));
+    }
+    template<>
+    void STC_Manager::AsyncTransfer(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType) {
+        //EWE_ASSERT(!CheckMainThread(), "only works in a marl fiber rn\n");
+        //i could assign the thread id to the STC_Context and check it within the rendergraph
 
 #if EWE_DEBUG_BOOL
-		NameCurrentThread("STCA");
+        NameCurrentThread("STCA");
 #endif
 
         Queue& rh_queue = GetQueueFromType(dstQueueType);
-		//when im ready for signle queue transfers i can fix this up
+        //when im ready for signle queue transfers i can fix this up
         Queue& lh_queue = transferQueue;
 
-		if(lh_queue != rh_queue){
-			AsyncTransfer_Helper(transferContext, dstQueueType);
-		}
-		else{
-			Async_SingleQueueTransfer(transferContext, dstQueueType);
-		}
-	}
+        if (lh_queue != rh_queue) {
+            AsyncTransfer_Helper(transferContext, dstQueueType);
+        }
+        else {
+            Async_SingleQueueTransfer(transferContext, dstQueueType);
+        }
+    }
 
 
     template<>
-    void STC_Manager::InlineTransfer(TransferContext<Image>& transferContext){
+    void STC_Manager::InlineTransfer(TransferContext<Image>& transferContext) {
 
-		SingleTimeCommand* stc = GetBeginSTC();
+        SingleTimeCommand* stc = GetBeginSTC();
 
-        VkImageLayout initial_layout = (transferContext.generatingMipMaps) ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		if (transferContext.final_usage.layout == VK_IMAGE_LAYOUT_GENERAL) {
-			initial_layout = VK_IMAGE_LAYOUT_GENERAL;
-		}
-		const UsageData<Image> initial_usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			.layout = initial_layout
-		};
+        VkImageLayout initial_layout =
+            (transferContext.generatingMipMaps) ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        if (transferContext.final_usage.layout == VK_IMAGE_LAYOUT_GENERAL) {
+            initial_layout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        const UsageData<Image> initial_usage{
+            .stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+            .layout = initial_layout
+        };
 
-		transferContext.Acquire(stc->cmdBuf, renderQueue, initial_usage);
-		transferContext.Stage(stc->cmdBuf, initial_usage);
+        transferContext.Acquire(stc->cmdBuf, renderQueue, initial_usage);
+        transferContext.Stage(stc->cmdBuf, initial_usage);
 
-		if (initial_usage.layout != transferContext.final_usage.layout) { //ownership and potentially layout transition
-			transferContext.ChangeOwnership(stc->cmdBuf, renderQueue, renderQueue, initial_usage);
-		}
-		if (transferContext.generatingMipMaps) {
-			EWE_ASSERT(stc->cmdPool.queue.family.SupportsGraphics());
-		}
-		
-		EndAndSubmit(*stc);
+        if (initial_usage.layout != transferContext.final_usage.layout) { //ownership and potentially layout transition
+            transferContext.ChangeOwnership(stc->cmdBuf, renderQueue, renderQueue, initial_usage);
+        }
+        if (transferContext.generatingMipMaps) {
+            EWE_ASSERT(stc->cmdPool.queue.family.SupportsGraphics());
+        }
 
-		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
+        EndAndSubmit(*stc);
 
-		for(auto& img : transferContext.images){
-			img->readyForUsage = true;
-			img->data.layout = transferContext.final_usage.layout;
-		}
+        TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
-		stc->cmdBuf.state = CommandBuffer::State::Invalid;
-		transferContext.stagingBuffer.Free();
+        for (auto& img : transferContext.images) {
+            img->readyForUsage = true;
+            img->data.layout = transferContext.final_usage.layout;
+        }
 
-		ReturnSemaphore(stc->semaphore);
-		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
-	}
+        stc->cmdBuf.state = CommandBuffer::State::Invalid;
+        transferContext.stagingBuffer.Free();
+
+        ReturnSemaphore(stc->semaphore);
+        ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+    }
     template<>
-    void STC_Manager::InlineTransfer(TransferContext<Buffer>& transferContext){
+    void STC_Manager::InlineTransfer(TransferContext<Buffer>& transferContext) {
 
-		SingleTimeCommand* stc = GetBeginSTC();
+        SingleTimeCommand* stc = GetBeginSTC();
 
         const UsageData<Buffer> initial_usage{
-			.stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-			.accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT
-		};
+            .stage = VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+            .accessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT
+        };
 
-		transferContext.Acquire(stc->cmdBuf, renderQueue, initial_usage);
-		transferContext.Stage(stc->cmdBuf);
+        transferContext.Acquire(stc->cmdBuf, renderQueue, initial_usage);
+        transferContext.Stage(stc->cmdBuf);
 
-		EndAndSubmit(*stc);
+        EndAndSubmit(*stc);
 
-		TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
+        TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
-		for(auto& buf : transferContext.buffers) {
-			buf->existsOnTheGPU = true;
-			buf->owningQueue = &renderQueue;
-		}
-		stc->cmdBuf.state = CommandBuffer::State::Invalid;
-		transferContext.stagingBuffer.Free();
-		
-		ReturnSemaphore(stc->semaphore);
-		ReturnCommandPool(stc->cmdPool, Queue::Transfer);
-	}
-
-
-
-    STC_Submitter::STC_Submitter(LogicalDevice& _logicalDevice, 
-        Queue& _graphicsQueue, Queue& _computeQueue
-    )
-    : logicalDevice{_logicalDevice},
-        graphicsQueue{_graphicsQueue}, computeQueue{_computeQueue},
-        graphicsInfo{
-            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO
-        },
-        computeInfo{
-            .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO
+        for (auto& buf : transferContext.buffers) {
+            buf->existsOnTheGPU = true;
+            buf->owningQueue = &renderQueue;
         }
-    {
-        graphics_task = [&](CommandBuffer& cmdBuf, uint8_t frameIndex){
-            if(graphicsInfo.imageMemoryBarrierCount > 0 || graphicsInfo.bufferMemoryBarrierCount > 0){
+        stc->cmdBuf.state = CommandBuffer::State::Invalid;
+        transferContext.stagingBuffer.Free();
+
+        ReturnSemaphore(stc->semaphore);
+        ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+    }
+
+
+    STC_Submitter::STC_Submitter(LogicalDevice& _logicalDevice, Queue& _graphicsQueue, Queue& _computeQueue)
+        : logicalDevice{_logicalDevice},
+          graphicsQueue{_graphicsQueue},
+          computeQueue{_computeQueue},
+          graphicsInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO},
+          computeInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO} {
+        graphics_task = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+            if (graphicsInfo.imageMemoryBarrierCount > 0 || graphicsInfo.bufferMemoryBarrierCount > 0) {
                 vkCmdPipelineBarrier2(cmdBuf, &graphicsInfo);
                 graphics_image_barriers.clear();
                 graphics_buffer_barriers.clear();
@@ -471,8 +476,8 @@ namespace EWE {
             }
             return false;
         };
-        compute_task = [&](CommandBuffer& cmdBuf, uint8_t frameIndex){
-            if(computeInfo.imageMemoryBarrierCount > 0 || computeInfo.bufferMemoryBarrierCount > 0){
+        compute_task = [&](CommandBuffer& cmdBuf, uint8_t frameIndex) {
+            if (computeInfo.imageMemoryBarrierCount > 0 || computeInfo.bufferMemoryBarrierCount > 0) {
                 vkCmdPipelineBarrier2(cmdBuf, &computeInfo);
                 compute_image_barriers.clear();
                 compute_buffer_barriers.clear();
@@ -483,10 +488,10 @@ namespace EWE {
     }
 
     bool STC_Submitter::CheckSize(Queue::Type qType) const {
-        if(qType == Queue::Graphics){
+        if (qType == Queue::Graphics) {
             return graphicsInfo.imageMemoryBarrierCount > 0 || graphicsInfo.bufferMemoryBarrierCount > 0;
         }
-        else if (qType == Queue::Compute){
+        else if (qType == Queue::Compute) {
             return computeInfo.imageMemoryBarrierCount > 0 || computeInfo.bufferMemoryBarrierCount > 0;
         }
         EWE_UNREACHABLE;
@@ -494,21 +499,21 @@ namespace EWE {
 
     void STC_Submitter::CollectSTCs() {
 
-		Clear();
+        Clear();
 
-		if((image_ownership_posting.size() == 0) && (buffer_ownership_posting.size() == 0)){
-			return;
-		}
-		if(!loading_buffer_mut.try_lock()){
-			//just spin and wait to submit until the next poll / render update
-			return;
-		}
-		//Log::Debug("locking loading buffer mut\n");
+        if ((image_ownership_posting.size() == 0) && (buffer_ownership_posting.size() == 0)) {
+            return;
+        }
+        if (!loading_buffer_mut.try_lock()) {
+            //just spin and wait to submit until the next poll / render update
+            return;
+        }
+        //Log::Debug("locking loading buffer mut\n");
         //mut_thread = (unsigned long)syscall(SYS_gettid);
-		std::swap(image_ownership_posting, image_ownership_submission);
-		std::swap(buffer_ownership_posting, buffer_ownership_submission);
-		loading_buffer_mut.unlock();
-		//Log::Debug("UNLOCKED loading buffer mut\n");
+        std::swap(image_ownership_posting, image_ownership_submission);
+        std::swap(buffer_ownership_posting, buffer_ownership_submission);
+        loading_buffer_mut.unlock();
+        //Log::Debug("UNLOCKED loading buffer mut\n");
         //this over-allocates, but that's ok.
         //not doing multiple allocations is better
         graphics_image_barriers.reserve(image_ownership_submission.size());
@@ -516,33 +521,33 @@ namespace EWE {
         graphics_buffer_barriers.reserve(buffer_ownership_submission.size());
         compute_buffer_barriers.reserve(buffer_ownership_submission.size());
 
-        for(std::size_t i = 0; i < image_ownership_submission.size(); i++){
-            if(*image_ownership_submission[i].dstQueue == graphicsQueue){
-                for(auto& bar : image_ownership_submission[i].barriers){
+        for (std::size_t i = 0; i < image_ownership_submission.size(); i++) {
+            if (*image_ownership_submission[i].dstQueue == graphicsQueue) {
+                for (auto& bar : image_ownership_submission[i].barriers) {
                     graphics_image_barriers.push_back(bar);
                 }
             }
-            else if(*image_ownership_submission[i].dstQueue == computeQueue){
-                for(auto& bar : image_ownership_submission[i].barriers){
+            else if (*image_ownership_submission[i].dstQueue == computeQueue) {
+                for (auto& bar : image_ownership_submission[i].barriers) {
                     compute_image_barriers.push_back(bar);
                 }
             }
-            else{
+            else {
                 EWE_UNREACHABLE;
             }
         }
-        for(std::size_t i = 0; i < buffer_ownership_submission.size(); i++){
-            if(*buffer_ownership_submission[i].dstQueue == graphicsQueue){
-                for(auto& bar : buffer_ownership_submission[i].barriers){
+        for (std::size_t i = 0; i < buffer_ownership_submission.size(); i++) {
+            if (*buffer_ownership_submission[i].dstQueue == graphicsQueue) {
+                for (auto& bar : buffer_ownership_submission[i].barriers) {
                     graphics_buffer_barriers.push_back(bar);
                 }
             }
-            else if(*buffer_ownership_submission[i].dstQueue == computeQueue){
-                for(auto& bar : buffer_ownership_submission[i].barriers){
+            else if (*buffer_ownership_submission[i].dstQueue == computeQueue) {
+                for (auto& bar : buffer_ownership_submission[i].barriers) {
                     compute_buffer_barriers.push_back(bar);
                 }
             }
-            else{
+            else {
                 EWE_UNREACHABLE;
             }
         }
@@ -557,37 +562,37 @@ namespace EWE {
         computeInfo.pImageMemoryBarriers = compute_image_barriers.data();
         computeInfo.pBufferMemoryBarriers = compute_buffer_barriers.data();
 
-        //VK_DEPENDENCY_QUEUE_FAMILY_OWNERSHIP_TRANSFER_USE_ALL_STAGES_BIT_KHR probably use this? idk 
+        //VK_DEPENDENCY_QUEUE_FAMILY_OWNERSHIP_TRANSFER_USE_ALL_STAGES_BIT_KHR probably use this? idk
         //https://docs.vulkan.org/spec/latest/chapters/synchronization.html#synchronization-queue-transfers search for the flag
-        //VUID-vkCmdPipelineBarrier-maintenance8-10206 : If the maintenance8 feature is not enabled, dependencyFlags must not include ^ 
+        //VUID-vkCmdPipelineBarrier-maintenance8-10206 : If the maintenance8 feature is not enabled, dependencyFlags must not include ^
     }
 
-    void STC_Submitter::Clear(){
+    void STC_Submitter::Clear() {
         graphics_image_barriers.clear();
         graphics_buffer_barriers.clear();
         compute_image_barriers.clear();
         compute_buffer_barriers.clear();
-        
+
         graphicsInfo.imageMemoryBarrierCount = 0;
         graphicsInfo.bufferMemoryBarrierCount = 0;
         computeInfo.imageMemoryBarrierCount = 0;
         computeInfo.bufferMemoryBarrierCount = 0;
     }
-    void STC_Submitter::UpdateResources(){
+    void STC_Submitter::UpdateResources() {
 
-        for(std::size_t i = 0; i < image_ownership_submission.size(); i++){
-			auto& img_owned = image_ownership_submission[i];
-            for(std::size_t j = 0; j < img_owned.images.size(); j++){
-				auto& img = img_owned.images[j];
+        for (std::size_t i = 0; i < image_ownership_submission.size(); i++) {
+            auto& img_owned = image_ownership_submission[i];
+            for (std::size_t j = 0; j < img_owned.images.size(); j++) {
+                auto& img = img_owned.images[j];
                 img->data.layout = img_owned.layout;
                 img->readyForUsage = true;
                 img->owningQueue = img_owned.dstQueue;
             }
         }
-        for(std::size_t i = 0; i < buffer_ownership_submission.size(); i++){
-			auto& buf_owned = buffer_ownership_submission[i];
-            for(std::size_t j = 0; j < buf_owned.bufs.size(); j++){
-				auto& buf = buf_owned.bufs[j];
+        for (std::size_t i = 0; i < buffer_ownership_submission.size(); i++) {
+            auto& buf_owned = buffer_ownership_submission[i];
+            for (std::size_t j = 0; j < buf_owned.bufs.size(); j++) {
+                auto& buf = buf_owned.bufs[j];
                 buf->owningQueue = buf_owned.dstQueue;
                 buf->existsOnTheGPU = true;
             }
@@ -596,4 +601,4 @@ namespace EWE {
         buffer_ownership_submission.clear();
     }
 
-}//namespace EWE
+} //namespace EWE

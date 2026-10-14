@@ -4,16 +4,20 @@
 //#include <span>
 //#include <optional>
 
-namespace EWE{
+namespace EWE {
 
-//vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR
+    //vkEnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR
     struct QueueFamily {
         uint32_t index; //queue family index
         VkQueueFamilyProperties properties; //2 includes properties1, but I dont' really see the point in 2
         bool supportsSurface;
 
 
-        [[nodiscard]] explicit QueueFamily(uint32_t index, VkQueueFamilyProperties const& properties, bool supportsSurface);
+        [[nodiscard]] explicit QueueFamily(
+            uint32_t index,
+            VkQueueFamilyProperties const& properties,
+            bool supportsSurface
+        );
 
         bool SupportsGraphics() const;
         bool SupportsCompute() const;
@@ -25,10 +29,10 @@ namespace EWE{
         //static std::vector<QueueFamily> Enumerate(PhysicalDevice& physicalDevice);
     };
 
-   
+
 } //namespace EWE
 
- /*
+/*
     struct QueueRequest {
         enum class Level {
             None,

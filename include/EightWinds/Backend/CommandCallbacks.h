@@ -7,10 +7,10 @@
 #include "EightWinds/Backend/Barrier.h"
 
 namespace EWE {
-	struct GraphicsCommand {
-        CommandBuffer* command{ nullptr };
-        ImageInfo* imageInfo{ nullptr };
-        StagingBuffer* stagingBuffer{ nullptr }; 
+    struct GraphicsCommand {
+        CommandBuffer* command{nullptr};
+        ImageInfo* imageInfo{nullptr};
+        StagingBuffer* stagingBuffer{nullptr};
         VkPipelineStageFlags waitStage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
     };
 
@@ -21,10 +21,10 @@ namespace EWE {
         std::vector<Image*> images;
         Semaphore* semaphore;
 
-        TransferCommand() : commands{}, stagingBuffers{}, pipeBarriers{}, images{}, semaphore{ nullptr } {} //constructor
+        TransferCommand() : commands{}, stagingBuffers{}, pipeBarriers{}, images{}, semaphore{nullptr} {} //constructor
         TransferCommand(TransferCommand& copySource); //copy constructor
         TransferCommand& operator=(TransferCommand& copySource); //copy assignment
-        TransferCommand(TransferCommand&& moveSource) noexcept;//move constructor
+        TransferCommand(TransferCommand&& moveSource) noexcept; //move constructor
         TransferCommand& operator=(TransferCommand&& moveSource) noexcept; //move assignment
         //TransferCommand& operator+=(TransferCommand& copySource);
     };

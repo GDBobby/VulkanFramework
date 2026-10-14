@@ -4,24 +4,24 @@
 #include "EightWinds/RenderGraph/Resources.h"
 
 
-
-namespace EWE{
+namespace EWE {
     struct LogicalDevice;
     struct Queue;
     struct CommandBuffer;
 
-    struct PresentBridge{
+    struct PresentBridge {
         LogicalDevice& logicalDevice;
         Queue& presentQueue;
         const std::string name;
 
         [[nodiscard]] explicit PresentBridge(LogicalDevice& logicalDevice, Queue& presentQueue) noexcept;
 
-        Resource<Image>* final_swap_img_usage;;
+        Resource<Image>* final_swap_img_usage;
+        ;
 
         VkImageMemoryBarrier2 imageBarrier{};
 
-		VkDependencyInfo dependencyInfo{};
+        VkDependencyInfo dependencyInfo{};
 
         void UpdateSrcData(uint8_t frameIndex);
         void Execute(CommandBuffer& cmdBuf);

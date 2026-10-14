@@ -3,98 +3,95 @@
 #include "EightWinds/Preprocessor.h"
 #include <cstdint>
 
-namespace EWE{
-namespace Inst{ //Inst is short for Instruction :)
-    enum Type : uint8_t { 
-        BindPipeline,
+namespace EWE {
+    namespace Inst { //Inst is short for Instruction :)
+        enum Type : uint8_t {
+            BindPipeline,
 
-        //descriptor needs to be expanded to handle images and buffers
-        BindDescriptor,
+            //descriptor needs to be expanded to handle images and buffers
+            BindDescriptor,
 
-        Push, 
+            Push,
 
-        BeginRender,
-        EndRender,
+            BeginRender,
+            EndRender,
 
-        Draw,
-        DrawIndexed,
-        Dispatch,
-        DrawMeshTasks,
-        
-        DrawIndirect,
-        DrawIndexedIndirect,
-        DispatchIndirect,
-        DrawMeshTasksIndirect,
-        
-        DrawIndirectCount,
-        DrawIndexedIndirectCount,
-        DrawMeshTasksIndirectCount,
+            Draw,
+            DrawIndexed,
+            Dispatch,
+            DrawMeshTasks,
 
-        //present is handled explicitly
-        //Present,
+            DrawIndirect,
+            DrawIndexedIndirect,
+            DispatchIndirect,
+            DrawMeshTasksIndirect,
 
-        //PipelineBarrier,
+            DrawIndirectCount,
+            DrawIndexedIndirectCount,
+            DrawMeshTasksIndirectCount,
 
-        //dynamicstate
-        DS_Viewport,
-        DS_ViewportCount,
-        DS_Scissor,
-        DS_ScissorCount,
+            //present is handled explicitly
+            //Present,
 
-        BeginLabel,
-        EndLabel,
+            //PipelineBarrier,
 
-        //control flow
-        If,
+            //dynamicstate
+            DS_Viewport,
+            DS_ViewportCount,
+            DS_Scissor,
+            DS_ScissorCount,
 
-        //im not sure if i want to do more advanced control flow yet
-        LoopBegin, //using this as a for loop right now. POTENTIALLY use a while loop for conditionals, but idk
+            BeginLabel,
+            EndLabel,
 
-        Switch,
-        Case,
-        Default,
+            //control flow
+            If,
 
-        Ext_Pool,
+            //im not sure if i want to do more advanced control flow yet
+            LoopBegin, //using this as a for loop right now. POTENTIALLY use a while loop for conditionals, but idk
+
+            Switch,
+            Case,
+            Default,
+
+            Ext_Pool,
 
 #if EWE_DEBUG_BOOL
-        Breakpoint,
-        DebugFunction,
+            Breakpoint,
+            DebugFunction,
 #endif
 
-        //Queries - https://docs.vulkan.org/spec/latest/chapters/queries.html
-        Query_Timestamp,
-        
-
-        //im only going to implement vp scissor for the moment
-        DS_LineWidth,
-        DS_DepthBias,
-        DS_BlendConstants,
-        DS_DepthBounds,
-        DS_StencilCompareMask,
-        DS_StencilWriteMask,
-        DS_StencilReference,
-        DS_CullMode,
-        DS_FrontFace,
-        DS_PrimitiveTopology,
-        DS_DepthTestEnable,
-        DS_DepthWriteEnable,
-        DS_DepthCompareOp,
-        DS_DepthBoundsTestEnable,
-        DS_StencilTestEnable,
-        DS_StencilOp,
-        DS_RasterizerDiscardEnable,
-        DS_DepthBiasEnable,
-        DS_PrimitiveRestartEnable,
-        //wtf is a stipple
-        //DS_LineStipple,
-        
-        //these 3 dont have any independent functionality. do i even need each control flow type to have it's own unique footer, or can I use one for all?
-        EndIf,
-        LoopEnd,
-        SwitchEnd,
+            //Queries - https://docs.vulkan.org/spec/latest/chapters/queries.html
+            Query_Timestamp,
 
 
+            //im only going to implement vp scissor for the moment
+            DS_LineWidth,
+            DS_DepthBias,
+            DS_BlendConstants,
+            DS_DepthBounds,
+            DS_StencilCompareMask,
+            DS_StencilWriteMask,
+            DS_StencilReference,
+            DS_CullMode,
+            DS_FrontFace,
+            DS_PrimitiveTopology,
+            DS_DepthTestEnable,
+            DS_DepthWriteEnable,
+            DS_DepthCompareOp,
+            DS_DepthBoundsTestEnable,
+            DS_StencilTestEnable,
+            DS_StencilOp,
+            DS_RasterizerDiscardEnable,
+            DS_DepthBiasEnable,
+            DS_PrimitiveRestartEnable,
+            //wtf is a stipple
+            //DS_LineStipple,
 
-    };
-} //namespace Inst
+            //these 3 dont have any independent functionality. do i even need each control flow type to have it's own unique footer, or can I use one for all?
+            EndIf,
+            LoopEnd,
+            SwitchEnd,
+        };
+    } //namespace Inst
 } //namespace EWE

@@ -7,18 +7,18 @@
 #include <cstdint>
 #include <vector>
 
-namespace EWE{
-	
-	struct Buffer;
-	struct Image;
-	struct GPUTask;
+namespace EWE {
 
-    struct TaskResourceIndex{
+    struct Buffer;
+    struct Image;
+    struct GPUTask;
+
+    struct TaskResourceIndex {
         GPUTask* task;
         uint32_t index;
     };
 
-	
+
     struct SynchronizationManager {
         struct TransitionObjects {
             TaskResourceIndex lh;
@@ -36,7 +36,6 @@ namespace EWE{
         std::vector<AcquireObject> image_acquisitions;
 
 
-
         template<ResourceType Resource>
         void AddTransition(TaskResourceIndex const& lh, TaskResourceIndex const& rh);
         template<ResourceType Resource>
@@ -48,17 +47,25 @@ namespace EWE{
         void AddAcquisition(GPUTask& rhs, uint32_t rh_index, AcquireType acqType = AcquireType::None);
 
         void PopulateAffixes(uint8_t frameIndex);
-
     };
 
 
-        template<> void SynchronizationManager::AddTransition<Buffer>(TaskResourceIndex const& lh, TaskResourceIndex const& rh);
-        template<> void SynchronizationManager::AddAcquisition<Buffer>(TaskResourceIndex const& rh, AcquireType acqType);
-        template<> void SynchronizationManager::AddTransition<Buffer>(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
-        template<> void SynchronizationManager::AddAcquisition<Buffer>(GPUTask& rhs, uint32_t rh_index, AcquireType acqType);
-        
-        template<> void SynchronizationManager::AddTransition<Image>(TaskResourceIndex const& lh, TaskResourceIndex const& rh);
-        template<> void SynchronizationManager::AddAcquisition<Image>(TaskResourceIndex const& rh, AcquireType acqType);
-        template<> void SynchronizationManager::AddTransition<Image>(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
-        template<> void SynchronizationManager::AddAcquisition<Image>(GPUTask& rhs, uint32_t rh_index, AcquireType acqType);
+    template<>
+    void SynchronizationManager::AddTransition<Buffer>(TaskResourceIndex const& lh, TaskResourceIndex const& rh);
+    template<>
+    void SynchronizationManager::AddAcquisition<Buffer>(TaskResourceIndex const& rh, AcquireType acqType);
+    template<>
+    void
+    SynchronizationManager::AddTransition<Buffer>(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
+    template<>
+    void SynchronizationManager::AddAcquisition<Buffer>(GPUTask& rhs, uint32_t rh_index, AcquireType acqType);
+
+    template<>
+    void SynchronizationManager::AddTransition<Image>(TaskResourceIndex const& lh, TaskResourceIndex const& rh);
+    template<>
+    void SynchronizationManager::AddAcquisition<Image>(TaskResourceIndex const& rh, AcquireType acqType);
+    template<>
+    void SynchronizationManager::AddTransition<Image>(GPUTask& lhs, uint32_t lh_index, GPUTask& rhs, uint32_t rh_index);
+    template<>
+    void SynchronizationManager::AddAcquisition<Image>(GPUTask& rhs, uint32_t rh_index, AcquireType acqType);
 }

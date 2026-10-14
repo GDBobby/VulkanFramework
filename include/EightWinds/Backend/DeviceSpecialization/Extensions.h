@@ -13,7 +13,7 @@ namespace EWE {
         uint16_t indexInPNextChain;
         //every member has a uniform type of VkBool32
         //using that information, ill return an offset
-        //so that it can be checked WHICH member it is. 
+        //so that it can be checked WHICH member it is.
         //sType and pNext are not considered in the offset, so the first VkBool32 would be offset==0
         uint16_t offsetWithinStruct;
 
@@ -21,15 +21,11 @@ namespace EWE {
     };
 
 
-
-
-    template <size_t N>
+    template<size_t N>
     struct ConstEvalStr {
         char value[N]{};
-        consteval ConstEvalStr(const char(&str)[N]) {
-            std::copy_n(str, N, value);
-        }
-        consteval operator std::string_view() const { return { value, N - 1 }; }
+        consteval ConstEvalStr(const char (&str)[N]) { std::copy_n(str, N, value); }
+        consteval operator std::string_view() const { return {value, N - 1}; }
         constexpr bool operator==(ConstEvalStr const& other) const {
             for (size_t i = 0; i < N; ++i) {
                 if (value[i] != other.value[i]) {
@@ -38,10 +34,10 @@ namespace EWE {
             }
             return true;
         }
-        consteval std::string_view view() {return std::string_view(value, N -1); }
+        consteval std::string_view view() { return std::string_view(value, N - 1); }
     };
 
-    template <auto Name, bool Req, uint64_t Score>
+    template<auto Name, bool Req, uint64_t Score>
     struct ExtensionEntry {
         static constexpr auto name = Name;
         static constexpr bool required = Req;
@@ -52,7 +48,7 @@ namespace EWE {
     struct ExtensionManager {
 
         static consteval size_t Ext_Count() { return sizeof...(exts); }
-        static constexpr std::array<std::string_view, Ext_Count()> names = { exts::name... };
+        static constexpr std::array<std::string_view, Ext_Count()> names = {exts::name...};
         static constexpr std::array<uint64_t, Ext_Count()> scores = {exts::score...};
         static constexpr std::array<bool, Ext_Count()> required = {exts::required...};
 

@@ -3,10 +3,9 @@
 
 namespace EWE {
     Queue::Queue(LogicalDevice& _logicalDevice, QueueFamily const& _family, float _priority)
-        : logicalDevice{ _logicalDevice }, 
-        family {_family}, 
-        priority{ _priority }
-    {
+        : logicalDevice{_logicalDevice},
+          family{_family},
+          priority{_priority} {
         vkGetDeviceQueue(logicalDevice.device, family.index, 0, &queue);
     }
 
@@ -31,14 +30,14 @@ namespace EWE {
         std::unique_lock subLock{mut};
         EWE_VK(vkQueueSubmit2, queue, submitCount, submitInfos, fence);
     }
-    void Queue::Present(VkPresentInfoKHR const& presentInfo){
+    void Queue::Present(VkPresentInfoKHR const& presentInfo) {
         EWE_ASSERT(family.SupportsSurfacePresent());
         std::unique_lock subLock{mut};
         VkResult temp_ret = vkQueuePresentKHR(queue, &presentInfo);
-        if(temp_ret != VK_SUBOPTIMAL_KHR){
+        if (temp_ret != VK_SUBOPTIMAL_KHR) {
             EWE_VK_RESULT(temp_ret);
         }
-        if(temp_ret != VK_SUBOPTIMAL_KHR){
+        if (temp_ret != VK_SUBOPTIMAL_KHR) {
             EWE_VK_RESULT(temp_ret);
         }
     }

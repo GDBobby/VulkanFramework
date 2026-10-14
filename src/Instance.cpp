@@ -5,9 +5,12 @@
 #include <stdexcept>
 #include <iterator>
 
-namespace EWE{ 
+namespace EWE {
 
-    bool CheckInstanceExtensions(std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
+    bool CheckInstanceExtensions(
+        std::vector<const char*> const& requiredExtensions,
+        std::unordered_map<std::string, bool>& optionalExtensions
+    ) {
         uint32_t extensionCount = 0;
         EWE_VK(vkEnumerateInstanceExtensionProperties, nullptr, &extensionCount, nullptr);
         std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -29,15 +32,19 @@ namespace EWE{
                 return false;
             }
         }
-        for(auto& optional : optionalExtensions){
-            if(available.find(optional.first.c_str()) != available.end()){
+        for (auto& optional : optionalExtensions) {
+            if (available.find(optional.first.c_str()) != available.end()) {
                 optional.second = true;
             }
         }
         return true;
     }
 
-    VkInstance CreateInstance(const uint32_t api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) {
+    VkInstance CreateInstance(
+        const uint32_t api_version,
+        std::vector<const char*> const& requiredExtensions,
+        std::unordered_map<std::string, bool>& optionalExtensions
+    ) {
 
         VkApplicationInfo appInfo{
             .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -51,11 +58,7 @@ namespace EWE{
 
         std::vector<const char*> all_extensions{};
         all_extensions.reserve(requiredExtensions.size() + optionalExtensions.size());
-        std::copy(
-            requiredExtensions.begin(),
-            requiredExtensions.end(),
-            std::back_inserter(all_extensions)
-        );
+        std::copy(requiredExtensions.begin(), requiredExtensions.end(), std::back_inserter(all_extensions));
         if (!CheckInstanceExtensions(requiredExtensions, optionalExtensions)) {
             //throw exception probably
             //im not really sure if I want to use exceptions or not
@@ -66,7 +69,7 @@ namespace EWE{
                 all_extensions.push_back(opt.first.c_str());
             }
         }
-        
+
         VkInstanceCreateInfo instanceCreateInfo{
             .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pNext = nullptr,
@@ -82,7 +85,7 @@ namespace EWE{
             EWE_ASSERT(false && "validation layers requested, but not available!");
         }
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = DebugMessenger::GetPopulatedDebugMessengerCreateInfo();
-        const char* validationLayers[] = { "VK_LAYER_KHRONOS_validation" };
+        const char* validationLayers[] = {"VK_LAYER_KHRONOS_validation"};
 
         instanceCreateInfo.enabledLayerCount = 1;
         instanceCreateInfo.ppEnabledLayerNames = validationLayers;
@@ -96,11 +99,16 @@ namespace EWE{
         return instance;
     }
 
-    Instance::Instance(const uint32_t _api_version, std::vector<const char*> const& requiredExtensions, std::unordered_map<std::string, bool>& optionalExtensions) 
+    Instance::Instance(
+        const uint32_t _api_version,
+        std::vector<const char*> const& requiredExtensions,
+        std::unordered_map<std::string, bool>& optionalExtensions
+    )
         : api_version{_api_version},
-        instance{CreateInstance(_api_version, requiredExtensions, optionalExtensions)}
+          instance{CreateInstance(_api_version, requiredExtensions, optionalExtensions)}
 #if EWE_DEBUG_BOOL
-        ,debugMessenger{*this}
+          ,
+          debugMessenger{*this}
 #endif
     {
     }

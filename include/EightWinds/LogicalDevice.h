@@ -11,12 +11,12 @@
 #include "EightWinds/Data/HeapBlock.h"
 #include "EightWinds/Data/Address.h"
 
-namespace EWE{
+namespace EWE {
     struct Buffer;
     struct Image;
     struct Shader;
 
-    struct LogicalDevice{
+    struct LogicalDevice {
         Instance& instance;
         PhysicalDevice physicalDevice;
         VmaAllocator vmaAllocator;
@@ -61,7 +61,7 @@ namespace EWE{
         const VkPhysicalDeviceFeatures2 features;
         const VkPhysicalDeviceVulkan11Features features11;
         const VkPhysicalDeviceVulkan12Features features12;
-        const VkPhysicalDeviceVulkan13Features features13; 
+        const VkPhysicalDeviceVulkan13Features features13;
         const VkPhysicalDeviceVulkan14Features features14;
 
         const VkPhysicalDeviceProperties2 properties;
@@ -86,12 +86,8 @@ namespace EWE{
 #if EWE_USING_EXCEPTIONS
         void HandleVulkanException(EWEException& renderExcept);
 #endif
-
-
     private:
         //just so i can force construction order. also creates queues
         VkDevice CreateDevice(VkDeviceCreateInfo& deviceCreateInfo);
-
-        
     };
 }

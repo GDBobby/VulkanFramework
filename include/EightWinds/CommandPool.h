@@ -6,7 +6,7 @@
 #include "EightWinds/Queue.h"
 #include "EightWinds/Data/PerFlight.h"
 
-namespace EWE{
+namespace EWE {
     struct CommandBuffer;
     //command pools per device, per queue, and per thread
 
@@ -15,7 +15,7 @@ namespace EWE{
     //^ maybe, i need to set up a way to quickly benchmark both, if even necessary.
 
 
-    struct CommandPool{
+    struct CommandPool {
         LogicalDevice& logicalDevice;
         Queue& queue;
 
@@ -26,9 +26,13 @@ namespace EWE{
 
         //main rendering thread should not be auxilary, the rest are
         //auxilary pools can reset individual command buffers, main pool resets all at once
-        [[nodiscard]] explicit CommandPool(LogicalDevice& logicalDevice, Queue& queue, VkCommandPoolCreateFlags createFlags);
+        [[nodiscard]] explicit CommandPool(
+            LogicalDevice& logicalDevice,
+            Queue& queue,
+            VkCommandPoolCreateFlags createFlags
+        );
         ~CommandPool();
-        
+
         CommandPool(CommandPool const& copySrc) = delete;
         CommandPool& operator=(CommandPool const& copySrc) = delete;
         CommandPool(CommandPool&& moveSrc) = delete;
@@ -40,11 +44,7 @@ namespace EWE{
 
         void Reset(VkCommandPoolResetFlags flag);
 
-        bool operator==(CommandPool& other) const {
-            return commandPool == other.commandPool;
-        }
-        operator VkCommandPool() const {
-            return commandPool;
-        }
+        bool operator==(CommandPool& other) const { return commandPool == other.commandPool; }
+        operator VkCommandPool() const { return commandPool; }
     };
 }

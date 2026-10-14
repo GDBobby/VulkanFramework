@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace EWE{
+namespace EWE {
 
     std::vector<QueueFamily> EnumerateQueueFamilies(Instance& instance, VkPhysicalDevice device, VkSurfaceKHR surface) {
         uint32_t famPropCount = 0;
@@ -26,16 +26,20 @@ namespace EWE{
         return queueFamilies;
     }
     PhysicalDevice::PhysicalDevice(Instance& _instance, VkPhysicalDevice _physicalDevice, VkSurfaceKHR surface)
-        : instance{ _instance }, device{ _physicalDevice }, queueFamilies{ EnumerateQueueFamilies(instance, device, surface) }
-    {
-    }
-    PhysicalDevice::PhysicalDevice(Instance& _instance, VkPhysicalDevice _physicalDevice, std::vector<QueueFamily> const& _queueFamilies)
-        : instance{ _instance }, device{ _physicalDevice }, queueFamilies{ _queueFamilies }
-    {}
+        : instance{_instance},
+          device{_physicalDevice},
+          queueFamilies{EnumerateQueueFamilies(instance, device, surface)} {}
+    PhysicalDevice::PhysicalDevice(
+        Instance& _instance,
+        VkPhysicalDevice _physicalDevice,
+        std::vector<QueueFamily> const& _queueFamilies
+    )
+        : instance{_instance},
+          device{_physicalDevice},
+          queueFamilies{_queueFamilies} {}
 
     PhysicalDevice::PhysicalDevice(PhysicalDevice&& moveSrc) noexcept
         : instance{moveSrc.instance},
-        device{moveSrc.device},
-        queueFamilies{moveSrc.queueFamilies.begin(), moveSrc.queueFamilies.end()}
-    {}
+          device{moveSrc.device},
+          queueFamilies{moveSrc.queueFamilies.begin(), moveSrc.queueFamilies.end()} {}
 }

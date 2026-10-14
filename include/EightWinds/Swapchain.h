@@ -35,7 +35,7 @@ and that the command buffer begins and ends with the swap chain
 thats fine in smaller apps, but if i do pre-compute or post-compute, or whatever, it's less applicable
 */
 
-namespace EWE{
+namespace EWE {
     /*
         synchronization scope - present should all be done within 1 thread
 
@@ -46,7 +46,7 @@ namespace EWE{
         vkCreateSwapchainKHR
         vkDestroySwapchainKHR
     */
-    struct Swapchain{
+    struct Swapchain {
         LogicalDevice& logicalDevice;
         Window& window;
         Queue& presentQueue;
@@ -62,7 +62,7 @@ namespace EWE{
         std::vector<VkPresentModeKHR> available_presentModes;
         std::vector<VkSurfaceFormatKHR> available_surface_formats;
         VkSurfaceFormatKHR surface_format;
-        VkSwapchainCreateInfoKHR swapCreateInfo;//i dont nromaly keep these, ill have to come back to this
+        VkSwapchainCreateInfoKHR swapCreateInfo; //i dont nromaly keep these, ill have to come back to this
         VkSwapchainKHR activeSwapchain;
 
         uint32_t imageIndex = 0;
@@ -72,15 +72,11 @@ namespace EWE{
         PerFlight<BinarySemaphore> acquire_semaphores;
         std::vector<BinarySemaphore> present_semaphores;
 
-        inline BinarySemaphore& GetAcquireSemaphore(uint8_t frameIndex) {
-            return acquire_semaphores[frameIndex];
-        }
-        inline BinarySemaphore& GetCurrentPresentSemaphore() {
-            return present_semaphores[imageIndex];
-        }
+        inline BinarySemaphore& GetAcquireSemaphore(uint8_t frameIndex) { return acquire_semaphores[frameIndex]; }
+        inline BinarySemaphore& GetCurrentPresentSemaphore() { return present_semaphores[imageIndex]; }
 
         VkImageLayout currentLayout;
-        
+
         //WSI (windows system interface or something) doesnt work with timeline semaphore
         PerFlight<Fence> inFlightFences;
 
@@ -95,10 +91,13 @@ namespace EWE{
         [[nodiscard]] ImageView& GetCurrentImageView();
 
         [[nodiscard]] VkPresentModeKHR GetOptimalPresentMode() const;
-        
-        [[nodiscard]] static VkSurfaceFormatKHR GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) noexcept;
-        [[nodiscard]] static VkCompositeAlphaFlagBitsKHR GetCompositeAlpha(VkSurfaceCapabilitiesKHR const& caps) noexcept;
-        [[nodiscard]] static VkExtent2D GetImageExtent(VkSurfaceCapabilitiesKHR const& caps, VkExtent2D framebuffer) noexcept;
+
+        [[nodiscard]] static VkSurfaceFormatKHR
+        GetSurfaceFormat(std::span<VkSurfaceFormatKHR const> supported) noexcept;
+        [[nodiscard]] static VkCompositeAlphaFlagBitsKHR
+        GetCompositeAlpha(VkSurfaceCapabilitiesKHR const& caps) noexcept;
+        [[nodiscard]] static VkExtent2D
+        GetImageExtent(VkSurfaceCapabilitiesKHR const& caps, VkExtent2D framebuffer) noexcept;
 
         [[nodiscard]] static uint32_t GetImageCount(VkSurfaceCapabilitiesKHR const& caps) noexcept;
     };

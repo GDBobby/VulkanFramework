@@ -2,7 +2,7 @@
 #include "EightWinds/VulkanHeader.h"
 
 
-namespace EWE{
+namespace EWE {
 #if EWE_DEBUG_BOOL
     struct Instance;
 
@@ -13,7 +13,7 @@ namespace EWE{
         Instance& instance;
 
         static std::function<void()> validation_callback;
-        
+
         static bool CheckValidationLayerSupport();
         static VkDebugUtilsMessengerCreateInfoEXT GetPopulatedDebugMessengerCreateInfo();
     };

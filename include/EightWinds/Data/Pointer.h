@@ -1,19 +1,13 @@
 #pragma once
 
-namespace EWE{
+namespace EWE {
     template<typename T>
-    struct OptionalReference{
+    struct OptionalReference {
         T* ref;
 
-        operator bool() const{
-            return ref != nullptr;
-        }
+        operator bool() const { return ref != nullptr; }
 
-        T& operator->(){
-            return *ref;
-        }
-        T& operator*(){
-            return *ref;
-        }
+        T& operator->() { return *ref; }
+        T& operator*() { return *ref; }
     }:
 }

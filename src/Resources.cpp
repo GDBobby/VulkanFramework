@@ -2,6 +2,4 @@
 
 #include "EightWinds/CommandBuffer.h"
 
-namespace EWE{
-	
-}
+namespace EWE {}

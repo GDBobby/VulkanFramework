@@ -19,69 +19,80 @@
 #include <span>
 
 
-namespace EWE{
+namespace EWE {
 
-	struct RenderAttachments;
+    struct RenderAttachments;
 
-	struct RenderInfo {
-		std::vector<VkRenderingAttachmentInfo> colors;
-		VkRenderingAttachmentInfo depth;
+    struct RenderInfo {
+        std::vector<VkRenderingAttachmentInfo> colors;
+        VkRenderingAttachmentInfo depth;
 
-		void Init(RenderAttachments const& attachments, uint8_t frameIndex);
-		[[nodiscard]] RenderInfo() = default;
-		[[nodiscard]] explicit RenderInfo(RenderAttachments const& attachments, uint8_t frameIndex);
-	};
+        void Init(RenderAttachments const& attachments, uint8_t frameIndex);
+        [[nodiscard]] RenderInfo() = default;
+        [[nodiscard]] explicit RenderInfo(RenderAttachments const& attachments, uint8_t frameIndex);
+    };
 
-	struct Render_Vk_Data {
-		PerFlight<RenderInfo> vk_data;
-		PerFlight<VkRenderingInfo> vk_info;
+    struct Render_Vk_Data {
+        PerFlight<RenderInfo> vk_data;
+        PerFlight<VkRenderingInfo> vk_info;
 
-		void Init(RenderAttachments const& attachments, VkRenderingFlags renderingFlags, uint32_t screen_width, uint32_t screen_height);
-		[[nodiscard]] Render_Vk_Data() = default;
-		[[nodiscard]] explicit Render_Vk_Data(RenderAttachments const& attachments, uint32_t screen_width, uint32_t screen_height);
-	};
+        void Init(
+            RenderAttachments const& attachments,
+            VkRenderingFlags renderingFlags,
+            uint32_t screen_width,
+            uint32_t screen_height
+        );
+        [[nodiscard]] Render_Vk_Data() = default;
+        [[nodiscard]] explicit Render_Vk_Data(
+            RenderAttachments const& attachments,
+            uint32_t screen_width,
+            uint32_t screen_height
+        );
+    };
 
     struct AttachmentInfo {
-        VkFormat                format;
-        VkAttachmentLoadOp      loadOp;
-        VkAttachmentStoreOp     storeOp;
-        VkClearValue            clearValue;
+        VkFormat format;
+        VkAttachmentLoadOp loadOp;
+        VkAttachmentStoreOp storeOp;
+        VkClearValue clearValue;
     };
 
     struct AttachmentSetInfo {
-		
-		bool relative_size = true;
+
+        bool relative_size = true;
         float width;
         float height;
-		VkRenderingFlags renderingFlags{ 0 };
+        VkRenderingFlags renderingFlags{0};
         RuntimeArray<AttachmentInfo> colors{0};
-		bool using_depth = true;
+        bool using_depth = true;
         AttachmentInfo depth;
 
-		[[nodiscard]] AttachmentSetInfo() = default;
-		[[nodiscard]] AttachmentSetInfo(
-			uint32_t _width, uint32_t _height, 
-			VkRenderingFlags _renderingFlags,
-        	std::span<const AttachmentInfo> _colors,
-        	AttachmentInfo _depth 
-		);
-		[[nodiscard]] AttachmentSetInfo(
-			uint32_t _width, uint32_t _height, 
-			VkRenderingFlags _renderingFlags,
-        	std::span<const AttachmentInfo> _colors
-		);
+        [[nodiscard]] AttachmentSetInfo() = default;
+        [[nodiscard]] AttachmentSetInfo(
+            uint32_t _width,
+            uint32_t _height,
+            VkRenderingFlags _renderingFlags,
+            std::span<const AttachmentInfo> _colors,
+            AttachmentInfo _depth
+        );
+        [[nodiscard]] AttachmentSetInfo(
+            uint32_t _width,
+            uint32_t _height,
+            VkRenderingFlags _renderingFlags,
+            std::span<const AttachmentInfo> _colors
+        );
 
-		[[nodiscard]] AttachmentSetInfo(AttachmentSetInfo const& copySrc);
+        [[nodiscard]] AttachmentSetInfo(AttachmentSetInfo const& copySrc);
 
-		AttachmentSetInfo& operator=(AttachmentSetInfo const& copySrc);
+        AttachmentSetInfo& operator=(AttachmentSetInfo const& copySrc);
 
-		VkRect2D CalculateRenderArea(uint32_t screen_width, uint32_t screen_height) const;
+        VkRect2D CalculateRenderArea(uint32_t screen_width, uint32_t screen_height) const;
     };
 
-	struct FullRenderInfo; //forward declare
+    struct FullRenderInfo; //forward declare
 
-	struct AttachmentMeta{
-		/*
+    struct AttachmentMeta {
+        /*
 			a color view can be generated in a different render attachment object. it can be referenced.
 			this tracks those references, specifically for cross-runtime stability
 
@@ -92,72 +103,78 @@ namespace EWE{
 			this can be useful for putting an arbitrary image into the attachment slot (like the present image)
 		*/
 
-		FullRenderInfo* src_owner; //if source_owner is nullptr, 'this' is the owner
-		int8_t src_index;
-	};
+        FullRenderInfo* src_owner; //if source_owner is nullptr, 'this' is the owner
+        int8_t src_index;
+    };
 
-	struct RenderAttachments {
-		std::filesystem::path name;
-		LogicalDevice& logicalDevice;
-		Queue& graphicsQueue;
+    struct RenderAttachments {
+        std::filesystem::path name;
+        LogicalDevice& logicalDevice;
+        Queue& graphicsQueue;
 
-		AttachmentSetInfo setInfo;
+        AttachmentSetInfo setInfo;
 
-		RuntimeArray<AttachmentMeta> meta;
+        RuntimeArray<AttachmentMeta> meta;
 
-		RuntimeArray<PerFlight<ImageView*>> color_views;
-		PerFlight<ImageView*> depth_views;
-
-
-		[[nodiscard]] explicit RenderAttachments(
-			std::filesystem::path const& name,
-			LogicalDevice& logicalDevice,
-			Queue& graphicsQueue,
-			AttachmentSetInfo const& setInfo,
-			uint32_t width, uint32_t height
-		);
-		[[nodiscard]] explicit RenderAttachments(
-			std::filesystem::path const& name,
-			LogicalDevice& logicalDevice,
-			Queue& graphicsQueue,
-			AttachmentSetInfo const& setInfo,
-			std::span<const AttachmentMeta> _meta,
-			uint32_t width, uint32_t height
-		);
-
-		//use negative index to generate depth
-		void GenerateImage(
-			PerFlight<Image*> img_con_addr, 
-			PerFlight<ImageView*> view_con_addr, 
-			uint32_t width, uint32_t height,
-			int index
-		); 
-
-		void CreateImages(uint32_t width, uint32_t height);
-		void InitialTransition();
-	};
+        RuntimeArray<PerFlight<ImageView*>> color_views;
+        PerFlight<ImageView*> depth_views;
 
 
-	struct FullRenderInfo {
-		RenderAttachments full;
-		Render_Vk_Data render_data;
-		std::filesystem::path& name; //reference to full.name
+        [[nodiscard]] explicit RenderAttachments(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice,
+            Queue& graphicsQueue,
+            AttachmentSetInfo const& setInfo,
+            uint32_t width,
+            uint32_t height
+        );
+        [[nodiscard]] explicit RenderAttachments(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice,
+            Queue& graphicsQueue,
+            AttachmentSetInfo const& setInfo,
+            std::span<const AttachmentMeta> _meta,
+            uint32_t width,
+            uint32_t height
+        );
 
-		[[nodiscard]] explicit FullRenderInfo(
-			std::filesystem::path const& name,
-			LogicalDevice& logicalDevice,
-			Queue& graphicsQueue,
-			AttachmentSetInfo const& setInfo,
-			uint32_t width, uint32_t height
-		);
-		[[nodiscard]] explicit FullRenderInfo(
-			std::filesystem::path const& name,
-			LogicalDevice& logicalDevice, Queue& graphicsQueue,
-			AttachmentSetInfo const& setInfo,
-			std::span<const AttachmentMeta> _meta,
-			uint32_t width, uint32_t height
-		);
+        //use negative index to generate depth
+        void GenerateImage(
+            PerFlight<Image*> img_con_addr,
+            PerFlight<ImageView*> view_con_addr,
+            uint32_t width,
+            uint32_t height,
+            int index
+        );
 
-		void Undefer(InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_render_info);
-	};
+        void CreateImages(uint32_t width, uint32_t height);
+        void InitialTransition();
+    };
+
+
+    struct FullRenderInfo {
+        RenderAttachments full;
+        Render_Vk_Data render_data;
+        std::filesystem::path& name; //reference to full.name
+
+        [[nodiscard]] explicit FullRenderInfo(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice,
+            Queue& graphicsQueue,
+            AttachmentSetInfo const& setInfo,
+            uint32_t width,
+            uint32_t height
+        );
+        [[nodiscard]] explicit FullRenderInfo(
+            std::filesystem::path const& name,
+            LogicalDevice& logicalDevice,
+            Queue& graphicsQueue,
+            AttachmentSetInfo const& setInfo,
+            std::span<const AttachmentMeta> _meta,
+            uint32_t width,
+            uint32_t height
+        );
+
+        void Undefer(InstructionPointer<ParamPack<Inst::BeginRender>>* deferred_render_info);
+    };
 } //namespace EWE

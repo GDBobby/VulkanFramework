@@ -5,8 +5,8 @@
 #include <unordered_map>
 #include <string>
 
-namespace EWE{
-/*
+namespace EWE {
+    /*
 	struct Pipeline;
     //need to make this an object instead of a namespace
 	//same problem as factory, where the best place to put it would be logicaldevice

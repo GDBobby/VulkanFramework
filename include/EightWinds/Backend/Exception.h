@@ -13,7 +13,7 @@
 #include <stdexcept>
 #endif
 
-namespace EWE{
+namespace EWE {
 
 #if EWE_USING_EXCEPTIONS
 //im thinking i might need another level of inheritance for these exceptions
@@ -26,12 +26,17 @@ namespace EWE{
     struct EWEException : public std::runtime_error {
         VkResult result;
         std::string msg;
-        
+
         //this will be populated in construction
 #if EWE_CALL_STACK_DEBUG
-        std::stacktrace stacktrace; 
+        std::stacktrace stacktrace;
 #endif
-        [[nodiscard]] explicit EWEException(uint8_t skip, uint8_t max_depth, VkResult result, std::string_view msg) noexcept;
+        [[nodiscard]] explicit EWEException(
+            uint8_t skip,
+            uint8_t max_depth,
+            VkResult result,
+            std::string_view msg
+        ) noexcept;
         [[nodiscard]] explicit EWEException(uint8_t skip, uint8_t max_depth, std::string_view msg) noexcept;
         [[nodiscard]] explicit EWEException(uint8_t skip, uint8_t max_depth, VkResult result) noexcept;
         [[nodiscard]] explicit EWEException(VkResult result, std::string_view msg) noexcept;

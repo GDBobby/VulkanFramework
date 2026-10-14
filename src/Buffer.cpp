@@ -2,16 +2,18 @@
 
 #include "vma/include/vk_mem_alloc.h"
 
-namespace EWE{
+namespace EWE {
 
-    Buffer::~Buffer(){
+    Buffer::~Buffer() {
         if (mapped != nullptr) {
             //ideally buffers would be explicitly unmapped before deconstruction
             Log::Debug("buffer wasn't unmapped before deconstruction\n");
             Unmap();
         }
         logicalDevice.buffers.Remove(this);
-        logicalDevice.garbageDisposal.Toss([&, alloc = vmaAlloc, buffer = buffer_info.buffer]{vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, alloc);});
+        logicalDevice.garbageDisposal.Toss([&, alloc = vmaAlloc, buffer = buffer_info.buffer] {
+            vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, alloc);
+        });
     }
 
     void Buffer::DestroyTheVkBuffer() {
@@ -32,9 +34,17 @@ namespace EWE{
 
         EWE_ASSERT(bufferSize > 0);
 
-        EWE_VK(vmaCreateBuffer, logicalDevice.vmaAllocator, &bufferCreateInfo, &vmaAllocCreateInfo, &buffer_info.buffer, &vmaAlloc, nullptr);
+        EWE_VK(
+            vmaCreateBuffer,
+            logicalDevice.vmaAllocator,
+            &bufferCreateInfo,
+            &vmaAllocCreateInfo,
+            &buffer_info.buffer,
+            &vmaAlloc,
+            nullptr
+        );
 
-        if(usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT){
+        if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) {
             VkBufferDeviceAddressInfo bdaInfo{
                 .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
                 .pNext = nullptr,
@@ -46,7 +56,8 @@ namespace EWE{
     }
 
     void Buffer::Init(
-        VkDeviceSize _instanceSize, uint32_t instanceCount,
+        VkDeviceSize _instanceSize,
+        uint32_t instanceCount,
         VmaAllocationCreateInfo const& vmaAllocCreateInfo,
         VkBufferUsageFlags _usageFlags
     ) {
@@ -57,58 +68,64 @@ namespace EWE{
         usageFlags = _usageFlags;
         //alignmentSize = CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits);
         instanceSize = _instanceSize;
-        bufferSize = instanceCount * instanceSize;// * alignmentSize;
+        bufferSize = instanceCount * instanceSize; // * alignmentSize;
         existsOnTheGPU = true;
 
         CreateTheVkBuffer(vmaAllocCreateInfo);
 
 #if EWE_DEBUG_NAMING
         auto const name_str = name.string();
-        if(name_str != ""){
+        if (name_str != "") {
             SetName(name_str);
         }
 #endif
     }
-    
+
     Buffer::Buffer(LogicalDevice& _logicalDevice)
-        : logicalDevice{ _logicalDevice },
-        usageFlags{0},
-        //alignmentSize{0},
-        instanceSize{0},
-        bufferSize{0},
-        existsOnTheGPU{false}
+        : logicalDevice{_logicalDevice},
+          usageFlags{0},
+          //alignmentSize{0},
+          instanceSize{0},
+          bufferSize{0},
+          existsOnTheGPU{false}
 #if EWE_DEBUG_NAMING
-        ,
-        creation_trace{std::stacktrace::current(1)}
+          ,
+          creation_trace{std::stacktrace::current(1)}
 #endif
     {
         buffer_info.buffer = VK_NULL_HANDLE;
         vmaAlloc = VK_NULL_HANDLE;
     }
 
-    Buffer::Buffer(LogicalDevice& _logicalDevice, VkDeviceSize _instanceSize, uint32_t instanceCount, VmaAllocationCreateInfo const& vmaAllocCreateInfo, VkBufferUsageFlags _usageFlags)
-        : logicalDevice{ _logicalDevice },
-        usageFlags{ _usageFlags },
-        //alignmentSize{ CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits) },
-        instanceSize{_instanceSize},
-        bufferSize{ instanceCount * instanceSize}, //* alignmentSize },
-        existsOnTheGPU{ true }
+    Buffer::Buffer(
+        LogicalDevice& _logicalDevice,
+        VkDeviceSize _instanceSize,
+        uint32_t instanceCount,
+        VmaAllocationCreateInfo const& vmaAllocCreateInfo,
+        VkBufferUsageFlags _usageFlags
+    )
+        : logicalDevice{_logicalDevice},
+          usageFlags{_usageFlags},
+          //alignmentSize{ CalculateAlignment(instanceSize, usageFlags, logicalDevice.properties.properties.limits) },
+          instanceSize{_instanceSize},
+          bufferSize{instanceCount * instanceSize}, //* alignmentSize },
+          existsOnTheGPU{true}
 #if EWE_DEBUG_NAMING
-        ,
-        creation_trace{std::stacktrace::current(1)}
+          ,
+          creation_trace{std::stacktrace::current(1)}
 #endif
     {
         CreateTheVkBuffer(vmaAllocCreateInfo);
     }
     Buffer::Buffer(
         std::filesystem::path const& _name,
-        LogicalDevice& _logicalDevice, 
-        VkDeviceSize _instanceSize, uint32_t _instanceCount, 
-        VmaAllocationCreateInfo const& _vmaAllocCreateInfo, 
+        LogicalDevice& _logicalDevice,
+        VkDeviceSize _instanceSize,
+        uint32_t _instanceCount,
+        VmaAllocationCreateInfo const& _vmaAllocCreateInfo,
         VkBufferUsageFlags _usageFlags
     )
-    : Buffer{_logicalDevice, _instanceSize, _instanceCount, _vmaAllocCreateInfo, _usageFlags}
-    {
+        : Buffer{_logicalDevice, _instanceSize, _instanceCount, _vmaAllocCreateInfo, _usageFlags} {
         SetName(_name.string());
     }
 
@@ -123,18 +140,18 @@ namespace EWE{
         vmaUnmapMemory(logicalDevice.vmaAllocator, vmaAlloc);
         mapped = nullptr;
     }
-    
+
     void Buffer::Flush(VkDeviceSize size, VkDeviceSize offset) {
         EWE_VK(vmaFlushAllocation, logicalDevice.vmaAllocator, vmaAlloc, offset, size);
     }
-    void Buffer::FlushMin(VkDeviceSize offset){
+    void Buffer::FlushMin(VkDeviceSize offset) {
         VkDeviceSize trueOffset = offset - (offset % minOffsetAlignment);
-        if(offset != trueOffset){
+        if (offset != trueOffset) {
             //warning maybe?
         }
         EWE_VK(vmaFlushAllocation, logicalDevice.vmaAllocator, vmaAlloc, trueOffset, minOffsetAlignment);
     }
-    void Buffer::FlushIndex(uint32_t index) { 
+    void Buffer::FlushIndex(uint32_t index) {
         Flush(instanceSize, index * instanceSize);
     }
 
@@ -171,7 +188,7 @@ namespace EWE{
         return ret;
     }
 
-    void* Buffer::GetMapped(){
+    void* Buffer::GetMapped() {
         return mapped;
     }
 
@@ -184,7 +201,7 @@ namespace EWE{
     void Buffer::SetName(std::string_view _name) {
 #if EWE_DEBUG_NAMING
         name = _name;
-        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, _name);   
+        logicalDevice.SetObjectName(buffer_info.buffer, VK_OBJECT_TYPE_BUFFER, _name);
 #endif
     }
 } //namespace EWE

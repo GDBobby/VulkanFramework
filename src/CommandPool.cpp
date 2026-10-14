@@ -4,13 +4,16 @@
 
 #include <array>
 
-namespace EWE{
+namespace EWE {
 
-    [[nodiscard]] CommandPool::CommandPool(LogicalDevice& _logicalDevice, Queue& _queue, VkCommandPoolCreateFlags createFlags)
-        : logicalDevice{_logicalDevice}, 
-        queue{_queue},
-        flags{ createFlags }
-    {
+    [[nodiscard]] CommandPool::CommandPool(
+        LogicalDevice& _logicalDevice,
+        Queue& _queue,
+        VkCommandPoolCreateFlags createFlags
+    )
+        : logicalDevice{_logicalDevice},
+          queue{_queue},
+          flags{createFlags} {
         VkCommandPoolCreateInfo commandPoolCreateInfo{
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .pNext = nullptr,
@@ -18,21 +21,16 @@ namespace EWE{
             .queueFamilyIndex = queue.family.index
         };
         //Log::Debug("vkcreatecommandpool addr : %zu\n", reinterpret_cast<std::size_t>(reinterpret_cast<void*>(vkCreateCommandPool)));
-        EWE_VK(vkCreateCommandPool,
-            logicalDevice.device, 
-            &commandPoolCreateInfo, 
-            nullptr, 
-            &commandPool
-        );
+        EWE_VK(vkCreateCommandPool, logicalDevice.device, &commandPoolCreateInfo, nullptr, &commandPool);
 
         queue.commandPools.Add(this);
-    }    
+    }
 
     CommandPool::~CommandPool() {
         //if (commandPool != VK_NULL_HANDLE) {
-            vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+        vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
-            queue.commandPools.Remove(this);
+        queue.commandPools.Remove(this);
         //}
     }
     /*
@@ -66,13 +64,11 @@ namespace EWE{
             .commandBufferCount = max_frames_in_flight
         };
         EWE_VK(vkAllocateCommandBuffers, logicalDevice, &allocInfo, raw_data.data());
-        return PerFlight<CommandBuffer>(
-            CommandBuffer{*this, raw_data[0] },
-            CommandBuffer{*this, raw_data[1] }
-        );
+        return PerFlight<CommandBuffer>(CommandBuffer{*this, raw_data[0]}, CommandBuffer{*this, raw_data[1]});
     }
 
-    [[nodiscard]] std::vector<CommandBuffer> CommandPool::AllocateCommands(uint8_t count, VkCommandBufferLevel buffer_level) {
+    [[nodiscard]] std::vector<CommandBuffer>
+    CommandPool::AllocateCommands(uint8_t count, VkCommandBufferLevel buffer_level) {
         allocatedBuffers += count;
 
         std::vector<VkCommandBuffer> raw_data(count);
@@ -102,7 +98,7 @@ namespace EWE{
             .commandBufferCount = 1
         };
         EWE_VK(vkAllocateCommandBuffers, logicalDevice, &allocInfo, &raw_data);
-        return CommandBuffer{ *this, raw_data };
+        return CommandBuffer{*this, raw_data};
     }
 
     void CommandPool::Reset(VkCommandPoolResetFlags flag) {

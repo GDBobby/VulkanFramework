@@ -1,37 +1,31 @@
 #include "EightWinds/Command/ObjectInstructionPackage.h"
 
-namespace EWE{
-namespace Command{
-    ObjectPackage::ObjectPackage()
-    : InstructionPackage{Command::InstructionPackage::Object}
-    {
+namespace EWE {
+    namespace Command {
+        ObjectPackage::ObjectPackage() : InstructionPackage{Command::InstructionPackage::Object} {}
+        ObjectPackage::ObjectPackage(std::filesystem::path const& _name)
+            : InstructionPackage{Command::InstructionPackage::Object, _name} {}
 
-    }
-    ObjectPackage::ObjectPackage(std::filesystem::path const& _name)
-    : InstructionPackage{Command::InstructionPackage::Object, _name}
-    {
-
-    }
-
-    ObjectPackage::DrawType ObjectPackage::GetDrawType() const{
-        for(auto& inst : paramPool.instructions){
-            switch(inst){
-                case Inst::Draw:
-                case Inst::DrawIndexed:
-                case Inst::DrawIndirect:
-                case Inst::DrawIndexedIndirect:
-                case Inst::DrawIndirectCount:
-                case Inst::DrawIndexedIndirectCount:
-                    return DrawType::Vertex;
-                case Inst::DrawMeshTasks:
-                case Inst::DrawMeshTasksIndirect:
-                case Inst::DrawMeshTasksIndirectCount:
-                    return DrawType::Mesh;
-                default: break;
+        ObjectPackage::DrawType ObjectPackage::GetDrawType() const {
+            for (auto& inst : paramPool.instructions) {
+                switch (inst) {
+                    case Inst::Draw:
+                    case Inst::DrawIndexed:
+                    case Inst::DrawIndirect:
+                    case Inst::DrawIndexedIndirect:
+                    case Inst::DrawIndirectCount:
+                    case Inst::DrawIndexedIndirectCount:
+                        return DrawType::Vertex;
+                    case Inst::DrawMeshTasks:
+                    case Inst::DrawMeshTasksIndirect:
+                    case Inst::DrawMeshTasksIndirectCount:
+                        return DrawType::Mesh;
+                    default:
+                        break;
+                }
             }
-        }
-        return DrawType::INVALID;
-    };
+            return DrawType::INVALID;
+        };
 
-} //namespace COmmand
+    } //namespace COmmand
 } //namespace EWE

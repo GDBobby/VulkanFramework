@@ -3,12 +3,12 @@
 #include "EightWinds/VulkanHeader.h"
 #include "EightWinds/Backend/Descriptor/Bindless.h"
 
-namespace EWE{
+namespace EWE {
     struct LogicalDevice;
     struct Sampler;
     struct ImageView;
-    
-    struct DescriptorImageInfo{
+
+    struct DescriptorImageInfo {
 
         std::filesystem::path name;
 
@@ -21,18 +21,21 @@ namespace EWE{
         TextureIndex index;
 
         [[nodiscard]] explicit DescriptorImageInfo(ImageView& view, DescriptorType type, VkImageLayout explicitLayout);
-        [[nodiscard]] explicit DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type, VkImageLayout explicitLayout);
+        [[nodiscard]] explicit DescriptorImageInfo(
+            Sampler& sampler,
+            ImageView& view,
+            DescriptorType type,
+            VkImageLayout explicitLayout
+        );
         [[nodiscard]] explicit DescriptorImageInfo(ImageView& view, DescriptorType type);
         [[nodiscard]] explicit DescriptorImageInfo(Sampler& sampler, ImageView& view, DescriptorType type);
         ~DescriptorImageInfo();
 
         DescriptorImageInfo(DescriptorImageInfo const& copySrc) = delete;
-        DescriptorImageInfo(DescriptorImageInfo&& moveSrc) = delete;//noexcept;
+        DescriptorImageInfo(DescriptorImageInfo&& moveSrc) = delete; //noexcept;
         DescriptorImageInfo& operator=(DescriptorImageInfo const& copySrc) = delete;
         DescriptorImageInfo& operator=(DescriptorImageInfo&& moveSrc) = delete;
 
-        operator VkDescriptorImageInfo() const{
-            return imageInfo;
-        }
+        operator VkDescriptorImageInfo() const { return imageInfo; }
     };
 }

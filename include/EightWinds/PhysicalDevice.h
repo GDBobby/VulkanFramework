@@ -5,21 +5,27 @@
 
 #include <vector>
 
-namespace EWE{
-    struct PhysicalDevice{
+namespace EWE {
+    struct PhysicalDevice {
         Instance& instance;
 
         VkPhysicalDevice device;
 
         const std::vector<QueueFamily> queueFamilies;
 
-#if EWE_DEBUG_NAMING
         std::string name;
-#endif
 
         //the device is selected separately
-        [[nodiscard]] explicit PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
-        [[nodiscard]] explicit PhysicalDevice(Instance& instance, VkPhysicalDevice physicalDevice, std::vector<QueueFamily> const& queueFamilies);
+        [[nodiscard]] explicit PhysicalDevice(
+            Instance& instance,
+            VkPhysicalDevice physicalDevice,
+            VkSurfaceKHR surface
+        );
+        [[nodiscard]] explicit PhysicalDevice(
+            Instance& instance,
+            VkPhysicalDevice physicalDevice,
+            std::vector<QueueFamily> const& queueFamilies
+        );
 
         PhysicalDevice(PhysicalDevice&& moveSrc) noexcept;
 
@@ -27,8 +33,6 @@ namespace EWE{
         PhysicalDevice& operator=(PhysicalDevice const& copySrc) = delete;
         PhysicalDevice& operator=(PhysicalDevice&& moveSrc) = delete;
 
-        operator VkPhysicalDevice() const {
-            return device;
-        }
+        operator VkPhysicalDevice() const { return device; }
     };
 }

@@ -4,10 +4,10 @@
 
 #include "EightWinds/CommandBuffer.h"
 
-namespace EWE{
+namespace EWE {
     struct CommandBuffer;
 
-    namespace Backend{
+    namespace Backend {
         struct SubmitInfo {
         private:
             std::vector<VkSemaphoreSubmitInfo> internal_waitSemaphores;
@@ -31,7 +31,7 @@ namespace EWE{
     }
 }
 
-            /*
+/*
             VkStructureType                     sType;
             const void*                         pNext;
             VkSubmitFlags                       flags;

@@ -1,6 +1,6 @@
 #include "EightWinds/RenderGraph/SubmissionTask.h"
 
-namespace EWE{
+namespace EWE {
 
     /*
     void TaskSubmissionWorkload::GenerateBridges(){
@@ -16,15 +16,19 @@ namespace EWE{
     */
 
     SubmissionTask::SubmissionTask(std::filesystem::path const& _name, LogicalDevice& _logicalDevice, Queue& _queue)
-        : logicalDevice{_logicalDevice}, queue{&_queue},
-        cmdPool{logicalDevice, *queue, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-        cmdBuffers{ cmdPool.AllocateCommandsPerFlight(VK_COMMAND_BUFFER_LEVEL_PRIMARY) },
-        //signal{signals},
-        //full_workload{nullptr},
-        //external_workload{nullptr},
-        name{_name},
-        packaged_tasks{}
-    {
+        : logicalDevice{_logicalDevice},
+          queue{&_queue},
+          cmdPool{
+              logicalDevice,
+              *queue,
+              VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+          },
+          cmdBuffers{cmdPool.AllocateCommandsPerFlight(VK_COMMAND_BUFFER_LEVEL_PRIMARY)},
+          //signal{signals},
+          //full_workload{nullptr},
+          //external_workload{nullptr},
+          name{_name},
+          packaged_tasks{} {
 #if EWE_DEBUG_NAMING
         for (uint8_t frame = 0; frame < EWE::max_frames_in_flight; frame++) {
             std::string debug_name = std::string("subtask[") + name.string() + "][" + std::to_string(frame) + ']';
@@ -45,7 +49,7 @@ namespace EWE{
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .pInheritanceInfo = nullptr  
+            .pInheritanceInfo = nullptr
         };
         cmdBuffers[frameIndex].Reset();
         cmdBuffers[frameIndex].Begin(cmdBeginInfo);
@@ -60,7 +64,7 @@ namespace EWE{
         logicalDevice.BeginLabel(cmdBuffers[frameIndex], &labelUtil);
 #endif
 
-        for(auto& task_package : packaged_tasks){
+        for (auto& task_package : packaged_tasks) {
             ret |= task_package(cmdBuffers[frameIndex], frameIndex);
         }
 #if EWE_DEBUG_NAMING
@@ -74,25 +78,22 @@ namespace EWE{
         return ret;
     }
 
-    void SubmissionTask::CollectTaskWorkloads(){
+    void SubmissionTask::CollectTaskWorkloads() {
         packaged_tasks.clear();
-        for(auto* task : tasks){
+        for (auto* task : tasks) {
             task->GenerateWorkload();
             packaged_tasks.push_back(task->workload);
         }
     }
 
 
-    SubmissionBridge::SubmissionBridge(std::span<SubmissionTask*> _lhs, SubmissionTask* _rhs)
-        : lhs{_lhs}, rhs{_rhs}
-    {
+    SubmissionBridge::SubmissionBridge(std::span<SubmissionTask*> _lhs, SubmissionTask* _rhs) : lhs{_lhs}, rhs{_rhs} {
         for (uint8_t i = 0; i < max_frames_in_flight; i++) {
             for (auto& lh : lhs) {
                 //EWE_ASSERT(lh->signal); //i dont know if i want to force this or not
                 rhs->submitInfo[i].WaitOnPrevious(lh->submitInfo[i]);
             }
         }
-        
     }
-    
+
 }

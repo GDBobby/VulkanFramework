@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-namespace EWE{
+namespace EWE {
     struct Sampler {
         LogicalDevice& logicalDevice;
         const VkSamplerCreateInfo info;
@@ -19,9 +19,7 @@ namespace EWE{
         Sampler& operator=(Sampler const& copySrc) = delete;
         Sampler& operator=(Sampler&& moveSrc) = delete;
 
-        operator VkSampler() const {
-            return sampler;
-        }
+        operator VkSampler() const { return sampler; }
 
         using CondensedType = uint64_t;
         static CondensedType Condense(VkSamplerCreateInfo const& info);

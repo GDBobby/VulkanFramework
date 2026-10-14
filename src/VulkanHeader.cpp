@@ -15,7 +15,7 @@
 #include <pthread.h>
 #endif
 
-namespace EWE{
+namespace EWE {
     //i think im going to change this to print out some history of the render graph
     //that would mean castign a type erased pointer (void*), along with a enum val (VK_OBJECT_TYPE similar)
     //then including basically EVERYTHING in a cpp file
@@ -28,7 +28,7 @@ namespace EWE{
                 //going to use the device lost extension here
                 EWE_ASSERT(vkResult == VK_SUCCESS, Reflect::Enum::ToString(vkResult));
 
-            //the callstack isnt relevant for device lost
+                //the callstack isnt relevant for device lost
 #endif
 #if EWE_CALL_STACK_DEBUG
                 std::stacktrace error_trace = std::stacktrace::current(2);
@@ -44,7 +44,7 @@ namespace EWE{
         }
     }
 
-    void NameCurrentThread(std::string_view name){
+    void NameCurrentThread(std::string_view name) {
 #ifdef _WIN32
         std::wstring wname(name.begin(), name.end());
         SetThreadDescription(GetCurrentThread(), wname.c_str());

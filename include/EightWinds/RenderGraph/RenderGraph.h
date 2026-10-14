@@ -20,17 +20,19 @@
 #include "EightWinds/Data/Hive.h"
 #include "EightWinds/Data/RingBuffer.h"
 
-namespace EWE{
+namespace EWE {
 
     struct ImguiExtension;
 
-    struct RenderGraph{
+    struct RenderGraph {
         std::filesystem::path name;
 
         [[nodiscard]] explicit RenderGraph(
             std::filesystem::path const& name,
-            LogicalDevice& logicalDevice, Swapchain& swapchain, 
-            Queue& renderQueue, Queue& computeQueue,
+            LogicalDevice& logicalDevice,
+            Swapchain& swapchain,
+            Queue& renderQueue,
+            Queue& computeQueue,
             SubmissionTask& graphics_stc_task,
             SubmissionTask& compute_stc_task
         );
@@ -68,7 +70,7 @@ namespace EWE{
 
         void Execute(uint8_t frameIndex);
 
-        struct SwapImageInstance{
+        struct SwapImageInstance {
             GPUTask* task;
             uint32_t res_index;
         };
@@ -101,6 +103,8 @@ namespace EWE{
         friend struct ImguiExtension;
     };
 
-    template <> void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Image> const& data);
-    template <> void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Buffer> const& data);
-}//namespace EWE
+    template<>
+    void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Image> const& data);
+    template<>
+    void RenderGraph::ResourceOwnershipTransfer(STC_Sub_Package<Buffer> const& data);
+} //namespace EWE

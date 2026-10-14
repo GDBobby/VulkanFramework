@@ -54,7 +54,7 @@ namespace EWE {
             case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: {
                 std::string_view msg = pCallbackData->pMessage;
                 if (msg.find("THREADING ERROR") != std::string_view::npos) {
-            #if defined(__linux__) || defined(__ANDROID__)
+#if defined(__linux__) || defined(__ANDROID__)
                     unsigned long long tid0 = 0, tid1 = 0;
                     bool parsed = false;
 
@@ -69,17 +69,21 @@ namespace EWE {
                     }
 
                     if (parsed) {
-                        Log::Error("vulkan [THREADING ERROR] collision between thread %llu and thread %llu\n", tid0, tid1);
-                    } 
+                        Log::Error(
+                            "vulkan [THREADING ERROR] collision between thread %llu and thread %llu\n",
+                            tid0,
+                            tid1
+                        );
+                    }
                     else {
                         Log::Error("couldn't parse thread ids from: %.*s\n", (int)msg.size(), msg.data());
                     }
-#else 
+#else
 #ifdef _WIN32
 #endif
 #endif
                 }
-                else{
+                else {
                     Log::Warning("ERROR-%s%s\n", messageTypeString.data(), pCallbackData->pMessage);
                     EWE_Debug_Breakpoint();
                     throw EWEException{pCallbackData->pMessage};
@@ -97,13 +101,16 @@ namespace EWE {
             default:
                 Log::Error("validation default: %s\n", pCallbackData->pMessage);
                 break;
-
         }
         //throw std::exception("validition layer \n");
-        for(uint32_t i = 0; i < pCallbackData->objectCount; i++){
+        for (uint32_t i = 0; i < pCallbackData->objectCount; i++) {
             auto const& object = pCallbackData->pObjects[i];
-            Log::Debug("\t%u - Type[%s] : Handle[%zu] : Name[%s]\n",
-                i, Reflect::Enum::ToString(object.objectType).data(), object.objectHandle, object.pObjectName ? object.pObjectName : ""
+            Log::Debug(
+                "\t%u - Type[%s] : Handle[%zu] : Name[%s]\n",
+                i,
+                Reflect::Enum::ToString(object.objectType).data(),
+                object.objectHandle,
+                object.pObjectName ? object.pObjectName : ""
             );
         }
         return VK_FALSE;
@@ -114,7 +121,9 @@ namespace EWE {
         const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
         VkDebugUtilsMessengerEXT* pDebugMessenger
     ) {
-        auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+        auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+            vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT")
+        );
 
         if (func != nullptr) {
             EWE_VK(func, instance, pCreateInfo, nullptr, pDebugMessenger);
@@ -127,23 +136,26 @@ namespace EWE {
     void DestroyDebugUtilsMessengerEXT(
         VkInstance instance,
         VkDebugUtilsMessengerEXT debugMessenger,
-        const VkAllocationCallbacks* pAllocator) {
-        auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+        const VkAllocationCallbacks* pAllocator
+    ) {
+        auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+            vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT")
+        );
         if (func != nullptr) {
             func(instance, debugMessenger, pAllocator);
         }
     }
 
     VkDebugUtilsMessengerCreateInfoEXT DebugMessenger::GetPopulatedDebugMessengerCreateInfo() {
-        return VkDebugUtilsMessengerCreateInfoEXT {
+        return VkDebugUtilsMessengerCreateInfoEXT{
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-            .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-                | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+            .messageSeverity =
+                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
             .pfnUserCallback = debugCallback,
-            .pUserData = nullptr  // Optional
+            .pUserData = nullptr // Optional
         };
     }
 
@@ -167,9 +179,7 @@ namespace EWE {
         return layerFound;
     }
 
-    DebugMessenger::DebugMessenger(Instance& _instance) 
-        : instance{_instance} 
-    {
+    DebugMessenger::DebugMessenger(Instance& _instance) : instance{_instance} {
         //pass in the createinfo maybe??
         VkDebugUtilsMessengerCreateInfoEXT debugUtilCreateInfo = GetPopulatedDebugMessengerCreateInfo();
         CreateDebugUtilsMessengerEXT(instance.instance, &debugUtilCreateInfo, &messenger);

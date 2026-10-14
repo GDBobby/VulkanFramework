@@ -2,27 +2,27 @@
 
 #include "EightWinds/Reflect/Enum.h"
 
-namespace EWE{
+namespace EWE {
 
-    
+
     CommandBuffer::CommandBuffer(CommandPool& _commandPool, VkCommandBuffer _cmdBuf) noexcept
         : commandPool{_commandPool},
-        cmdBuf{_cmdBuf}
-    {
-    }
+          cmdBuf{_cmdBuf} {}
     CommandBuffer::CommandBuffer(CommandBuffer&& moveSrc) noexcept
-        : commandPool{ moveSrc.commandPool },
-        cmdBuf{ moveSrc.cmdBuf }
-    {
+        : commandPool{moveSrc.commandPool},
+          cmdBuf{moveSrc.cmdBuf} {
         moveSrc.cmdBuf = VK_NULL_HANDLE;
     }
 
-    CommandBuffer::~CommandBuffer(){
+    CommandBuffer::~CommandBuffer() {
         //vkEndCommandBuffer(cmdBuf); //i dont like this. it also needs to be submitted
 
         EWE_ASSERT(commandPool.allocatedBuffers > 0);
-        EWE_ASSERT(state == CommandBuffer::State::Invalid || state == CommandBuffer::State::Initial
-               || state == CommandBuffer::State::Pending, Reflect::Enum::ToString(state)); //this one is just mean time, until i manage to automate up pending -> invalid transition
+        EWE_ASSERT(
+            state == CommandBuffer::State::Invalid || state == CommandBuffer::State::Initial ||
+                state == CommandBuffer::State::Pending,
+            Reflect::Enum::ToString(state)
+        ); //this one is just mean time, until i manage to automate up pending -> invalid transition
     }
 
     void CommandBuffer::Reset() {
@@ -35,7 +35,7 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
         if (state == State::Pending) {
 #else
-        if(state == State::Initial){
+        if (state == State::Initial) {
 #endif
             state = State::Initial;
             EWE_VK(vkResetCommandBuffer, cmdBuf, resetFlags);

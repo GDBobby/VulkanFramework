@@ -8,23 +8,19 @@
 #include <cstring> //memcmp
 #include <ranges>
 
-namespace EWE{
-    struct Address{
-        union{
+namespace EWE {
+    struct Address {
+        union {
             std::size_t address;
             void* pointer;
         };
 
         constexpr Address() : address{0} {}
-        constexpr Address(std::size_t addr)
-        : address{addr}
-        {}
+        constexpr Address(std::size_t addr) : address{addr} {}
         template<typename T>
-        constexpr Address(T* ptr)
-        : pointer{reinterpret_cast<void*>(ptr)}
-        {}
+        constexpr Address(T* ptr) : pointer{reinterpret_cast<void*>(ptr)} {}
 
-        bool operator==(Address const& other) const{
+        bool operator==(Address const& other) const {
             //this avoids selecting either one from the union
             return memcmp(this, &other, sizeof(Address)) == 0;
         }
@@ -38,33 +34,31 @@ namespace EWE{
             return *CastToPtr<T>();
         }
         template<typename T>
-        T const& CastToRef() const{
+        T const& CastToRef() const {
             return *reinterpret_cast<T const*>(pointer);
         }
     };
 } //namespace EWE
 
-template <>
+template<>
 struct std::hash<EWE::Address> {
-    std::size_t operator()(const EWE::Address& a) const noexcept {
-        return std::hash<std::size_t>{}(a.address);
-    }
+    std::size_t operator()(const EWE::Address& a) const noexcept { return std::hash<std::size_t>{}(a.address); }
 };
 
-namespace EWE{
+namespace EWE {
 
     //this is buffers, command pools, and images
     template<typename T>
-    struct ResourceTracker{
+    struct ResourceTracker {
         std::mutex mut;
         std::unordered_set<Address> resources;
 
-        void Add(T* res){
+        void Add(T* res) {
             mut.lock();
             resources.insert(res);
             mut.unlock();
         }
-        void Remove(T* res){
+        void Remove(T* res) {
             mut.lock();
             resources.erase(res);
             mut.unlock();
@@ -80,12 +74,15 @@ namespace EWE{
             std::unordered_set<Address>::iterator it;
 
             T* operator*() const { return static_cast<T*>(it->pointer); }
-            Iterator& operator++() { ++it; return *this; }
+            Iterator& operator++() {
+                ++it;
+                return *this;
+            }
             bool operator!=(const Iterator& other) const { return it != other.it; }
         };
 
-        auto begin() { return Iterator{ resources.begin() }; }
-        auto end()   { return Iterator{ resources.end() };   }
+        auto begin() { return Iterator{resources.begin()}; }
+        auto end() { return Iterator{resources.end()}; }
     };
-    
+
 } //namespace EWE

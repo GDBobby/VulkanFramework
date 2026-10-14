@@ -1,10 +1,10 @@
 #pragma once
 
-namespace Reflect{
-    template <typename Struct>
+namespace Reflect {
+    template<typename Struct>
     concept IsStruct = std::is_class_v<Struct>;
 
-    struct StructMember{
+    struct StructMember {
         std::string_view name;
         std::size_t size;
         std::size_t offset;
@@ -16,10 +16,12 @@ namespace Reflect{
 
     template<IsStruct S>
     consteval auto BuildStructData() {
-        constexpr auto members = std::define_static_array(std::meta::nonstatic_data_members_of(^^E, std::meta::access_context::current()));
-        constexpr auto member_count = std::meta::nonstatic_data_members_of(^^E, std::meta::access_context::current()).size();
+        constexpr auto members =
+            std::define_static_array(std::meta::nonstatic_data_members_of(^^E, std::meta::access_context::current()));
+        constexpr auto member_count =
+            std::meta::nonstatic_data_members_of(^^E, std::meta::access_context::current()).size();
         std::array<StructMember, member_count> result;
-        
+
         template for (constexpr auto i : std::views::iota(0u, member_count)) {
             result[i] = {
                 .name = std::meta::identifier_of(members[i]),
@@ -35,14 +37,13 @@ namespace Reflect{
     }
 
     template<IsStruct S>
-    struct S{
-        
+    struct S {
+
         static constexpr auto members = BuildStructData<S>();
-        
+
         template<std::size_t Index>
-        static constexpr auto GetMember(S& s){
-            static constexpr members = std::meta::nonstatic_data_members_of(^^S)
-            return s.
+        static constexpr auto GetMember(S& s) {
+            static constexpr members = std::meta::nonstatic_data_members_of(^^S) return s.
         }
     };
 

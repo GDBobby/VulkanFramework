@@ -13,120 +13,122 @@
 #include "EightWinds/Command/STC.h"
 
 
+namespace EWE {
 
-namespace EWE{
-	
-	struct Transition_Helper{
-		LogicalDevice& logicalDevice;
-		Queue& queue;
-		EWE::CommandPool cmdPool;
-		EWE::CommandBuffer cmdBuf;
-		
-		Transition_Helper(LogicalDevice& _logicalDevice, Queue& _queue)
-		: logicalDevice{_logicalDevice},
-			queue{_queue},
-			cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
-			cmdBuf{cmdPool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY)}
-		{
-			VkCommandBufferBeginInfo beginSTCInfo{
-				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-				.pNext = nullptr,
-				.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-				.pInheritanceInfo = nullptr
-			};
-			cmdBuf.Begin(beginSTCInfo);
-		}
-		
-		void Submit(bool wait){
-			cmdBuf.End();
-			
-			VkCommandBufferSubmitInfo cmdBufSubmitInfo{
-				.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-				.pNext = nullptr,
-				.commandBuffer = cmdBuf
-			};
-			
-			VkSubmitInfo2 submitInfo{
-				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-				.pNext = nullptr,
-				.flags= 0,
-				.waitSemaphoreInfoCount = 0,
-				.pWaitSemaphoreInfos = nullptr,
-				.commandBufferInfoCount = 1,
-				.pCommandBufferInfos = &cmdBufSubmitInfo,
-				.signalSemaphoreInfoCount = 0,
-				.pSignalSemaphoreInfos = nullptr
-			};
-			
-			if(wait){
-				VkFenceCreateInfo fenceCreateInfo{
-					.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-					.pNext = nullptr,
-					.flags = 0
-				};
-				Log::Warning("this fence is created and waited on in place, NOT GOOD\n"); //replace with a semaphore
-				EWE::Fence stc_fence{logicalDevice, fenceCreateInfo};
-				queue.Submit2(1, &submitInfo, stc_fence);
-				cmdBuf.state = EWE::CommandBuffer::State::Pending;
+    struct Transition_Helper {
+        LogicalDevice& logicalDevice;
+        Queue& queue;
+        EWE::CommandPool cmdPool;
+        EWE::CommandBuffer cmdBuf;
 
-				EWE::EWE_VK(vkWaitForFences, logicalDevice.device, 1, &stc_fence.vkFence, VK_TRUE, 5 * static_cast<uint64_t>(1.0e9));
-			}
-			else{
-				queue.Submit2(1, &submitInfo, VK_NULL_HANDLE);
-				cmdBuf.state = EWE::CommandBuffer::State::Pending;
-			}
-		}
-	};
-	
-namespace Command_Helper {
-	void Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait) {
-		Transition_Helper stc_Helper(logicalDevice, queue);
+        Transition_Helper(LogicalDevice& _logicalDevice, Queue& _queue)
+            : logicalDevice{_logicalDevice},
+              queue{_queue},
+              cmdPool{logicalDevice, queue, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT},
+              cmdBuf{cmdPool.AllocateCommand(VK_COMMAND_BUFFER_LEVEL_PRIMARY)} {
+            VkCommandBufferBeginInfo beginSTCInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                .pNext = nullptr,
+                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+                .pInheritanceInfo = nullptr
+            };
+            cmdBuf.Begin(beginSTCInfo);
+        }
 
-		vkCmdPipelineBarrier2(stc_Helper.cmdBuf, &dependencyInfo);
+        void Submit(bool wait) {
+            cmdBuf.End();
 
-		stc_Helper.Submit(wait);
+            VkCommandBufferSubmitInfo cmdBufSubmitInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+                .pNext = nullptr,
+                .commandBuffer = cmdBuf
+            };
 
-	}
-	void CopyBufferToImage(CommandBuffer& cmdBuf, StagingBuffer& stagingBuffer, Image& img, VkBufferImageCopy const& region, VkImageLayout layout){
-		vkCmdCopyBufferToImage(
-			cmdBuf,
-			stagingBuffer.buffer,
-			img.image, layout,
-			1, &region
-		);
-	}
-	void CopyBufferToImage(CommandBuffer& cmdBuf, StagingBuffer& stagingBuffer, Image& img) {
-		
-		VkBufferImageCopy region{
-			.bufferOffset = 0,
-			.bufferRowLength = 0,
-			.bufferImageHeight = 0,
+            VkSubmitInfo2 submitInfo{
+                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                .pNext = nullptr,
+                .flags = 0,
+                .waitSemaphoreInfoCount = 0,
+                .pWaitSemaphoreInfos = nullptr,
+                .commandBufferInfoCount = 1,
+                .pCommandBufferInfos = &cmdBufSubmitInfo,
+                .signalSemaphoreInfoCount = 0,
+                .pSignalSemaphoreInfos = nullptr
+            };
 
-			.imageSubresource = VkImageSubresourceLayers{
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.mipLevel = 0,
-				.baseArrayLayer = 0,
-				.layerCount = img.data.arrayLayers
-			},
+            if (wait) {
+                VkFenceCreateInfo fenceCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = 0
+                };
+                Log::Warning("this fence is created and waited on in place, NOT GOOD\n"); //replace with a semaphore
+                EWE::Fence stc_fence{logicalDevice, fenceCreateInfo};
+                queue.Submit2(1, &submitInfo, stc_fence);
+                cmdBuf.state = EWE::CommandBuffer::State::Pending;
 
-			.imageOffset = VkOffset3D{ 0, 0, 0 },
-			.imageExtent = img.data.extent
-		};
-		
-		CopyBufferToImage(cmdBuf, stagingBuffer, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	}
+                EWE::EWE_VK(
+                    vkWaitForFences,
+                    logicalDevice.device,
+                    1,
+                    &stc_fence.vkFence,
+                    VK_TRUE,
+                    5 * static_cast<uint64_t>(1.0e9)
+                );
+            }
+            else {
+                queue.Submit2(1, &submitInfo, VK_NULL_HANDLE);
+                cmdBuf.state = EWE::CommandBuffer::State::Pending;
+            }
+        }
+    };
 
-	void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs, VkBufferCopy const& copyInfo){
-		vkCmdCopyBuffer(cmdBuf, lhs.buffer, rhs.buffer_info.buffer, 1, &copyInfo);
-	}
-	void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs){
-		VkBufferCopy copyInfo{
-			.srcOffset = 0,
-			.dstOffset = 0,
-			.size = lhs.bufferSize
-		};
-		CopyBufferToBuffer(cmdBuf, lhs, rhs, copyInfo);
-	}
-	
-} //namespace Command_Helper
+    namespace Command_Helper {
+        void Transition(LogicalDevice& logicalDevice, Queue& queue, VkDependencyInfo const& dependencyInfo, bool wait) {
+            Transition_Helper stc_Helper(logicalDevice, queue);
+
+            vkCmdPipelineBarrier2(stc_Helper.cmdBuf, &dependencyInfo);
+
+            stc_Helper.Submit(wait);
+        }
+        void CopyBufferToImage(
+            CommandBuffer& cmdBuf,
+            StagingBuffer& stagingBuffer,
+            Image& img,
+            VkBufferImageCopy const& region,
+            VkImageLayout layout
+        ) {
+            vkCmdCopyBufferToImage(cmdBuf, stagingBuffer.buffer, img.image, layout, 1, &region);
+        }
+        void CopyBufferToImage(CommandBuffer& cmdBuf, StagingBuffer& stagingBuffer, Image& img) {
+
+            VkBufferImageCopy region{
+                .bufferOffset = 0,
+                .bufferRowLength = 0,
+                .bufferImageHeight = 0,
+
+                .imageSubresource =
+                    VkImageSubresourceLayers{
+                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                        .mipLevel = 0,
+                        .baseArrayLayer = 0,
+                        .layerCount = img.data.arrayLayers
+                    },
+
+                .imageOffset = VkOffset3D{0, 0, 0},
+                .imageExtent = img.data.extent
+            };
+
+            CopyBufferToImage(cmdBuf, stagingBuffer, img, region, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        }
+
+        void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs, VkBufferCopy const& copyInfo) {
+            vkCmdCopyBuffer(cmdBuf, lhs.buffer, rhs.buffer_info.buffer, 1, &copyInfo);
+        }
+        void CopyBufferToBuffer(CommandBuffer& cmdBuf, StagingBuffer& lhs, Buffer& rhs) {
+            VkBufferCopy copyInfo{.srcOffset = 0, .dstOffset = 0, .size = lhs.bufferSize};
+            CopyBufferToBuffer(cmdBuf, lhs, rhs, copyInfo);
+        }
+
+    } //namespace Command_Helper
 } //namespace EWE

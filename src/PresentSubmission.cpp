@@ -1,19 +1,18 @@
 #include "EightWinds/RenderGraph/PresentSubmission.h"
 
-namespace EWE{
+namespace EWE {
     PresentSubmission::PresentSubmission(Swapchain& _swapchain, Queue& _presentQueue)
-        : swapchain{ _swapchain },
-        presentQueue{ _presentQueue },
-        incomingSemaphores{},
-        presentInfo{
-            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-            .pNext = nullptr,
-            .swapchainCount = 1,
-            .pSwapchains = &swapchain.activeSwapchain,
-            .pImageIndices = &swapchain.imageIndex,
-            .pResults = &presentResult
-        }
-    {}
+        : swapchain{_swapchain},
+          presentQueue{_presentQueue},
+          incomingSemaphores{},
+          presentInfo{
+              .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+              .pNext = nullptr,
+              .swapchainCount = 1,
+              .pSwapchains = &swapchain.activeSwapchain,
+              .pImageIndices = &swapchain.imageIndex,
+              .pResults = &presentResult
+          } {}
 
     void PresentSubmission::WaitOnPrevious(std::span<SubmissionTask*> previous_group) {
         for (uint8_t i = 0; i < max_frames_in_flight; i++) {
@@ -40,11 +39,11 @@ namespace EWE{
         presentInfo.waitSemaphoreCount = static_cast<uint32_t>(frame_sems.size());
         presentInfo.pWaitSemaphores = frame_sems.data();
         VkResult temp_ret = vkQueuePresentKHR(presentQueue, &presentInfo);
-        if(temp_ret != VK_SUBOPTIMAL_KHR){
+        if (temp_ret != VK_SUBOPTIMAL_KHR) {
             EWE_VK_RESULT(temp_ret);
         }
-        if(presentResult != VK_SUBOPTIMAL_KHR){
+        if (presentResult != VK_SUBOPTIMAL_KHR) {
             EWE_VK_RESULT(presentResult);
         }
     }
-}//namespace EWE
+} //namespace EWE

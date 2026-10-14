@@ -4,7 +4,7 @@
 #include "EightWinds/LogicalDevice.h"
 #include "FeaturePropertyPack.h"
 
-//one of the main reasons im avoiding hpp in the rest of the app is to reduce compile time. 
+//one of the main reasons im avoiding hpp in the rest of the app is to reduce compile time.
 //i dont think it's avoidable here without retyping a very large portion of it
 //just using structs.hpp would be a nice reduction in compile time but i believe that file was designed to have vulkan.hpp included first???
 
@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <array>
 
-namespace EWE{
+namespace EWE {
 
     template<typename FeatureMan, typename PropertyMan>
     struct DeviceEvaluation {
@@ -36,8 +36,8 @@ namespace EWE{
         PropertyMan properties;
 
         [[nodiscard]] explicit DeviceEvaluation(FeatureMan const& _features, PropertyMan const& _properties)
-        : features{_features}, properties{_properties}
-        {}
+            : features{_features},
+              properties{_properties} {}
 
         /*
 
@@ -49,11 +49,10 @@ namespace EWE{
         */
 
         std::vector<std::string> failureReport{};
-
     };
-            
+
     template<uint32_t Vk_Version, typename ExtensionMan, typename FeatureMan, typename PropertyMan>
-    struct DeviceSpecializer{
+    struct DeviceSpecializer {
 
         static constexpr uint32_t vk_version = RoundDownVkVersion(Vk_Version);
 
@@ -68,9 +67,7 @@ namespace EWE{
         //
 
         //intended to be used with GetExtensionIndex
-        bool GetExtensionSupport(std::size_t index) const {
-            return extension_support[index];
-        }
+        bool GetExtensionSupport(std::size_t index) const { return extension_support[index]; }
 
 
         std::array<bool, ExtensionMan::Ext_Count()> extension_support;
@@ -78,45 +75,43 @@ namespace EWE{
         PropertyMan properties;
 
         template<typename T>
-        requires (FeatureMan::template Contains_Type<T>)
-        [[nodiscard]] T& GetFeature()        
-        {
-            if constexpr(std::is_same_v<T, VkPhysicalDeviceFeatures2>){
+            requires(FeatureMan::template Contains_Type<T>)
+        [[nodiscard]] T& GetFeature() {
+            if constexpr (std::is_same_v<T, VkPhysicalDeviceFeatures2>) {
                 return features.base;
             }
-            else{
+            else {
                 return features.features.template Get<T>();
             }
         }
         template<typename T>
-        requires (FeatureMan::template Contains_Type<T>)
-        [[nodiscard]] const T& GetFeature() const
-        {
+            requires(FeatureMan::template Contains_Type<T>)
+        [[nodiscard]] const T& GetFeature() const {
             if constexpr (std::is_same_v<T, VkPhysicalDeviceFeatures2>) {
                 return features.base;
-            } else {
+            }
+            else {
                 return features.features.template Get<T>();
             }
         }
 
         template<typename T>
-        requires (PropertyMan::template Contains_Type<T>)
-        [[nodiscard]] T& GetProperty()
-        {   
-            if constexpr(std::is_same_v<T, VkPhysicalDeviceProperties2>){
-                return properties.base;
-            }
-            else{
-                return properties.properties.template Get<T>();
-            }   
-        }
-        template<typename T>
-        requires (PropertyMan::template Contains_Type<T>)
-        [[nodiscard]] const T& GetProperty() const
-        {
+            requires(PropertyMan::template Contains_Type<T>)
+        [[nodiscard]] T& GetProperty() {
             if constexpr (std::is_same_v<T, VkPhysicalDeviceProperties2>) {
                 return properties.base;
-            } else {
+            }
+            else {
+                return properties.properties.template Get<T>();
+            }
+        }
+        template<typename T>
+            requires(PropertyMan::template Contains_Type<T>)
+        [[nodiscard]] const T& GetProperty() const {
+            if constexpr (std::is_same_v<T, VkPhysicalDeviceProperties2>) {
+                return properties.base;
+            }
+            else {
                 return properties.properties.template Get<T>();
             }
         }
@@ -155,7 +150,7 @@ namespace EWE{
 
                 uint32_t propCount;
                 EWE_VK(vkEnumerateDeviceExtensionProperties, dev, nullptr, &propCount, nullptr);
-                std::vector<VkExtensionProperties> extensionProperties{ propCount };
+                std::vector<VkExtensionProperties> extensionProperties{propCount};
                 EWE_VK(vkEnumerateDeviceExtensionProperties, dev, nullptr, &propCount, extensionProperties.data());
 
                 devEval.supported_extensions = ExtensionMan::GetSupport(extensionProperties);
@@ -165,44 +160,44 @@ namespace EWE{
                     if (devEval.supported_extensions[i]) {
                         devEval.score += ExtensionMan::scores[i];
                     }
-                    else if(ExtensionMan::required[i]){
+                    else if (ExtensionMan::required[i]) {
                         devEval.passedRequirements = false;
                         devEval.failureReport.push_back(ExtensionMan::names[i].data());
                     }
                 }
-
-
             }
-            std::ranges::sort(ret,
-                              [](const DeviceEvaluation<FeatureMan, PropertyMan>& a, const DeviceEvaluation<FeatureMan, PropertyMan>& b)
-                              {
-                                  if (a.passedRequirements != b.passedRequirements)
-                                      return a.passedRequirements > b.passedRequirements;
-                                  return a.score > b.score;
-                              }
+            std::ranges::sort(
+                ret,
+                [](const DeviceEvaluation<FeatureMan, PropertyMan>& a,
+                   const DeviceEvaluation<FeatureMan, PropertyMan>& b) {
+                    if (a.passedRequirements != b.passedRequirements) {
+                        return a.passedRequirements > b.passedRequirements;
+                    }
+                    return a.score > b.score;
+                }
             );
 
             return ret;
         }
 
         [[nodiscard]] LogicalDevice ConstructDevice(
-            DeviceEvaluation<FeatureMan, PropertyMan>& deviceEval, 
-            PhysicalDevice&& physicalDevice, 
+            DeviceEvaluation<FeatureMan, PropertyMan>& deviceEval,
+            PhysicalDevice&& physicalDevice,
             VkBaseInStructure* pNextChain,
             uint32_t api_version,
             VmaAllocatorCreateFlags vmaAllocatorFlags
-        ){
+        ) {
 
 
             features.PopulateInPlace(physicalDevice.device);
             properties.Populate(physicalDevice.device);
             auto featurePack = features.GetFeaturePack();
             auto propertyPack = properties.GetPropertyPack();
-            
+
             //extension_support = deviceEval.supported_extensions;
             EWE_ASSERT(deviceEval.supported_extensions.size() == extension_support.size());
             for (uint16_t i = 0; i < deviceEval.supported_extensions.size(); i++) {
-            //theres a smarter copy for this i just dont feel like loking for it rn
+                //theres a smarter copy for this i just dont feel like loking for it rn
                 extension_support[i] = deviceEval.supported_extensions[i];
             }
             std::vector<const char*> active_extensions{};
@@ -219,16 +214,15 @@ namespace EWE{
                 .enabledExtensionCount = static_cast<uint32_t>(active_extensions.size()),
                 .ppEnabledExtensionNames = active_extensions.data()
             };
-            
+
             return LogicalDevice(
-                std::forward<PhysicalDevice>(physicalDevice), 
-                deviceCreateInfo, 
-                api_version, 
+                std::forward<PhysicalDevice>(physicalDevice),
+                deviceCreateInfo,
+                api_version,
                 vmaAllocatorFlags,
                 featurePack,
                 propertyPack
             );
         }
-
     };
 }

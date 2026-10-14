@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-namespace EWE{
+namespace EWE {
 
     /*
     struct SpecializationEntry {

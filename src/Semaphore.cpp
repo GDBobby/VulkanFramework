@@ -1,9 +1,7 @@
 #include "EightWinds/Backend/Semaphore.h"
 
-namespace EWE{
-    BinarySemaphore::BinarySemaphore(LogicalDevice& _logicalDevice)
-        :logicalDevice{_logicalDevice}
-    {
+namespace EWE {
+    BinarySemaphore::BinarySemaphore(LogicalDevice& _logicalDevice) : logicalDevice{_logicalDevice} {
         VkSemaphoreCreateInfo semaphoreCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
             .pNext = nullptr,
@@ -16,16 +14,16 @@ namespace EWE{
             logicalDevice.garbageDisposal.TossVK(vkSemaphore);
         }
     }
-    
+
     BinarySemaphore::BinarySemaphore(BinarySemaphore&& moveSrc) noexcept
         : logicalDevice{moveSrc.logicalDevice},
-        vkSemaphore{moveSrc.vkSemaphore}//,
-        //waiting{moveSrc.waiting},
-        //signaling{moveSrc.signaling}
+          vkSemaphore{moveSrc.vkSemaphore} //,
+    //waiting{moveSrc.waiting},
+    //signaling{moveSrc.signaling}
     {
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
     }
-    BinarySemaphore& BinarySemaphore::operator=(BinarySemaphore&& moveSrc) noexcept{
+    BinarySemaphore& BinarySemaphore::operator=(BinarySemaphore&& moveSrc) noexcept {
         EWE_ASSERT(logicalDevice == moveSrc.logicalDevice);
         vkSemaphore = moveSrc.vkSemaphore;
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
@@ -34,23 +32,17 @@ namespace EWE{
         //signaling = moveSrc.signaling;
         return *this;
     }
-    
-        void BinarySemaphore::SetName(std::string_view name){
+
+    void BinarySemaphore::SetName(std::string_view name) {
 #if EWE_DEBUG_NAMING
-            logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
+        logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
 #endif
-        }
-
-
-
-
-
+    }
 
 
     TimelineSemaphore::TimelineSemaphore(LogicalDevice& _logicalDevice, uint64_t initialValue)
         : logicalDevice{_logicalDevice},
-        value{initialValue}
-    {
+          value{initialValue} {
 #if EWE_DEBUG_BOOL
         EWE_ASSERT(logicalDevice.features12.timelineSemaphore);
 #endif
@@ -75,16 +67,16 @@ namespace EWE{
             logicalDevice.garbageDisposal.TossVK(vkSemaphore);
         }
     }
-    
+
     TimelineSemaphore::TimelineSemaphore(TimelineSemaphore&& moveSrc) noexcept
         : logicalDevice{moveSrc.logicalDevice},
-        vkSemaphore{moveSrc.vkSemaphore}//,
-        //waiting{moveSrc.waiting},
-        //signaling{moveSrc.signaling}
+          vkSemaphore{moveSrc.vkSemaphore} //,
+    //waiting{moveSrc.waiting},
+    //signaling{moveSrc.signaling}
     {
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
     }
-    TimelineSemaphore& TimelineSemaphore::operator=(TimelineSemaphore&& moveSrc) noexcept{
+    TimelineSemaphore& TimelineSemaphore::operator=(TimelineSemaphore&& moveSrc) noexcept {
         EWE_ASSERT(logicalDevice == moveSrc.logicalDevice);
         vkSemaphore = moveSrc.vkSemaphore;
         moveSrc.vkSemaphore = VK_NULL_HANDLE;
@@ -93,15 +85,15 @@ namespace EWE{
         //signaling = moveSrc.signaling;
         return *this;
     }
-    
-        void TimelineSemaphore::SetName(std::string_view name){
+
+    void TimelineSemaphore::SetName(std::string_view name) {
 #if EWE_DEBUG_NAMING
-            logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
+        logicalDevice.SetObjectName(vkSemaphore, VK_OBJECT_TYPE_SEMAPHORE, name);
 #endif
-        }
+    }
 
 
-    VkSemaphoreSubmitInfo TimelineSemaphore::GetSignalSubmitInfo(VkPipelineStageFlags2 stageMask) noexcept{
+    VkSemaphoreSubmitInfo TimelineSemaphore::GetSignalSubmitInfo(VkPipelineStageFlags2 stageMask) noexcept {
         value++;
 #if EWE_DEBUG_BOOL
         //Log::Debug("semaphore[%s] subinfo signaling : %zu\n", debugName.c_str(), value);
@@ -115,7 +107,7 @@ namespace EWE{
             .deviceIndex = 0
         };
     }
-    VkSemaphoreSubmitInfo TimelineSemaphore::GetWaitSubmitInfo(VkPipelineStageFlags2 stageMask) const noexcept{
+    VkSemaphoreSubmitInfo TimelineSemaphore::GetWaitSubmitInfo(VkPipelineStageFlags2 stageMask) const noexcept {
 #if EWE_DEBUG_BOOL
         //Log::Debug("semaphore[%s] subinfo waiting : %zu\n", debugName.c_str(), value);
 #endif
@@ -128,14 +120,14 @@ namespace EWE{
             .deviceIndex = 0
         };
     }
-    VkSemaphoreSubmitInfo TimelineSemaphore::GetSubmitInfo(VkPipelineStageFlags2 stageMask, bool signal) noexcept{
-        if(signal){
+    VkSemaphoreSubmitInfo TimelineSemaphore::GetSubmitInfo(VkPipelineStageFlags2 stageMask, bool signal) noexcept {
+        if (signal) {
             return GetSignalSubmitInfo(stageMask);
         }
         return GetWaitSubmitInfo(stageMask);
     }
-    
-    void TimelineSemaphore::WaitOn(uint64_t val){
+
+    void TimelineSemaphore::WaitOn(uint64_t val) {
 #if EWE_DEBUG_BOOL
         //Log::Debug("semaphore[%s] waiting : %zu\n", debugName.c_str(), value);
 #endif
@@ -147,9 +139,14 @@ namespace EWE{
             .pSemaphores = &vkSemaphore,
             .pValues = &val
         };
-        
+
         //timeout isn't acceptable, 2s is when the failure will be reported
-        EWE_VK(vkWaitSemaphores, logicalDevice, &waitInfo, std::chrono::nanoseconds(std::chrono::seconds(2)).count());//UINT64_MAX);
+        EWE_VK(
+            vkWaitSemaphores,
+            logicalDevice,
+            &waitInfo,
+            std::chrono::nanoseconds(std::chrono::seconds(2)).count()
+        ); //UINT64_MAX);
     }
     uint64_t TimelineSemaphore::GetCurrentValue() const {
         uint64_t active_val;
@@ -161,7 +158,7 @@ namespace EWE{
 #if EWE_DEBUG_BOOL
         //Log::Debug("semaphore[%s] checking : %zu : [%zu : %zu]\n", debugName.c_str(), value, val, current_val);
 #endif
-        if(current_val >= val){
+        if (current_val >= val) {
             //potentially check current_val <-> this->value?
             return true;
         }

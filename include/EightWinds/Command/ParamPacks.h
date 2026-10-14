@@ -4,22 +4,25 @@
 
 #include "EightWinds/Command/InstructionType.h"
 
-namespace EWE{
+namespace EWE {
 
     template<Inst::Type IType>
     struct ParamPack;
 
 
-    template<> struct ParamPack<Inst::Push> {
-        uint32_t size; 
+    template<>
+    struct ParamPack<Inst::Push> {
+        uint32_t size;
         uint8_t buffer_count; //cpu sided, the shader already knows
         uint8_t texture_count; //cpu sided, the shader already knows
         //assert(ele_count * ele_size == size);
 
         static constexpr std::size_t data_size = 128 / sizeof(std::byte);
-        alignas(DeviceAddress) std::byte data[data_size]; //this was 6 byte aligned, alignas(DeviceAddress) makes it 8 byte aligned
+        alignas(
+            DeviceAddress
+        ) std::byte data[data_size]; //this was 6 byte aligned, alignas(DeviceAddress) makes it 8 byte aligned
 
-        DeviceAddress& GetDeviceAddress(uint8_t index){
+        DeviceAddress& GetDeviceAddress(uint8_t index) {
 #if EWE_DEBUG_BOOL
             DeviceAddress* temp_array = reinterpret_cast<DeviceAddress*>(data);
             auto& ret = temp_array[index];
@@ -28,7 +31,7 @@ namespace EWE{
             return reinterpret_cast<DeviceAddress*>(data)[index];
 #endif
         }
-        TextureIndex& GetTextureIndex(uint8_t index){
+        TextureIndex& GetTextureIndex(uint8_t index) {
             EWE_ASSERT(buffer_count <= 8);
             auto* starting_addr = reinterpret_cast<DeviceAddress*>(data) + buffer_count;
             return reinterpret_cast<TextureIndex*>(starting_addr)[index];
@@ -42,39 +45,38 @@ namespace EWE{
             return reinterpret_cast<TextureIndex const*>(starting_addr)[index];
         }
 
-        std::size_t Size() const{
-            return buffer_count * sizeof(DeviceAddress)
-                + texture_count * sizeof(TextureIndex);
-        }
+        std::size_t Size() const { return buffer_count * sizeof(DeviceAddress) + texture_count * sizeof(TextureIndex); }
     };
-    template<> struct ParamPack<Inst::BeginRender> : public VkRenderingInfo{
+    template<>
+    struct ParamPack<Inst::BeginRender> : public VkRenderingInfo {
         using VkRenderingInfo::operator=;
     }; //i need to figure something out here
 
-    template<> struct ParamPack<Inst::BindPipeline>{
+    template<>
+    struct ParamPack<Inst::BindPipeline> {
         VkPipeline pipe;
         VkPipelineLayout layout;
         VkPipelineBindPoint bindPoint;
     };
-    template<> struct ParamPack<Inst::Draw>{
+    template<>
+    struct ParamPack<Inst::Draw> {
         uint32_t vertexCount;
         uint32_t instanceCount;
         uint32_t firstVertex;
         uint32_t firstInstance;
     };
-    struct IndexBuffer{
+    struct IndexBuffer {
         VkBuffer buffer; //pointer
         VkDeviceSize offset;
         VkIndexType indexType;
 
-        bool operator==(IndexBuffer& other) const{
-            return buffer == other.buffer 
-            && offset == other.offset 
-            && indexType == other.indexType;
+        bool operator==(IndexBuffer& other) const {
+            return buffer == other.buffer && offset == other.offset && indexType == other.indexType;
         }
     };
 
-    template<> struct ParamPack<Inst::DrawIndexed>{
+    template<>
+    struct ParamPack<Inst::DrawIndexed> {
         //is it a mistake to tightly bind these 2?
         //i dont see a common use case where i want to do multiple draw calls per index buffer without instancing
         IndexBuffer indexBuffer;
@@ -85,29 +87,34 @@ namespace EWE{
         uint32_t vertexOffset;
         uint32_t firstInstance;
     };
-    template<> struct ParamPack<Inst::BeginLabel>{
+    template<>
+    struct ParamPack<Inst::BeginLabel> {
         const char* name; //do I want the lifetime of this to be separate??
         float red;
         float green;
         float blue;
     };
-    template<> struct ParamPack<Inst::Dispatch>{
+    template<>
+    struct ParamPack<Inst::Dispatch> {
         uint32_t x;
         uint32_t y;
         uint32_t z;
     };
-    template<> struct ParamPack<Inst::DrawMeshTasks>{
+    template<>
+    struct ParamPack<Inst::DrawMeshTasks> {
         uint16_t x;
         uint16_t y;
         uint16_t z;
     };
-    template<> struct ParamPack<Inst::DrawIndirect>{
+    template<>
+    struct ParamPack<Inst::DrawIndirect> {
         VkBuffer buffer;
         VkDeviceSize offset;
         uint32_t drawCount;
         uint32_t stride;
     };
-    template<> struct ParamPack<Inst::DrawIndirectCount>{
+    template<>
+    struct ParamPack<Inst::DrawIndirectCount> {
         VkBuffer buffer;
         VkDeviceSize offset;
         VkBuffer countBuffer;
@@ -116,72 +123,77 @@ namespace EWE{
         uint32_t stride;
     };
     //same data
-    template<> struct ParamPack<Inst::DrawIndexedIndirect> 
-        : public ParamPack<Inst::DrawIndirect>
-    {};
-    template<> struct ParamPack<Inst::DrawIndexedIndirectCount> 
-        : public ParamPack<Inst::DrawIndirectCount>
-    {};
-    template<> struct ParamPack<Inst::DrawMeshTasksIndirect> 
-        : public ParamPack<Inst::DrawIndirect>
-    {};
-    template<> struct ParamPack<Inst::DrawMeshTasksIndirectCount> 
-        : public ParamPack<Inst::DrawIndirectCount>
-    {};
+    template<>
+    struct ParamPack<Inst::DrawIndexedIndirect> : public ParamPack<Inst::DrawIndirect> {};
+    template<>
+    struct ParamPack<Inst::DrawIndexedIndirectCount> : public ParamPack<Inst::DrawIndirectCount> {};
+    template<>
+    struct ParamPack<Inst::DrawMeshTasksIndirect> : public ParamPack<Inst::DrawIndirect> {};
+    template<>
+    struct ParamPack<Inst::DrawMeshTasksIndirectCount> : public ParamPack<Inst::DrawIndirectCount> {};
 
-    template<> struct ParamPack<Inst::DispatchIndirect>{
+    template<>
+    struct ParamPack<Inst::DispatchIndirect> {
         VkBuffer buffer;
         VkDeviceSize offset;
     };
-    template<> struct ParamPack<Inst::DS_Viewport>{
+    template<>
+    struct ParamPack<Inst::DS_Viewport> {
         VkViewport viewport;
     };
-    template<> struct ParamPack<Inst::DS_Scissor>{
+    template<>
+    struct ParamPack<Inst::DS_Scissor> {
         VkRect2D scissor;
     };
-    template<> struct ParamPack<Inst::DS_ViewportCount>{
+    template<>
+    struct ParamPack<Inst::DS_ViewportCount> {
         static constexpr uint32_t ArbitraryViewportCountLimit = 10;
         //lets set an arbitrary limit to 10
         VkViewport viewports[ArbitraryViewportCountLimit];
         uint32_t currentViewportCount = 0;
     };
-    template<> struct ParamPack<Inst::DS_ScissorCount>{
+    template<>
+    struct ParamPack<Inst::DS_ScissorCount> {
         static constexpr uint32_t ArbitraryScissorCountLimit = 10;
         VkRect2D scissors[ArbitraryScissorCountLimit];
         uint32_t currentScissorCount = 0;
     };
 
-    template<> struct ParamPack<Inst::If>{
+    template<>
+    struct ParamPack<Inst::If> {
         bool enabled;
 
-        operator bool() const{
-            return enabled;
-        }
+        operator bool() const { return enabled; }
     };
 
-    template<> struct ParamPack<Inst::LoopBegin>{ //i assume this would need to be used with indirect commands
-        int begin; 
+    template<>
+    struct ParamPack<Inst::LoopBegin> { //i assume this would need to be used with indirect commands
+        int begin;
         int comparison;
         int increment;
         //for (int i = begin; i < comparison; i += increment)
     };
     //template<> struct ParamPack<>{};
 
-    namespace Command{
+    namespace Command {
         struct ParamPool;
     }
-    template<> struct ParamPack<Inst::Ext_Pool>{
+    template<>
+    struct ParamPack<Inst::Ext_Pool> {
         Command::ParamPool* pool;
     };
 
 #if EWE_DEBUG_BOOL
-namespace Command{namespace Exec{
-        struct ExecContext;
-}}
+    namespace Command {
+        namespace Exec {
+            struct ExecContext;
+        }
+    }
 
-    template<> struct ParamPack<Inst::DebugFunction>{
+    template<>
+    struct ParamPack<Inst::DebugFunction> {
         std::function<void(Command::Exec::ExecContext&)> callback = nullptr;
     };
 #endif
-	
+
 } //namespace EWE

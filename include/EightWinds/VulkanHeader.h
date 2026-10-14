@@ -25,12 +25,12 @@
 //typeids, like PipelineID,
 //and vk result assertion (EWE_VK)
 
-namespace EWE{
+namespace EWE {
 
 #define r_cast reinterpret_cast
 #define s_cast static_cast
 #define d_cast dynamic_cast
-    
+
     using u8 = uint8_t;
     using u16 = uint16_t;
     using u32 = uint32_t;
@@ -45,17 +45,16 @@ namespace EWE{
     using f64 = double;
 
 
-    
     static constexpr uint8_t max_frames_in_flight = 2;
-    template <typename T>
-    requires(std::integral<T> || std::floating_point<T>)
+    template<typename T>
+        requires(std::integral<T> || std::floating_point<T>)
     static constexpr T DEFAULT_HEIGHT = T(1080);
-    template <typename T>
-    requires(std::integral<T> || std::floating_point<T>)
+    template<typename T>
+        requires(std::integral<T> || std::floating_point<T>)
     static constexpr T DEFAULT_WIDTH = T(1920);
 
 
-    #define for_each_frame for(uint8_t frame = 0; frame < max_frames_in_flight; frame++)
+#define for_each_frame for (uint8_t frame = 0; frame < max_frames_in_flight; frame++)
 
     static constexpr int null_texture = -1;
     static constexpr VkDeviceAddress null_buffer = 0;
@@ -68,12 +67,8 @@ namespace EWE{
         /*implicit*/ DeviceAddress(VkDeviceAddress val) : value(val) {}
         operator VkDeviceAddress() const { return value; }
 
-        bool operator==(DeviceAddress const& other) const{
-            return value == other.value;
-        }
-        bool IsNull() const{
-            return value == null_buffer;
-        }
+        bool operator==(DeviceAddress const& other) const { return value == other.value; }
+        bool IsNull() const { return value == null_buffer; }
     };
     struct TextureIndex {
         int value;
@@ -81,12 +76,8 @@ namespace EWE{
         TextureIndex(int val) : value(val) {}
         operator int() const { return value; }
 
-        bool operator==(TextureIndex const& other) const{
-            return value == other.value;
-        }
-        bool IsNull() const{
-            return value <= null_texture;
-        }
+        bool operator==(TextureIndex const& other) const { return value == other.value; }
+        bool IsNull() const { return value <= null_texture; }
     };
 
 
@@ -95,7 +86,7 @@ namespace EWE{
         constexpr uint32_t inverted_mask = ~mask;
         return in_version & inverted_mask;
     }
-    template <typename T>
+    template<typename T>
     concept VulkanStruct = requires(T t) {
         { t.sType } -> std::convertible_to<VkStructureType>;
         { t.pNext } -> std::convertible_to<const void*>;
@@ -128,23 +119,23 @@ namespace EWE{
     //}
 
     template<typename F, typename... Args>
-    requires (std::is_invocable_v<F, Args...>)
+        requires(std::is_invocable_v<F, Args...>)
     inline constexpr void EWE_VK(F&& f, Args&&... args) {
-    #if WRAPPING_VULKAN_FUNCTIONS
+#if WRAPPING_VULKAN_FUNCTIONS
         //call a preliminary function
         //if constexpr ((ewe_castable_to_size_t<Args> || ...)) {
         //    if ((ewe_arg_matches_magic(args) || ...)) {
         //        Log::Warning("pause\n");
         //    }
         //}
-    #endif
+#endif
 
 
         EWE_VK_RESULT(std::invoke(std::forward<F>(f), std::forward<Args>(args)...));
-        
-    #if WRAPPING_VULKAN_FUNCTIONS
+
+#if WRAPPING_VULKAN_FUNCTIONS
         //call a following function
-    #endif
+#endif
     }
 
     void NameCurrentThread(std::string_view name);

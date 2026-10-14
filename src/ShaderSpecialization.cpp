@@ -1,8 +1,8 @@
 #include "EightWinds/Backend/ShaderSpecialization.h"
 
 
-namespace EWE{
-	/*
+namespace EWE {
+    /*
     VkSpecInfo_RAII::VkSpecInfo_RAII(RuntimeArray<SpecializationEntry> const& entries) 
 		: mapEntries(entries.size())
 	{
