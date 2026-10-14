@@ -24,9 +24,9 @@ namespace EWE {
                 Inst::DrawMeshTasksIndirect,
                 Inst::DrawMeshTasksIndirectCount,
 
-                //Inst::DS_Viewport,
+                Inst::DS_Viewport,
                 //Inst::DS_ViewportCount,
-                //Inst::DS_Scissor,
+                Inst::DS_Scissor,
                 //Inst::DS_ScissorCount,
 
                 Inst::BeginLabel,
