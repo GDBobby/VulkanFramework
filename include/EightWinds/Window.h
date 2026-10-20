@@ -25,7 +25,14 @@ struct Dimensions {
 
 namespace EWE {
     struct Window {
-        [[nodiscard]] Window(Instance& instance, uint32_t width, uint32_t height, std::string_view name);
+        [[nodiscard]] Window(
+            Instance& instance,
+            uint32_t width,
+            uint32_t height,
+            std::string_view name,
+            bool decorated = true
+        );
+        void Resize(uint32_t width, uint32_t height, bool decorated);
 
         Instance& instance;
         Dimensions<uint32_t> screenDimensions;

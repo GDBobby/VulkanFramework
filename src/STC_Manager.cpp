@@ -407,11 +407,16 @@ namespace EWE {
             .layout = initial_layout
         };
 
-        transferContext.Acquire(stc->cmdBuf, renderQueue, initial_usage);
+        // GetBeginSTC submits on the transfer queue. Transition into the copy
+        // layout on that queue before vkCmdCopyBufferToImage. Pointing the
+        // barrier at the graphics family instead leaves the image UNDEFINED
+        // for the copy.
+        transferContext.Acquire(stc->cmdBuf, transferQueue, initial_usage);
         transferContext.Stage(stc->cmdBuf, initial_usage);
 
-        if (initial_usage.layout != transferContext.final_usage.layout) { //ownership and potentially layout transition
-            transferContext.ChangeOwnership(stc->cmdBuf, renderQueue, renderQueue, initial_usage);
+        const bool family_transfer = transferQueue.FamilyIndex() != renderQueue.FamilyIndex();
+        if (family_transfer || initial_usage.layout != transferContext.final_usage.layout) {
+            transferContext.ChangeOwnership(stc->cmdBuf, transferQueue, renderQueue, initial_usage);
         }
         if (transferContext.generatingMipMaps) {
             EWE_ASSERT(stc->cmdPool.queue.family.SupportsGraphics());
@@ -421,9 +426,28 @@ namespace EWE {
 
         TimelineSemaphore::RelinquishThreadControl(stc->semaphore);
 
+        if (family_transfer) {
+            VkCommandBufferBeginInfo const beginInfo{
+                .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                .pNext = nullptr,
+                .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+                .pInheritanceInfo = nullptr
+            };
+            SingleTimeCommand* acquire = GetSTC(Queue::Graphics);
+            acquire->cmdBuf.Begin(beginInfo);
+            transferContext.ChangeOwnership(acquire->cmdBuf, transferQueue, renderQueue, initial_usage);
+            EndAndSubmit(*acquire);
+            TimelineSemaphore::RelinquishThreadControl(acquire->semaphore);
+            acquire->cmdBuf.state = CommandBuffer::State::Invalid;
+            ReturnSemaphore(acquire->semaphore);
+            ReturnCommandPool(acquire->cmdPool, Queue::Graphics);
+            delete acquire;
+        }
+
         for (auto& img : transferContext.images) {
             img->readyForUsage = true;
             img->data.layout = transferContext.final_usage.layout;
+            img->owningQueue = &renderQueue;
         }
 
         stc->cmdBuf.state = CommandBuffer::State::Invalid;

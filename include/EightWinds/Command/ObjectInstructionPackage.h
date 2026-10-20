@@ -36,7 +36,7 @@ namespace EWE {
                 Inst::EndIf
             };
             struct Payload {
-                //do some smart hiding so they cant add vertex and compute and mesh and raytracing at the same time
+                //cant do vertex and compute and mesh and raytracing at the same time
                 std::array<Shader*, ShaderStage::Bits::COUNT> shaders;
                 ObjectRasterConfig config;
             };

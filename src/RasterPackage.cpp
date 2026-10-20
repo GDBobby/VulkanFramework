@@ -4,6 +4,7 @@
 #include "EightWinds/Pipeline/Graphics.h"
 
 #include <unordered_map>
+#include <vector>
 
 namespace EWE {
 
@@ -19,24 +20,23 @@ namespace EWE {
           task_config{config},
           attachmentMeta{config.attachment_info.colors.Size() + config.attachment_info.using_depth} {}
 
-    void AssignToPipeline(
-        LogicalDevice& logicalDevice,
-        std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>>& pipeline_group,
-        Command::ObjectPackage* pkg
-    ) {
+    struct PipelineGroup {
+        ObjectRasterData key;
+        std::vector<Command::ObjectPackage*> packages;
+    };
 
+    void AssignToPipeline(LogicalDevice& logicalDevice, std::vector<PipelineGroup>& groups, Command::ObjectPackage* pkg) {
         ObjectRasterData objRasterData{
             .layout = PipeLayout::GetLayout(logicalDevice, pkg->payload.shaders),
             .config = pkg->payload.config
         };
-        auto found = pipeline_group.find(objRasterData);
-        if (found == pipeline_group.end()) {
-            bool result = pipeline_group.try_emplace(objRasterData, std::vector<Command::ObjectPackage*>{pkg}).second;
-            EWE_ASSERT(result, "failed to emplace into pipelien gorup");
+        for (auto& group : groups) {
+            if (group.key == objRasterData) {
+                group.packages.push_back(pkg);
+                return;
+            }
         }
-        else {
-            found->second.push_back(pkg);
-        }
+        groups.push_back(PipelineGroup{objRasterData, {pkg}});
     }
 
     void RasterPackage::Compile() {
@@ -47,8 +47,8 @@ namespace EWE {
 
         paramPool.PushBack(Inst::BeginRender);
 
-        std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> vertex_pipeline_groups;
-        std::unordered_map<ObjectRasterData, std::vector<Command::ObjectPackage*>> mesh_pipeline_groups;
+        std::vector<PipelineGroup> vertex_pipeline_groups;
+        std::vector<PipelineGroup> mesh_pipeline_groups;
 
         for (auto& pkg : objectPackages) {
             if (pkg->GetDrawType() == Command::ObjectPackage::DrawType::Vertex) {
@@ -61,7 +61,7 @@ namespace EWE {
 
         for (auto& group : vertex_pipeline_groups) {
             auto latest_pipeline =
-                new GraphicsPipeline(logicalDevice, group.first.layout, task_config, group.first.config);
+                new GraphicsPipeline(logicalDevice, group.key.layout, task_config, group.key.config);
             created_pipelines.push_back(latest_pipeline);
 
             paramPool.PushBack(
@@ -80,7 +80,7 @@ namespace EWE {
 
             paramPool.PushBack(ParamPack<Inst::DS_Scissor>{.scissor = scissor});
 
-            for (auto& obj : group.second) {
+            for (auto& obj : group.packages) {
                 paramPool.PushBack(ParamPack<Inst::Ext_Pool>{.pool = &obj->paramPool});
             }
         }
