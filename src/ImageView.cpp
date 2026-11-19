@@ -105,7 +105,9 @@ namespace EWE {
     }
 
     ImageView::~ImageView() {
-        image.logicalDevice.garbageDisposal.TossVK(view);
+        if (view != VK_NULL_HANDLE) {
+            image.logicalDevice.garbageDisposal.TossVK(view);
+        }
     }
 
     void ImageView::Create() {

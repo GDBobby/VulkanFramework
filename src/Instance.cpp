@@ -114,6 +114,11 @@ namespace EWE {
     }
 
     Instance::~Instance() {
-        vkDestroyInstance(instance, nullptr);
+#if EWE_DEBUG_BOOL
+        debugMessenger.Destroy();
+#endif
+        if (instance != VK_NULL_HANDLE) {
+            vkDestroyInstance(instance, nullptr);
+        }
     }
 }

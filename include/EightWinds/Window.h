@@ -32,6 +32,7 @@ namespace EWE {
             std::string_view name,
             bool decorated = true
         );
+        ~Window();
         void Resize(uint32_t width, uint32_t height, bool decorated);
 
         Instance& instance;

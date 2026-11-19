@@ -222,6 +222,7 @@ namespace EWE {
 
         ReturnSemaphore(stc->semaphore);
         ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+        delete stc;
     }
 
     template<>
@@ -267,6 +268,7 @@ namespace EWE {
 
         ReturnSemaphore(stc->semaphore);
         ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+        delete stc;
     }
 
     //fiber focused
@@ -322,6 +324,7 @@ namespace EWE {
 
         ReturnSemaphore(stc->semaphore);
         ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+        delete stc;
     }
     template<>
     void STC_Manager::AsyncTransfer_Helper(TransferContext<Buffer>& transferContext, Queue::Type dstQueueType) {
@@ -362,6 +365,7 @@ namespace EWE {
 
         ReturnSemaphore(stc->semaphore);
         ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+        delete stc;
     }
 
 
@@ -455,6 +459,7 @@ namespace EWE {
 
         ReturnSemaphore(stc->semaphore);
         ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+        delete stc;
     }
     template<>
     void STC_Manager::InlineTransfer(TransferContext<Buffer>& transferContext) {
@@ -482,6 +487,7 @@ namespace EWE {
 
         ReturnSemaphore(stc->semaphore);
         ReturnCommandPool(stc->cmdPool, Queue::Transfer);
+        delete stc;
     }
 
 

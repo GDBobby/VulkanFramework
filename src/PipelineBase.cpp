@@ -43,6 +43,18 @@ namespace EWE {
           layout{_layout} //, copySpecInfo{ SpecInitializer(layout) }
     {}
 
+    Pipeline::~Pipeline() {
+#if PIPELINE_HOT_RELOAD
+        if (stalePipeline != VK_NULL_HANDLE) {
+            vkDestroyPipeline(logicalDevice.device, stalePipeline, nullptr);
+        }
+#endif
+        if (pipe != VK_NULL_HANDLE) {
+            vkDestroyPipeline(logicalDevice.device, pipe, nullptr);
+        }
+        delete layout;
+    }
+
     /*
 	Pipeline::Pipeline(LogicalDevice& _logicalDevice, PipelineID pipeID, PipeLayout* _layout, KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> const& specInfo)
 	: logicalDevice{_logicalDevice},

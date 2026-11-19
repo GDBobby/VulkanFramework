@@ -18,7 +18,7 @@ namespace EWE {
         VmaAllocation vmaAlloc{};
         StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size);
         StagingBuffer(LogicalDevice& logicalDevice, VkDeviceSize size, const void* data);
-        void Free();
+        ~StagingBuffer();
         void Free() const;
         void Stage(const void* data, uint64_t bufferSize);
         void Map(void*& data);

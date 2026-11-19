@@ -42,7 +42,29 @@ namespace EWE {
 #endif
     }
     Swapchain::~Swapchain() {
-        //idk yet
+        if (logicalDevice.device != VK_NULL_HANDLE) {
+            vkDeviceWaitIdle(logicalDevice.device);
+        }
+
+        for (auto& view : imageViews) {
+            if (view.view != VK_NULL_HANDLE) {
+                vkDestroyImageView(logicalDevice.device, view.view, nullptr);
+                view.view = VK_NULL_HANDLE;
+            }
+        }
+        imageViews.DestroyAll();
+
+        for (auto& image : images) {
+            logicalDevice.images.Remove(&image);
+            image.image = VK_NULL_HANDLE;
+            image.memory = VK_NULL_HANDLE;
+        }
+        images.DestroyAll();
+
+        if (activeSwapchain != VK_NULL_HANDLE) {
+            vkDestroySwapchainKHR(logicalDevice.device, activeSwapchain, nullptr);
+            activeSwapchain = VK_NULL_HANDLE;
+        }
     }
 
     bool Swapchain::CreateSwapchain() {

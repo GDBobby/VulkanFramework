@@ -146,6 +146,7 @@ namespace EWE {
         for_each_frame {
             if (img_con_addr[frame] == nullptr) {
                 img_con_addr[frame] = new Image(logicalDevice);
+                owned_images.push_back(img_con_addr[frame]);
             }
             else {
                 std::construct_at(img_con_addr[frame], logicalDevice);
@@ -170,6 +171,7 @@ namespace EWE {
                 }
                 else {
                     depth_views[frame] = new ImageView(*img_con_addr[frame]);
+                    owned_views.push_back(depth_views[frame]);
                 }
 #if EWE_DEBUG_NAMING
                 const std::string resource_name = "generated[" + std::to_string(reinterpret_cast<std::size_t>(this)) +
@@ -194,6 +196,7 @@ namespace EWE {
                 }
                 else {
                     color_views[index][frame] = new ImageView(*img_con_addr[frame]);
+                    owned_views.push_back(color_views[index][frame]);
                 }
 #if EWE_DEBUG_NAMING
                 const std::string resource_name = "generated[" + std::to_string(reinterpret_cast<std::size_t>(this)) +
@@ -210,12 +213,23 @@ namespace EWE {
         for (std::size_t i = 0; i < color_views.Size(); i++) {
             if (color_views[i][0] == nullptr) {
                 //potentially assert frame[1] is also nullptr
-                GenerateImage(PerFlight<Image*>{nullptr}, color_views[i], width, height, i);
-            }
-            if (setInfo.using_depth) {
-                GenerateImage(PerFlight<Image*>{nullptr}, depth_views[i], width, height, -1);
+                GenerateImage(PerFlight<Image*>{nullptr}, color_views[i], width, height, static_cast<int>(i));
             }
         }
+        if (setInfo.using_depth && depth_views[0] == nullptr) {
+            GenerateImage(PerFlight<Image*>{nullptr}, depth_views, width, height, -1);
+        }
+    }
+
+    RenderAttachments::~RenderAttachments() {
+        for (auto* view : owned_views) {
+            delete view;
+        }
+        owned_views.clear();
+        for (auto* image : owned_images) {
+            delete image;
+        }
+        owned_images.clear();
     }
 
     AttachmentSetInfo::AttachmentSetInfo(

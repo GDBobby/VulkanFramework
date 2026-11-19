@@ -57,6 +57,18 @@ namespace EWE {
 
         [[nodiscard]] explicit Hive() : combs{} { AddRow(); }
 
+        ~Hive() {
+            for (auto* comb : combs) {
+                delete comb;
+            }
+            combs.clear();
+        }
+
+        Hive(Hive const&) = delete;
+        Hive& operator=(Hive const&) = delete;
+        Hive(Hive&&) = delete;
+        Hive& operator=(Hive&&) = delete;
+
         //returns a uninitialzied pointer
         T* GetCell() {
             element_count++;
@@ -243,6 +255,7 @@ namespace EWE {
             //remove combs
             for (auto comb_iter = combs.begin(); comb_iter != combs.end();) {
                 if (!(*comb_iter)->occupancy.any()) {
+                    delete *comb_iter;
                     comb_iter = combs.erase(comb_iter);
                 }
                 else {

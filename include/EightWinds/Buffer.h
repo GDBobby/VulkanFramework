@@ -65,7 +65,7 @@ namespace EWE {
         VmaMemoryUsage memoryUsage;
         VmaAllocation vmaAlloc{};
 
-        bool existsOnTheGPU;
+        bool existsOnTheGPU = false;
         void* mapped = nullptr;
         void* GetMapped();
 

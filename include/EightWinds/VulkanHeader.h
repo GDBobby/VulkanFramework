@@ -36,16 +36,16 @@ namespace EWE {
     using u32 = uint32_t;
     using u64 = uint64_t;
     using sst = std::size_t; //different name? architecture bit width?
-    using s8 = int8_t;
-    using s16 = int16_t;
-    using s32 = int32_t;
-    using s64 = int64_t;
+    using i8 = int8_t;
+    using i16 = int16_t;
+    using i32 = int32_t;
+    using i64 = int64_t;
 
     using f32 = float;
     using f64 = double;
 
 
-    static constexpr uint8_t max_frames_in_flight = 2;
+    static constexpr u8 max_frames_in_flight = 2;
     template<typename T>
         requires(std::integral<T> || std::floating_point<T>)
     static constexpr T DEFAULT_HEIGHT = T(1080);
@@ -54,7 +54,7 @@ namespace EWE {
     static constexpr T DEFAULT_WIDTH = T(1920);
 
 
-#define for_each_frame for (uint8_t frame = 0; frame < max_frames_in_flight; frame++)
+#define for_each_frame for (u8 frame = 0; frame < max_frames_in_flight; frame++)
 
     static constexpr int null_texture = -1;
     static constexpr VkDeviceAddress null_buffer = 0;
@@ -108,10 +108,10 @@ namespace EWE {
     //    using U = std::remove_reference_t<T>;
 
     //    if constexpr (std::is_pointer_v<U>) {
-    //        return reinterpret_cast<std::size_t>(arg) == EWE_MAGIC_VALUE;
+    //        return r_cast<std::size_t>(arg) == EWE_MAGIC_VALUE;
     //    }
     //    else if constexpr (std::is_integral_v<U> || std::is_enum_v<U>) {
-    //        return static_cast<std::size_t>(arg) == EWE_MAGIC_VALUE;
+    //        return s_cast<std::size_t>(arg) == EWE_MAGIC_VALUE;
     //    }
     //    else {
     //        return false;

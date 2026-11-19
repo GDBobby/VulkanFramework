@@ -184,5 +184,12 @@ namespace EWE {
         VkDebugUtilsMessengerCreateInfoEXT debugUtilCreateInfo = GetPopulatedDebugMessengerCreateInfo();
         CreateDebugUtilsMessengerEXT(instance.instance, &debugUtilCreateInfo, &messenger);
     }
+
+    DebugMessenger::Destroy() {
+        if (messenger != VK_NULL_HANDLE) {
+            DestroyDebugUtilsMessengerEXT(instance.instance, messenger, nullptr);
+            messenger = VK_NULL_HANDLE;
+        }
+    }
 }
 #endif

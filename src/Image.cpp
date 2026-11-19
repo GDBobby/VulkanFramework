@@ -3,12 +3,13 @@
 namespace EWE {
     Image::Image(LogicalDevice& _logicalDevice) noexcept : logicalDevice{_logicalDevice} {}
     Image::~Image() {
-        //can we assume it was created?
+        logicalDevice.images.Remove(this);
+        if (image == VK_NULL_HANDLE || memory == VK_NULL_HANDLE) {
+            return;
+        }
         logicalDevice.garbageDisposal.Toss([&, img = image, mem = memory] {
             vmaDestroyImage(logicalDevice.vmaAllocator, img, mem);
         });
-
-        logicalDevice.images.Remove(this);
     }
 
     bool Image::Create(VmaAllocationCreateInfo const& allocCreateInfo) {

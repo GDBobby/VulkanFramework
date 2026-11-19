@@ -11,8 +11,16 @@ namespace EWE {
             Unmap();
         }
         logicalDevice.buffers.Remove(this);
-        logicalDevice.garbageDisposal.Toss([&, alloc = vmaAlloc, buffer = buffer_info.buffer] {
-            vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, alloc);
+        if (buffer_info.buffer == VK_NULL_HANDLE) {
+            return;
+        }
+        LogicalDevice& device = logicalDevice;
+        const VmaAllocation alloc = vmaAlloc;
+        const VkBuffer vkBuffer = buffer_info.buffer;
+        buffer_info.buffer = VK_NULL_HANDLE;
+        vmaAlloc = VK_NULL_HANDLE;
+        device.garbageDisposal.Toss([&device, alloc, vkBuffer] {
+            vmaDestroyBuffer(device.vmaAllocator, vkBuffer, alloc);
         });
     }
 

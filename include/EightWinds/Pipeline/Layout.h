@@ -33,6 +33,7 @@ namespace EWE {
             std::initializer_list<Shader*> shaders,
             VkDescriptorSetLayout dsl = VK_NULL_HANDLE
         ) noexcept;
+        ~PipeLayout();
 
         template<std::size_t... Is>
         static PipeLayout* CreateWithArrayImpl(

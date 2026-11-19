@@ -12,11 +12,11 @@
 namespace EWE {
     struct Pipeline {
         LogicalDevice& logicalDevice;
-        PipeLayout*
-            layout; //i dont remember why this is a pointer instead of a reference. i think i was very loosely controlling lifetime?
+        PipeLayout* layout; //owned. destroyed with this pipeline
         VkPipeline pipe;
 
         Pipeline(LogicalDevice& logicalDevice, PipeLayout* layout);
+        virtual ~Pipeline();
 
         //im retiring shader specialization constants for a moment
         //Pipeline(LogicalDevice& logicalDevice, PipelineID id, PipeLayout* layout, KeyValueContainer<ShaderStage, RuntimeArray<Shader::SpecializationEntry>> const& specInfo);

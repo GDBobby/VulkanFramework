@@ -59,6 +59,7 @@ namespace EWE {
             Queue& graphicsQueue,
             TaskRasterConfig const& config
         );
+        ~RasterPackage();
 
         std::vector<Command::ObjectPackage*> objectPackages;
 

@@ -8,6 +8,8 @@ namespace EWE {
 
     struct DebugMessenger {
         DebugMessenger(Instance& instance);
+        //~DebugMessenger(); Destroy called from instance
+        void Destroy();
 
         VkDebugUtilsMessengerEXT messenger;
         Instance& instance;

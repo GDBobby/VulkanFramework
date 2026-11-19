@@ -84,7 +84,7 @@ namespace EWE {
         void Resize(std::size_t count) {
             if (count != size) {
                 if (size != 0) {
-                    allocator.deallocate(memory, count);
+                    allocator.deallocate(memory, size);
                 }
                 memory = allocator.allocate(count);
                 size = count;

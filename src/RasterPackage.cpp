@@ -20,6 +20,13 @@ namespace EWE {
           task_config{config},
           attachmentMeta{config.attachment_info.colors.Size() + config.attachment_info.using_depth} {}
 
+    RasterPackage::~RasterPackage() {
+        for (auto* pipeline : created_pipelines) {
+            delete pipeline;
+        }
+        created_pipelines.clear();
+    }
+
     struct PipelineGroup {
         ObjectRasterData key;
         std::vector<Command::ObjectPackage*> packages;

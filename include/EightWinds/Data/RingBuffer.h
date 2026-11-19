@@ -26,11 +26,35 @@ namespace EWE {
 #endif
 
         std::size_t starting_index = 0;
+        bool elements_alive = false;
 
         template<typename... Args>
             requires(std::is_constructible_v<T, Args...>)
         [[nodiscard]] RingBuffer(Args&&... args) {
             data.ConstructAll(std::forward<Args>(args)...);
+            elements_alive = true;
+        }
+
+        ~RingBuffer() {
+            if (elements_alive) {
+                data.DestroyAll();
+                elements_alive = false;
+            }
+        }
+
+        RingBuffer(RingBuffer const&) = delete;
+        RingBuffer& operator=(RingBuffer const&) = delete;
+        RingBuffer& operator=(RingBuffer&&) = delete;
+
+        RingBuffer(RingBuffer&& moveSrc) noexcept
+            : data{moveSrc.data},
+              usage{moveSrc.usage},
+#if EWE_DEBUG_BOOL
+              usage_location{moveSrc.usage_location},
+#endif
+              starting_index{moveSrc.starting_index},
+              elements_alive{moveSrc.elements_alive} {
+            moveSrc.elements_alive = false;
         }
 
         [[nodiscard]] RingBuffer()

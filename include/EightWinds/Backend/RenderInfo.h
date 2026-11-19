@@ -118,6 +118,14 @@ namespace EWE {
 
         RuntimeArray<PerFlight<ImageView*>> color_views;
         PerFlight<ImageView*> depth_views;
+        std::vector<Image*> owned_images;
+        std::vector<ImageView*> owned_views;
+
+        ~RenderAttachments();
+        RenderAttachments(RenderAttachments const&) = delete;
+        RenderAttachments& operator=(RenderAttachments const&) = delete;
+        RenderAttachments(RenderAttachments&&) = delete;
+        RenderAttachments& operator=(RenderAttachments&&) = delete;
 
 
         [[nodiscard]] explicit RenderAttachments(

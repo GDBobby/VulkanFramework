@@ -69,6 +69,17 @@ namespace EWE {
         EWE_VK(glfwCreateWindowSurface, instance, window, nullptr, &surface);
     }
 
+    Window::~Window() {
+        if (surface != VK_NULL_HANDLE) {
+            vkDestroySurfaceKHR(instance.instance, surface, nullptr);
+            surface = VK_NULL_HANDLE;
+        }
+        if (window != nullptr) {
+            glfwDestroyWindow(window);
+            window = nullptr;
+        }
+    }
+
     void Window::Resize(uint32_t width, uint32_t height, bool decorated) {
         glfwSetWindowAttrib(window, GLFW_DECORATED, decorated ? GLFW_TRUE : GLFW_FALSE);
         if (width > 0 && height > 0) {

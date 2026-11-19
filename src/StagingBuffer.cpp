@@ -62,11 +62,8 @@ namespace EWE {
     }
 
 
-    void StagingBuffer::Free() {
-        if (buffer == VK_NULL_HANDLE) {
-            return;
-        }
-        vmaDestroyBuffer(logicalDevice.vmaAllocator, buffer, vmaAlloc);
+    StagingBuffer::~StagingBuffer() {
+        Free();
     }
 
     void StagingBuffer::Free() const {

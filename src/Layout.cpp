@@ -166,6 +166,12 @@ namespace EWE {
         bindPoint = BindPointFromType(pipelineType);
     }
 
+    PipeLayout::~PipeLayout() {
+        if (layout != VK_NULL_HANDLE) {
+            vkDestroyPipelineLayout(logicalDevice.device, layout, nullptr);
+        }
+    }
+
     RuntimeArray<VkPipelineShaderStageCreateInfo> PipeLayout::GetStageData() const {
         uint8_t shader_count = 0;
         for (auto& shader : shaders) {

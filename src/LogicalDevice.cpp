@@ -112,6 +112,7 @@ namespace EWE {
     ) noexcept
         : instance{physDevice.instance},
           physicalDevice{std::forward<PhysicalDevice>(physDevice)},
+          vmaAllocator{VK_NULL_HANDLE},
           api_version{_api_version},
           queues{deviceCreateInfo.queueCreateInfoCount},
           device{CreateDevice(deviceCreateInfo)},
@@ -172,7 +173,20 @@ namespace EWE {
     }
 
     LogicalDevice::~LogicalDevice() {
-        vkDestroyDevice(device, nullptr);
+        if (device != VK_NULL_HANDLE) {
+            vkDeviceWaitIdle(device);
+        }
+        queues.DestroyAll();
+
+
+        if (vmaAllocator != VK_NULL_HANDLE) {
+            vmaDestroyAllocator(vmaAllocator);
+            vmaAllocator = VK_NULL_HANDLE;
+        }
+        if (device != VK_NULL_HANDLE) {
+            vkDestroyDevice(device, nullptr);
+            device = VK_NULL_HANDLE;
+        }
     }
 
 #if EWE_DEBUG_NAMING
